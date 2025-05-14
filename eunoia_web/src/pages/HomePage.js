@@ -30,6 +30,7 @@ import PublicIcon from '@mui/icons-material/Public';
 import SpeedIcon from '@mui/icons-material/Speed';
 import PaidIcon from '@mui/icons-material/Paid';
 import SecurityIcon from '@mui/icons-material/Security';
+import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
 
 // Constants
 // const API_URL = 'http://localhost:8000/api'; // Commented out as API call is mocked
@@ -196,6 +197,21 @@ const AnimatedButton = styled(Button)(({ theme }) => ({
   },
 }));
 
+// Add a new styled component for the process arrows
+const ProcessArrow = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  position: 'relative',
+  zIndex: 1,
+  transform: 'translateY(40px)',
+  [theme.breakpoints.down('md')]: {
+    transform: 'rotate(90deg) translateX(50%)',
+    marginTop: '20px',
+    marginBottom: '20px',
+  },
+}));
+
 const HomePage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -342,39 +358,69 @@ const HomePage = () => {
                 
                 <Box sx={{ mt: 5, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
                   <Chip 
-                    icon={<VerifiedIcon />} 
+                    icon={
+                      <Avatar sx={{ bgcolor: alpha(theme.palette.common.white, 0.25), width: 28, height: 28 }}>
+                        <VerifiedIcon fontSize="small" sx={{ color: '#ffffff' }} />
+                      </Avatar>
+                    } 
                     label="100% Transparent" 
                     sx={{ 
-                      bgcolor: alpha(theme.palette.common.white, 0.1),
+                      bgcolor: 'rgba(76, 201, 240, 0.3)',
                       color: theme.palette.common.white,
                       backdropFilter: 'blur(10px)',
-                      fontWeight: 'medium',
+                      fontWeight: 'bold',
                       borderRadius: '50px',
-                      py: 1,
+                      py: 2,
+                      pl: 0.5,
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                      '& .MuiChip-label': {
+                        px: 1.5
+                      }
                     }} 
                   />
                   <Chip 
-                    icon={<PaidIcon />} 
+                    icon={
+                      <Avatar sx={{ bgcolor: alpha(theme.palette.common.white, 0.25), width: 28, height: 28 }}>
+                        <PaidIcon fontSize="small" sx={{ color: '#ffffff' }} />
+                      </Avatar>
+                    }
                     label="0.20% Optional Fee" 
                     sx={{ 
-                      bgcolor: alpha(theme.palette.common.white, 0.1),
+                      bgcolor: 'rgba(153, 102, 255, 0.3)',
                       color: theme.palette.common.white,
                       backdropFilter: 'blur(10px)',
-                      fontWeight: 'medium',
+                      fontWeight: 'bold',
                       borderRadius: '50px',
-                      py: 1,
+                      py: 2,
+                      pl: 0.5,
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                      '& .MuiChip-label': {
+                        px: 1.5
+                      }
                     }} 
                   />
                   <Chip 
-                    icon={<AccountBalanceWalletIcon />} 
+                    icon={
+                      <Avatar sx={{ bgcolor: alpha(theme.palette.common.white, 0.25), width: 28, height: 28 }}>
+                        <AccountBalanceWalletIcon fontSize="small" sx={{ color: '#ffffff' }} />
+                      </Avatar>
+                    }
                     label="Web3 Native" 
                     sx={{ 
-                      bgcolor: alpha(theme.palette.common.white, 0.1),
+                      bgcolor: 'rgba(247, 37, 133, 0.3)',
                       color: theme.palette.common.white,
                       backdropFilter: 'blur(10px)',
-                      fontWeight: 'medium',
+                      fontWeight: 'bold',
                       borderRadius: '50px',
-                      py: 1,
+                      py: 2,
+                      pl: 0.5,
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                      '& .MuiChip-label': {
+                        px: 1.5
+                      }
                     }} 
                   />
                 </Box>
@@ -430,97 +476,193 @@ const HomePage = () => {
             </Typography>
           </Box>
 
-          <Grid container spacing={4} direction={{ xs: 'column', md: 'row' }} justifyContent="center">
-            <Grid item xs={12} sm={8} md={4}>
-              <GlassCard>
-                <Box sx={{ mb: 2 }}>
-                  <Avatar
-                    sx={{
-                      width: 60,
-                      height: 60,
-                      bgcolor: 'primary.main',
-                      mb: 2,
-                    }}
-                  >
-                    <AccountBalanceWalletIcon fontSize="large" />
-                  </Avatar>
-                  <Typography variant="h5" fontWeight="bold" gutterBottom>
-                    1. Connect Wallet
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Connect your Aptos wallet securely. No registration required, no personal data stored.
-                  </Typography>
-                </Box>
-                <Box>
-                  <Chip
-                    label="Secure & Private"
-                    size="small"
-                    sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }}
-                  />
-                </Box>
-              </GlassCard>
-            </Grid>
+          <Box sx={{ position: 'relative', overflow: 'hidden', px: { xs: 2, md: 4 } }}>
+            {/* Process flow line */}
+            <Box sx={{ 
+              position: 'absolute', 
+              left: 0, 
+              right: 0, 
+              top: '50%', 
+              height: '4px', 
+              bgcolor: 'primary.light', 
+              opacity: 0.2,
+              zIndex: 0,
+            }} />
+            
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              flexWrap: 'nowrap',
+              overflowX: 'auto',
+              py: 2,
+              gap: { xs: 2, md: 3 }
+            }}>
+              {/* Step 1 */}
+              <Box sx={{ minWidth: '280px', flex: '0 0 auto' }}>
+                <GlassCard
+                  sx={{
+                    boxShadow: '0 10px 40px rgba(114, 9, 183, 0.1)',
+                    borderLeft: '5px solid',
+                    borderColor: 'primary.main',
+                    height: '100%'
+                  }}
+                >
+                  <Box sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Avatar
+                        sx={{
+                          width: 50,
+                          height: 50,
+                          bgcolor: 'primary.main',
+                          mr: 2,
+                        }}
+                      >
+                        <Typography variant="h5" fontWeight="bold">1</Typography>
+                      </Avatar>
+                      <Typography variant="h5" fontWeight="bold">
+                        Connect Wallet
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" color="text.secondary">
+                      Connect your Aptos wallet securely. No registration required, no personal data stored.
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Chip
+                      icon={<AccountBalanceWalletIcon />}
+                      label="Secure & Private"
+                      size="small"
+                      sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }}
+                    />
+                  </Box>
+                </GlassCard>
+              </Box>
 
-            <Grid item xs={12} sm={8} md={4}>
-              <GlassCard>
-                <Box sx={{ mb: 2 }}>
-                  <Avatar
-                    sx={{
-                      width: 60,
-                      height: 60,
-                      bgcolor: 'primary.main',
-                      mb: 2,
-                    }}
-                  >
-                    <PublicIcon fontSize="large" />
-                  </Avatar>
-                  <Typography variant="h5" fontWeight="bold" gutterBottom>
-                    2. Choose a Cause
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Browse verified charitable organizations and select a cause that resonates with you.
-                  </Typography>
+              {/* Arrow 1 to 2 */}
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                justifyContent: 'center', 
+                flex: '0 0 auto'
+              }}>
+                <Box sx={{ 
+                  animation: 'pulse 1.5s infinite',
+                  color: 'primary.main',
+                  '@keyframes pulse': {
+                    '0%': { opacity: 0.6, transform: 'scale(1)' },
+                    '50%': { opacity: 1, transform: 'scale(1.2)' },
+                    '100%': { opacity: 0.6, transform: 'scale(1)' },
+                  }
+                }}>
+                  <KeyboardDoubleArrowRightIcon sx={{ fontSize: 40 }} />
                 </Box>
-                <Box>
-                  <Chip
-                    label="Verified Charities"
-                    size="small"
-                    sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }}
-                  />
-                </Box>
-              </GlassCard>
-            </Grid>
+              </Box>
 
-            <Grid item xs={12} sm={8} md={4}>
-              <GlassCard>
-                <Box sx={{ mb: 2 }}>
-                  <Avatar
-                    sx={{
-                      width: 60,
-                      height: 60,
-                      bgcolor: 'primary.main',
-                      mb: 2,
-                    }}
-                  >
-                    <SecurityIcon fontSize="large" />
-                  </Avatar>
-                  <Typography variant="h5" fontWeight="bold" gutterBottom>
-                    3. Track Impact
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Follow your donation on the blockchain in real-time and see exactly how it's being used.
-                  </Typography>
+              {/* Step 2 */}
+              <Box sx={{ minWidth: '280px', flex: '0 0 auto' }}>
+                <GlassCard
+                  sx={{
+                    boxShadow: '0 10px 40px rgba(114, 9, 183, 0.1)',
+                    borderLeft: '5px solid',
+                    borderColor: 'primary.main',
+                    height: '100%'
+                  }}
+                >
+                  <Box sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Avatar
+                        sx={{
+                          width: 50,
+                          height: 50,
+                          bgcolor: 'primary.main',
+                          mr: 2,
+                        }}
+                      >
+                        <Typography variant="h5" fontWeight="bold">2</Typography>
+                      </Avatar>
+                      <Typography variant="h5" fontWeight="bold">
+                        Choose a Cause
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" color="text.secondary">
+                      Browse verified charitable organizations and select a cause that resonates with you.
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Chip
+                      icon={<PublicIcon />}
+                      label="Verified Charities"
+                      size="small"
+                      sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }}
+                    />
+                  </Box>
+                </GlassCard>
+              </Box>
+
+              {/* Arrow 2 to 3 */}
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                justifyContent: 'center', 
+                flex: '0 0 auto'
+              }}>
+                <Box sx={{ 
+                  animation: 'pulse 1.5s infinite',
+                  color: 'primary.main',
+                  '@keyframes pulse': {
+                    '0%': { opacity: 0.6, transform: 'scale(1)' },
+                    '50%': { opacity: 1, transform: 'scale(1.2)' },
+                    '100%': { opacity: 0.6, transform: 'scale(1)' },
+                  }
+                }}>
+                  <KeyboardDoubleArrowRightIcon sx={{ fontSize: 40 }} />
                 </Box>
-                <Box>
-                  <Chip
-                    label="100% Transparent"
-                    size="small"
-                    sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }}
-                  />
-                </Box>
-              </GlassCard>
-            </Grid>
-          </Grid>
+              </Box>
+
+              {/* Step 3 */}
+              <Box sx={{ minWidth: '280px', flex: '0 0 auto' }}>
+                <GlassCard
+                  sx={{
+                    boxShadow: '0 10px 40px rgba(114, 9, 183, 0.1)',
+                    borderLeft: '5px solid',
+                    borderColor: 'primary.main',
+                    height: '100%'
+                  }}
+                >
+                  <Box sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Avatar
+                        sx={{
+                          width: 50,
+                          height: 50,
+                          bgcolor: 'primary.main',
+                          mr: 2,
+                        }}
+                      >
+                        <Typography variant="h5" fontWeight="bold">3</Typography>
+                      </Avatar>
+                      <Typography variant="h5" fontWeight="bold">
+                        Track Impact
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" color="text.secondary">
+                      Follow your donation on the blockchain in real-time and see exactly how it's being used.
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Chip
+                      icon={<SecurityIcon />}
+                      label="100% Transparent"
+                      size="small"
+                      sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }}
+                    />
+                  </Box>
+                </GlassCard>
+              </Box>
+            </Box>
+          </Box>
         </Container>
       </Box>
 
