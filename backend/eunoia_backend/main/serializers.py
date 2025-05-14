@@ -19,4 +19,15 @@ class MarketingCampaignSerializer(serializers.ModelSerializer):
 class SocialPostSerializer(serializers.ModelSerializer):
     class Meta:
         model = SocialPost
-        fields = '__all__' 
+        fields = '__all__'
+
+class DonationTransactionPayloadRequestSerializer(serializers.Serializer):
+    charity_name = serializers.CharField()
+    amount = serializers.IntegerField() # Will be treated as u64 on backend/contract
+    coin_identifier_string = serializers.CharField(default='0x1::aptos_coin::AptosCoin')
+    donor_address = serializers.CharField()
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Amount must be positive.")
+        return value 

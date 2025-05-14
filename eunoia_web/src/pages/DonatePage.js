@@ -45,6 +45,11 @@ import { AppContract } from '../components/AppContract';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
+// Aptos Contract Constants (Re-added for all-frontend approach)
+const MODULE_ADDRESS = "0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011";
+const MODULE_NAME = "eunoia_foundation";
+const DONATE_FUNCTION_NAME = "donate";
+
 // Mock data until API integration
 /*
 const MOCK_CHARITIES = [
@@ -200,6 +205,8 @@ const DonatePage = () => {
   );
   const [amplifyImpact, setAmplifyImpact] = useState(true);
   const [donationComplete, setDonationComplete] = useState(false);
+  const [transactionPending, setTransactionPending] = useState(false);
+  const [transactionError, setTransactionError] = useState(null);
   
   // Mock wallet balance (would come from blockchain)
   const [walletBalance, setWalletBalance] = useState(150.75); // APT tokens
@@ -295,13 +302,90 @@ const DonatePage = () => {
     return calculateTotal() * 0.002; // 0.20%
   };
 
-  const handleDonate = () => {
-    setLoading(true);
-    // Simulate blockchain transaction
-    setTimeout(() => {
-      setLoading(false);
-      setDonationComplete(true);
-    }, 2000);
+  const handleDonate = async () => {
+    if (selectedCharities.length === 0) {
+      setTransactionError("No charity selected for donation.");
+      return;
+    }
+
+    const charityToDonate = selectedCharities[0]; // Example: process first selected
+    const amountToDonate = donationAmounts[charityToDonate.id];
+
+    if (!amountToDonate || amountToDonate <= 0) {
+      setTransactionError(`Invalid amount for ${charityToDonate.name}.`);
+      return;
+    }
+
+    // 1 APT = 10^8 OCTA
+    const amountInOcta = Math.round(amountToDonate * Math.pow(10, 8)); 
+    const coinIdentifier = '0x1::aptos_coin::AptosCoin'; // Default to APT
+
+    // setLoading(true); // setLoading is now part of transactionPending
+    setTransactionPending(true);
+    setTransactionError(null);
+    setDonationComplete(false);
+
+    try {
+      // 1. Construct the transaction payload directly on the frontend
+      const entryFunctionPayload = {
+        type: "entry_function_payload", // Ensure this type string is exactly what the wallet expects
+        function: `${MODULE_ADDRESS}::${MODULE_NAME}::${DONATE_FUNCTION_NAME}`,
+        type_arguments: [coinIdentifier], // The CoinType generic type argument
+        arguments: [
+          charityToDonate.name,       // charity_name: String
+          coinIdentifier,             // coin_identifier_string: String (runtime argument)
+          amountInOcta.toString()     // amount: u64 (passed as string for safety)
+        ],
+      };
+
+      // 2. Use wallet to sign and submit the transaction
+      // Adhering to the new standard suggested by Petra (wrapping the payload)
+      if (window.aptos && window.aptos.isConnected) {
+        console.log("Constructed Entry Function Payload:", JSON.stringify(entryFunctionPayload, null, 2));
+        
+        // The Petra deprecation warning: "Usage of `signAndSubmitTransaction(payload)` is going to be deprecated soon. Use `signAndSubmitTransaction({ payload })` instead"
+        // This implies the *entire* payload object might need to be wrapped if it's not already in the expected TransactionRequestInput format.
+        // However, `entryFunctionPayload` *is* the detailed payload. Let's pass it directly as per many examples, 
+        // but if it fails, wrapping it like `{data: entryFunctionPayload}` or `{payload: entryFunctionPayload}` is the next step.
+        // For now, let's assume `entryFunctionPayload` is what it wants, and Petra handles the internal wrapping if it needs to for its new API structure.
+        // The key is often ensuring the `type` field like "entry_function_payload" is correct.
+        
+        const pendingTransaction = await window.aptos.signAndSubmitTransaction(entryFunctionPayload); 
+        // IF THE ABOVE STILL FAILS WITH TYPEERRORS or similar, TRY:
+        // const pendingTransaction = await window.aptos.signAndSubmitTransaction({ data: entryFunctionPayload });
+        // OR based on the literal deprecation message:
+        // const pendingTransaction = await window.aptos.signAndSubmitTransaction({ payload: entryFunctionPayload });
+
+        console.log("Transaction submitted:", pendingTransaction); 
+        // pendingTransaction typically contains { hash: string, ... }
+        // You might want to use pendingTransaction.hash to link to an explorer
+        setDonationComplete(true);
+      } else {
+        throw new Error("Aptos wallet not connected or not available. Please connect your wallet.");
+      }
+
+    } catch (err) {
+      console.error('Donation failed:', err);
+      let errorMessage = "Donation failed. Please try again.";
+      if (typeof err === 'string') {
+        errorMessage = err;
+      } else if (err.message) {
+        errorMessage = err.message;
+      } else if (err.name) {
+        errorMessage = `Error: ${err.name}`;
+      }
+      
+      if (errorMessage.toLowerCase().includes("user rejected") || 
+          errorMessage.toLowerCase().includes("declined") || 
+          (err.code && err.code === 4001)) {
+        errorMessage = "Transaction rejected by user.";
+      }
+      setTransactionError(errorMessage);
+      setDonationComplete(false);
+    } finally {
+      // setLoading(false);
+      setTransactionPending(false);
+    }
   };
 
   const handleNext = () => {
@@ -824,14 +908,27 @@ const DonatePage = () => {
                 <BackButton onClick={handleBack}>
                   Back to Wallet Connection
                 </BackButton>
-                <GlowButton 
-                  onClick={handleDonate}
-                  disabled={loading}
-                  startIcon={loading && <CircularProgress size={20} color="inherit" />}
-                >
-                  {loading ? 'Processing...' : 'Confirm Donation'}
-                </GlowButton>
+                {
+                  transactionPending ? (
+                    <Box sx={{ textAlign: 'center' }}>
+                      <CircularProgress sx={{ mb: 2 }}/>
+                      <Typography>Processing transaction...</Typography>
+                      <Typography variant="body2" color="text.secondary">Please confirm in your wallet.</Typography>
+                    </Box>
+                  ) : (
+                    <GlowButton 
+                      onClick={handleDonate}
+                    >
+                      Confirm Donation
+                    </GlowButton>
+                  )
+                }
               </Box>
+            )}
+            {transactionError && (
+              <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>
+                {transactionError}
+              </Typography>
             )}
           </StepContent>
         );

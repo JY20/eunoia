@@ -5,3 +5,4 @@ openai-agents
 Pillow
 djangorestframework 
 django-cors-headers
+aptos-sdk
