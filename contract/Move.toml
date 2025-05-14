@@ -3,6 +3,9 @@ name = "my-dapp"
 version = "1.0.0"
 authors = []
 
+[addresses]
+eunoia="0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011"
+
 [dev-addresses]
 
 [dependencies.AptosFramework]
