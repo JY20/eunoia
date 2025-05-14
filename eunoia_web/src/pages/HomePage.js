@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Link, useNavigate } from 'react-router-dom';
-// import axios from 'axios'; // Commented out as API call is mocked
+import axios from 'axios';
 import CharitySearch from '../components/CharitySearch';
 
 // Import icons
@@ -33,6 +33,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 
 // Constants
 // const API_URL = 'http://localhost:8000/api'; // Commented out as API call is mocked
+const API_BASE_URL = 'http://localhost:8000/api';
 
 // Styled Components
 const HeroSection = styled(Box)(({ theme }) => ({
@@ -210,7 +211,11 @@ const HomePage = () => {
     const fetchCharities = async () => {
       try {
         setLoading(true);
-        // Temporarily mock data until our API is ready
+        // Fetch from the new DRF endpoint
+        const response = await axios.get(`${API_BASE_URL}/charities/?is_verified=true`); // Fetch verified charities
+
+        // Temporarily mock data until our API is ready (Comment out or remove)
+        /*
         setTimeout(() => {
           const mockCharities = [
             {
@@ -221,27 +226,19 @@ const HomePage = () => {
               aptos_wallet_address: '0x123...abc',
               impact: '500,000 kg of plastic removed'
             },
-            {
-              id: 2,
-              name: 'Reforestation Alliance',
-              description: "Planting trees and protecting forests to combat climate change and preserve biodiversity.",
-              logo: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?q=80&w=500&auto=format&fit=crop',
-              aptos_wallet_address: '0x456...def',
-              impact: '2 million trees planted'
-            },
-            {
-              id: 3,
-              name: 'Education For All',
-              description: "Providing educational opportunities to underprivileged children around the world.",
-              logo: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=500&auto=format&fit=crop',
-              aptos_wallet_address: '0x789...ghi',
-              impact: '50,000 children educated'
-            }
+            // ... other mock charities ...
           ];
           
           setFeaturedCharities(mockCharities);
           setLoading(false);
         }, 1000);
+        */
+
+        // Assuming the API returns a list and we take the first 3 as featured
+        // DRF pagination wraps results in a 'results' key
+        const allVerifiedCharities = response.data.results || response.data; 
+        setFeaturedCharities(allVerifiedCharities.slice(0, 3));
+        setLoading(false);
       } catch (err) {
         console.error('Error fetching charities:', err);
         setError('Failed to load charities. Please try again later.');

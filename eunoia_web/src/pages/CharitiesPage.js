@@ -26,7 +26,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import CharitySearch from '../components/CharitySearch';
 
 // Constants
-const API_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 const PageHeader = styled(Box)(({ theme }) => ({
   background: 'linear-gradient(135deg, #7E57C2 0%, #B39DDB 100%)',
@@ -106,10 +106,11 @@ const CharitiesPage = () => {
       try {
         setLoading(true);
         
-        // Temporarily use mock data until API is ready
-        // const response = await axios.get(`${API_URL}/charities/`);
+        // Fetch from the new DRF endpoint
+        const response = await axios.get(`${API_BASE_URL}/charities/`);
         
-        // Mock data
+        // Mock data (remove or comment out)
+        /*
         setTimeout(() => {
           const mockCharities = [
             {
@@ -121,116 +122,19 @@ const CharitiesPage = () => {
               website_url: 'https://example.com/oceancleanup',
               category: 'Environment'
             },
-            {
-              id: 2,
-              name: 'Reforestation Alliance',
-              description: "Planting trees and protecting forests to combat climate change and preserve biodiversity.",
-              logo: 'https://via.placeholder.com/300x200?text=Reforestation',
-              aptos_wallet_address: '0x456...def',
-              website_url: 'https://example.com/reforest',
-              category: 'Environment'
-            },
-            {
-              id: 3,
-              name: 'Education For All',
-              description: "Providing educational opportunities to underprivileged children around the world.",
-              logo: 'https://via.placeholder.com/300x200?text=Education',
-              aptos_wallet_address: '0x789...ghi',
-              website_url: 'https://example.com/education',
-              category: 'Education'
-            },
-            {
-              id: 4,
-              name: 'Healthcare Access Initiative',
-              description: "Expanding access to quality healthcare in underserved communities globally.",
-              logo: 'https://via.placeholder.com/300x200?text=Healthcare',
-              aptos_wallet_address: '0xabc...123',
-              website_url: 'https://example.com/healthcare',
-              category: 'Health'
-            },
-            {
-              id: 5,
-              name: 'Clean Water Project',
-              description: "Bringing clean drinking water to communities facing water scarcity and contamination.",
-              logo: 'https://via.placeholder.com/300x200?text=Water',
-              aptos_wallet_address: '0xdef...456',
-              website_url: 'https://example.com/water',
-              category: 'Human Rights'
-            },
-            {
-              id: 6,
-              name: 'Digital Literacy Program',
-              description: "Teaching essential digital skills to bridge the technological divide in underserved areas.",
-              logo: 'https://via.placeholder.com/300x200?text=Digital',
-              aptos_wallet_address: '0xghi...789',
-              website_url: 'https://example.com/digital',
-              category: 'Education'
-            },
-            {
-              id: 7,
-              name: 'Wildlife Conservation Trust',
-              description: "Protecting endangered species and habitats from climate change and human threats.",
-              logo: 'https://via.placeholder.com/300x200?text=Wildlife',
-              aptos_wallet_address: '0x123...abc',
-              website_url: 'https://example.com/wildlife',
-              category: 'Animals'
-            },
-            {
-              id: 8,
-              name: 'Food Security Alliance',
-              description: "Combating food insecurity through sustainable agriculture and food distribution systems.",
-              logo: 'https://via.placeholder.com/300x200?text=Food',
-              aptos_wallet_address: '0x456...def',
-              website_url: 'https://example.com/food',
-              category: 'Community'
-            },
-            {
-              id: 9,
-              name: 'Renewable Energy Collective',
-              description: "Advancing renewable energy solutions in communities reliant on fossil fuels.",
-              logo: 'https://via.placeholder.com/300x200?text=Energy',
-              aptos_wallet_address: '0x789...ghi',
-              website_url: 'https://example.com/energy',
-              category: 'Environment'
-            },
-            {
-              id: 10,
-              name: 'Disaster Relief Network',
-              description: "Providing emergency relief and rebuilding assistance to communities affected by natural disasters.",
-              logo: 'https://via.placeholder.com/300x200?text=Disaster+Relief',
-              aptos_wallet_address: '0xabc...123',
-              website_url: 'https://example.com/disaster',
-              category: 'Disaster'
-            },
-            {
-              id: 11,
-              name: 'Mental Health Access Initiative',
-              description: "Expanding access to mental health services and reducing stigma worldwide.",
-              logo: 'https://via.placeholder.com/300x200?text=Mental+Health',
-              aptos_wallet_address: '0xdef...456',
-              website_url: 'https://example.com/mentalhealth',
-              category: 'Health'
-            },
-            {
-              id: 12,
-              name: 'Arts & Culture Foundation',
-              description: "Preserving cultural heritage and supporting artists in underrepresented communities.",
-              logo: 'https://via.placeholder.com/300x200?text=Arts+Culture',
-              aptos_wallet_address: '0xghi...789',
-              website_url: 'https://example.com/arts',
-              category: 'Arts'
-            }
+            // ... other mock charities ...
           ];
           
           setCharities(mockCharities);
           setFilteredCharities(mockCharities);
           setLoading(false);
         }, 1000);
+        */
         
         // When API is ready, use:
-        // setCharities(response.data);
-        // setFilteredCharities(response.data);
-        // setLoading(false);
+        setCharities(response.data.results); // DRF pagination wraps results in a 'results' key
+        setFilteredCharities(response.data.results); // Adjust if your API doesn't paginate or has a different structure
+        setLoading(false);
       } catch (err) {
         console.error('Error fetching charities:', err);
         setError('Failed to load charities. Please try again later.');

@@ -36,13 +36,17 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import TextsmsIcon from '@mui/icons-material/Textsms';
 import { useLocation } from 'react-router-dom';
+import axios from 'axios';
 
 import { AppContext } from '../components/AppProvider';
 import { Connected } from '../components/Alert';
 import Loading from '../components/Loading';
 import { AppContract } from '../components/AppContract';
 
+const API_BASE_URL = 'http://localhost:8000/api';
+
 // Mock data until API integration
+/*
 const MOCK_CHARITIES = [
   {
     id: 1,
@@ -85,6 +89,7 @@ const MOCK_CHARITIES = [
     match_reason: "This charity focuses on wildlife protection which is closely related to your interest in biodiversity conservation."
   }
 ];
+*/
 
 // Styled components
 const GlassCard = styled(Paper)(({ theme }) => ({
@@ -215,25 +220,37 @@ const DonatePage = () => {
   }, []);
 
   // Simulate fetching matches based on search or description
-  const handleFindMatches = () => {
+  const handleFindMatches = async () => {
     setLoading(true);
     
-    // Simulate API call with setTimeout
-    setTimeout(() => {
-      if (searchMode === 'direct') {
-        const searchResults = MOCK_CHARITIES.filter(charity => 
-          charity.name.toLowerCase().includes(searchValue.toLowerCase()) || 
-          charity.description.toLowerCase().includes(searchValue.toLowerCase()) ||
-          charity.category.toLowerCase().includes(searchValue.toLowerCase())
-        );
-        setMatchedCharities(searchResults);
-      } else {
-        // For needs-based search, we'd use embeddings in a real implementation
-        // For now, just return all charities with mock match scores
-        setMatchedCharities(MOCK_CHARITIES);
+    try {
+      let endpoint = `${API_BASE_URL}/charities/?is_verified=true`;
+      if (searchMode === 'direct' && searchValue) {
+        endpoint += `&search=${encodeURIComponent(searchValue)}`;
+      } else if (searchMode === 'needs' && needsDescription) {
+        endpoint += `&search=${encodeURIComponent(needsDescription)}`;
       }
+
+      const response = await axios.get(endpoint);
+      const charitiesData = response.data.results || response.data;
+
+      if (searchMode === 'needs') {
+        const charitiesWithMockScores = charitiesData.map(charity => ({
+          ...charity,
+          match_score: Math.random() * (0.98 - 0.7) + 0.7,
+          match_reason: "This charity aligns with your described interests based on its category and mission."
+        }));
+        setMatchedCharities(charitiesWithMockScores);
+      } else {
+        setMatchedCharities(charitiesData);
+      }
+
+    } catch (err) {
+      console.error('Error fetching matching charities:', err);
+      setMatchedCharities([]);
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   const handleSelectCharity = (charity) => {
