@@ -81,33 +81,18 @@ const DonatePage = () => {
       let result;
       switch (strategy) {
         case 'averageRebalance':
-          result = await averageRebalance(parameters.sector, parameters.email);
           console.log('Running Average Rebalance strategy');
           break;
   
         case 'momentum':
-          result = await momentum(parameters.sector, parameters.email);
           console.log('Running Momentum strategy');
           break;
   
         case 'standardDeviation':
-          result = await standardDeviation(
-            parameters.sector,
-            parameters.symbol,
-            parameters.openSd,
-            parameters.closeSd,
-            parameters.isBuy
-          );
           console.log('Running Standard Deviation strategy');
           break;
   
         case 'coVariance':
-          result = await coVariance(
-            parameters.symbol1,
-            parameters.symbol2,
-            parameters.startDate,
-            parameters.endDate
-          );
           console.log('Running Co-Variance strategy');
           break;
   
@@ -125,73 +110,6 @@ const DonatePage = () => {
       alert('An error occurred while starting the algorithm. Check console for details.');
     } finally {
       setLoading(false);
-    }
-  };
-  
-  const standardDeviation = async (sector, symbol, openSd, closeSd, isBuy) => {
-
-    try {
-      const res = await axios.post(`${host}/standardDeviation`, {
-        sector,
-        symbol,
-        openSd,
-        closeSd,
-        is_buy: isBuy,
-      });
-      
-      const data = res.data;
-      setResults(data);    
-      return data;
-    } catch (e) {
-      console.error('Error running standard deviation:', e);
-    }
-  };
-
-  const coVariance= async (symbol1, symbol2, startDate, endDate) => {
-
-    try {
-      const res = await axios.post(`${host}/coVariance`, {
-        symbol1,
-        symbol2,
-        start_date: new Date(startDate),
-        end_date: new Date(endDate),
-      });
-      
-      const data = res.data;
-      setResults(data);    
-      return data;
-    } catch (e) {
-      console.error('Error running standard deviation:', e);
-    }
-  };
-
-  const averageRebalance = async (sector, email) => {
-
-    try {
-      const res = await axios.post(`${host}/averageRebalance`, {
-        sector, 
-        email
-      });
-      
-      const data = res.data; 
-      return data;
-    } catch (e) {
-      console.error('Error running average rebalance:', e);
-    }
-  };
-
-  const momentum = async (sector, email) => {
-
-    try {
-      const res = await axios.post(`${host}/momentum`, {
-        sector, 
-        email
-      });
-      
-      const data = res.data; 
-      return data;
-    } catch (e) {
-      console.error('Error running momentum:', e);
     }
   };
 

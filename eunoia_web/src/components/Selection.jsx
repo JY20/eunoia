@@ -46,9 +46,9 @@ const Selection = ({ selections, onSelect }) => {
             <TableRow>
               <TableCell><strong>#</strong></TableCell>
               <TableCell><strong>Name</strong></TableCell>
-              <TableCell><strong>Tag</strong></TableCell>
-              <TableCell><strong>Cost (STRK)</strong></TableCell>
-              <TableCell><strong>Creator</strong></TableCell>
+              <TableCell><strong>Mission</strong></TableCell>
+              <TableCell><strong>Goal (USDC)</strong></TableCell>
+              <TableCell><strong>Charity</strong></TableCell>
               <TableCell align="center"><strong>Select</strong></TableCell>
             </TableRow>
           </TableHead>
@@ -58,10 +58,10 @@ const Selection = ({ selections, onSelect }) => {
               return (
                 <TableRow key={index}>
                   <TableCell>{index + 1}</TableCell>
-                  <TableCell>{item.label}</TableCell>
+                  <TableCell>{item.name}</TableCell>
                   <TableCell>
                     <Chip
-                      label={item.tags}
+                      label={item.mission}
                       size="small"
                       sx={{
                         backgroundColor: bg,
@@ -70,8 +70,8 @@ const Selection = ({ selections, onSelect }) => {
                       }}
                     />
                   </TableCell>
-                  <TableCell>{item.cost}</TableCell>
-                  <TableCell>{`${item.creator.slice(0, 2)}...${item.creator.slice(-4)}`}</TableCell>
+                  <TableCell>{item.goal}</TableCell>
+                  <TableCell>{`${item.wallet.slice(0, 2)}...${item.wallet.slice(-4)}`}</TableCell>
                   <TableCell align="center">
                     <Button
                       variant="contained"
