@@ -1,38 +1,46 @@
 [
-    {
-      "label": "Average Rebalance",
-      "value": "averageRebalance",
-      "tags": "Low Frequency",
-      "cost": 1, 
-      "creator": "0x012B099F50C3CbCc82ccF7Ee557c9d60255c35C359eA6615435B761Ec3336EC8",
-      "rating": 4.5, 
-      "description": "This strategy rebalances your portfolio based on the average value of selected assets over a given period."
-    },
-    {
-      "label": "Momentum",
-      "value": "momentum",
-      "tags": "Low Frequency",
-      "cost": 2,
-      "creator": "0x012B099F50C3CbCc82ccF7Ee557c9d60255c35C359eA6615435B761Ec3336EC8",
-      "rating": 4, 
-      "description": "This strategy capitalizes on asset price trends, allocating capital to assets showing strong upward momentum."
-    },
-    {
-      "label": "Standard Deviation",
-      "value": "standardDeviation",
-      "tags": "Calculator",
-      "cost": 2,
-      "creator": "0x012B099F50C3CbCc82ccF7Ee557c9d60255c35C359eA6615435B761Ec3336EC8",
-      "rating": 4, 
-      "description": "This tool calculates the standard deviation of asset returns to assess portfolio volatility and risk." 
-    },
-    {
-      "label": "Co-Variance",
-      "value": "coVariance",
-      "tags": "Calculator",
-      "cost": 2,
-      "creator": "0x012B099F50C3CbCc82ccF7Ee557c9d60255c35C359eA6615435B761Ec3336EC8",
-      "rating": 4, 
-      "description": "This tool measures the co-variance between asset returns to optimize portfolio diversification. Add \"-USD\" at the end for crypto symbols." 
-    }
+  {
+    "name": "Clean Water Project",
+    "mission": "To provide sustainable clean water solutions to rural communities.",
+    "wallet": "0x7B9E8a6d60D60f23cD0B2e22B74043cD48B229Bb",
+    "goal": 50000,
+    "description": "Clean Water Project is a non-profit dedicated to ensuring safe, clean, and accessible water for underprivileged communities globally.",
+    "tags": ["Water", "Health", "Infrastructure"],
+    "logo": "https://example.org/logos/cleanwater.png",
+    "website": "https://cleanwaterproject.org",
+    "score": 5
+  },
+  {
+    "name": "Books for Change",
+    "mission": "To improve literacy and educational access for children in underserved regions.",
+    "wallet": "0x13C02aC02Eef6D85AC1B7Ef4eE8B69A5e4c12F19",
+    "goal": 25000,
+    "description": "Books for Change empowers young minds through access to books, libraries, and educational programs in remote areas.",
+    "tags": ["Education", "Youth Empowerment"],
+    "logo": "https://example.org/logos/booksforchange.png",
+    "website": "https://booksforchange.org",
+    "score": 4
+  },
+  {
+    "name": "Eco Planet Alliance",
+    "mission": "To protect endangered species and promote environmental conservation.",
+    "wallet": "0x5F5c77D5c8773a69A5a1B5Fd172B3EeDc7288D1E",
+    "goal": 100000,
+    "description": "Eco Planet Alliance is committed to restoring ecosystems, protecting endangered wildlife, and promoting climate action through grassroots initiatives.",
+    "tags": ["Environment", "Conservation", "Wildlife"],
+    "logo": "https://example.org/logos/ecoplanet.png",
+    "website": "https://ecoplanetalliance.org",
+    "score": 3
+  },
+  {
+    "name": "HealthBridge Global",
+    "mission": "To deliver essential healthcare services and resources to disaster-affected regions.",
+    "wallet": "0x8BAb1d46Ef9D8b14d9F77523e82b2F3bCc960D2E",
+    "goal": 75000,
+    "description": "HealthBridge Global ensures rapid medical response and long-term health initiatives in communities affected by natural disasters and humanitarian crises.",
+    "tags": ["Health", "Disaster Relief", "Medical Aid"],
+    "logo": "https://example.org/logos/healthbridge.png",
+    "website": "https://healthbridgeglobal.org",
+    "score": 5
+  }
 ]

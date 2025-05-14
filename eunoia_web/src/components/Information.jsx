@@ -7,7 +7,7 @@ const Information = ({ info, onRunStrategy, strategy, parameters, parameterMap, 
 
   if (!info) return null;
 
-  const { label, cost, creator, rating, description } = info;
+  const { name, mission, wallet, goal, description, tags, logo, website, score} = info;
   const paramsForStrategy = parameterMap[strategy] || [];
 
   return (
@@ -25,12 +25,12 @@ const Information = ({ info, onRunStrategy, strategy, parameters, parameterMap, 
 
     {strategy !== 'newStrategy' && (
         <>
-          <Typography variant="h4" sx={{ marginBottom: '10px' }}>{label}</Typography>
+          <Typography variant="h4" sx={{ marginBottom: '10px' }}>{name}</Typography>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="body1">Cost: {cost} STRK</Typography>
-            <Rating value={rating} precision={0.5} readOnly />
+            <Typography variant="body1">Goal: {goal} USDC</Typography>
+            <Rating value={score} precision={0.5} readOnly />
         </Box>
-          <Typography variant="body1" sx={{ marginBottom: '10px'}}>Creator: {`${creator.slice(0, 2)}...${creator.slice(-4)}`}</Typography>
+          <Typography variant="body1" sx={{ marginBottom: '10px'}}>wallet: {`${wallet.slice(0, 2)}...${wallet.slice(-4)}`}</Typography>
           <Typography variant="h7" sx={{ marginBottom: '10px', fontWeight: 'bold'}}>Description:</Typography>
           <Typography variant="body2" sx={{ marginBottom: '10px' }}>{description}</Typography>
           <Typography variant="h7" sx={{ marginBottom: '10px', fontWeight: 'bold'}}>Parameters:</Typography>
@@ -244,7 +244,7 @@ const Information = ({ info, onRunStrategy, strategy, parameters, parameterMap, 
         },
         }}
     >
-        Run Strategy
+        Give
     </Button>
     </Box>
   );
