@@ -14,6 +14,14 @@ import logo from '../assets/logo.jpg';
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { AppContext } from './AppProvider';
 
+// Helper function to convert Uint8Array to Hex String
+const toHexString = (byteArray) => {
+    if (!byteArray) return null;
+    return Array.from(byteArray, byte => {
+        return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+    }).join('');
+};
+
 const StyledToolbar = styled(Toolbar)({
     display: 'flex',
     justifyContent: 'center',
@@ -56,14 +64,50 @@ const Navbar = () => {
     const { connect, disconnect, account, connected, wallets } = useWallet();
     const [buttonLabel, setButtonLabel] = useState('Connect');
 
-    console.log("Available wallets:", wallets);
+    // console.log("Available wallets:", wallets.map(w => ({name: w.name, readyState: w.readyState, icon: w.icon, url: w.url}) ));
+
+    const getDisplayAddress = (acc) => {
+        if (!acc) return null;
+        // console.log("getDisplayAddress: input account object:", JSON.stringify(acc, null, 2));
+
+        let rawAddressField = acc.address;
+
+        // Case 1: acc.address is already a string (ideal)
+        if (typeof rawAddressField === 'string' && rawAddressField.startsWith('0x')) {
+            console.log("getDisplayAddress: acc.address is a valid string:", rawAddressField);
+            return rawAddressField;
+        }
+
+        // Case 2: acc.address is an object like { data: Uint8Array }
+        // This is what the logs indicate Petra returns via the adapter.
+        if (typeof rawAddressField === 'object' && rawAddressField !== null && rawAddressField.data instanceof Uint8Array) {
+            console.log("getDisplayAddress: acc.address is an object with Uint8Array data.");
+            let hexAddress = toHexString(rawAddressField.data);
+            if (hexAddress) {
+                if (!hexAddress.startsWith('0x')) {
+                    hexAddress = '0x' + hexAddress;
+                }
+                console.log("getDisplayAddress: Derived address from acc.address.data:", hexAddress);
+                // Basic validation for Aptos address format (0x + 64 hex chars)
+                if (/^0x[0-9a-fA-F]{64}$/.test(hexAddress)) {
+                    return hexAddress;
+                }
+                console.warn("getDisplayAddress: Hex string from acc.address.data does not look like a valid Aptos address:", hexAddress);
+            }
+        }
+        
+        // Fallback/Logging for other unexpected structures if any
+        if (typeof rawAddressField === 'string') { // Was a string, but not starting with 0x or failed validation
+             console.warn("getDisplayAddress: acc.address was a string but not a valid format:", rawAddressField);
+        }
+        console.error("getDisplayAddress: Could not determine a valid address string from account object. Account:", JSON.stringify(acc, null, 2));
+        return null;
+    };
 
     const handleConnectButton = async () => {
         console.log("Attempting to connect wallet...");
         if (!connected) {
             try {
-                console.log("Available wallets for connection:", wallets.map(w => ({name: w.name, readyState: w.readyState, icon: w.icon, url: w.url}) ));
-
                 const petraWallet = wallets.find(
                     w => w.name.toLowerCase().includes('petra')
                 );
@@ -80,21 +124,20 @@ const Navbar = () => {
                 }
                 
                 console.log("Connection attempt finished. Current 'connected' state from hook:", connected);
-                console.log("Current 'account' object from hook after connect attempt:", account);
+                console.log("Current 'account' object from hook after connect attempt:", account ? JSON.stringify(account, null, 2) : null);
 
-                const currentAccountState = account;
-                const addr = currentAccountState?.address || "";
-                console.log("Wallet address (addr) based on hook state after connect attempt:", addr);
+                const displayAddr = getDisplayAddress(account);
+                console.log("Wallet address (displayAddr) based on hook state after connect attempt:", displayAddr);
 
-                if (addr) {
-                    const profile = addr.substring(0, 4) + "..." + addr.substring(addr.length - 4);
+                if (displayAddr && typeof displayAddr === 'string' && displayAddr.length > 7) {
+                    const profile = displayAddr.substring(0, 4) + "..." + displayAddr.substring(displayAddr.length - 4);
                     setButtonLabel(profile);
-                    info.setWalletAddress(addr);
-                    console.log("Wallet connected with Petra. Profile:", profile, "Address stored in context:", addr);
+                    info.setWalletAddress(displayAddr);
+                    console.log("Wallet connected with Petra. Profile:", profile, "Address stored in context:", displayAddr);
                 } else {
-                    console.error("Petra connection attempt finished, but address is still empty. Account object:", currentAccountState, "Connected state:", connected);
-                    if (connected && !addr) {
-                        console.log("Wallet adapter is in 'connected' state, but no address was retrieved from the Petra account object.");
+                    console.error("Petra connection attempt finished, but a valid address string could not be determined. Account object:", account ? JSON.stringify(account, null, 2) : null, "Connected state:", connected);
+                    if (connected && !displayAddr) {
+                        console.log("Wallet adapter is in 'connected' state, but no usable address was retrieved from the Petra account object.");
                     }
                     setButtonLabel("Connect");
                     info.setWalletAddress(null);
@@ -121,20 +164,26 @@ const Navbar = () => {
     };
 
     useEffect(() => {
-        if (connected && account?.address) {
-            const addr = account.address;
-            const profile = addr.substring(0, 4) + "..." + addr.substring(addr.length - 4);
+        // Only log wallets once on initial load or when wallets array actually changes.
+        // This console.log was moved from top level to avoid excessive logging on every render.
+        if (wallets && wallets.length > 0) {
+            // console.log("Available wallets (useEffect check):", wallets.map(w => ({name: w.name, readyState: w.readyState}) ));
+        }
+
+        const displayAddr = getDisplayAddress(account);
+        if (connected && displayAddr && typeof displayAddr === 'string' && displayAddr.length > 7) {
+            const profile = displayAddr.substring(0, 4) + "..." + displayAddr.substring(displayAddr.length - 4);
             setButtonLabel(profile);
-            info.setWalletAddress(addr);
-            console.log("Wallet state updated via useEffect. Connected with address:", addr);
+            info.setWalletAddress(displayAddr);
+            console.log("Wallet state updated via useEffect. Connected with address:", displayAddr);
         } else {
             setButtonLabel("Connect");
             info.setWalletAddress(null);
-            if (connected && !account?.address) {
-                console.log("Wallet connected but no address in account object via useEffect.");
+            if (connected && !displayAddr) {
+                console.warn("useEffect: Wallet connected but no valid display address found in account object.", account ? JSON.stringify(account, null, 2) : null);
             }
         }
-    }, [connected, account, info, setButtonLabel]);
+    }, [connected, account, info, setButtonLabel, wallets]);
 
     return (
         <ThemeProvider theme={theme}>
@@ -186,7 +235,7 @@ const Navbar = () => {
                                     }}
                                     onClick={handleConnectButton}
                                 >
-                                    {connected ? buttonLabel : "Connect"}
+                                    {connected && buttonLabel !== 'Connect' ? buttonLabel : "Connect"} 
                                 </Button>
                             </Box>
                         </Box>
