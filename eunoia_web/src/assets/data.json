@@ -1,0 +1,38 @@
+[
+    {
+      "label": "Average Rebalance",
+      "value": "averageRebalance",
+      "tags": "Low Frequency",
+      "cost": 1, 
+      "creator": "0x012B099F50C3CbCc82ccF7Ee557c9d60255c35C359eA6615435B761Ec3336EC8",
+      "rating": 4.5, 
+      "description": "This strategy rebalances your portfolio based on the average value of selected assets over a given period."
+    },
+    {
+      "label": "Momentum",
+      "value": "momentum",
+      "tags": "Low Frequency",
+      "cost": 2,
+      "creator": "0x012B099F50C3CbCc82ccF7Ee557c9d60255c35C359eA6615435B761Ec3336EC8",
+      "rating": 4, 
+      "description": "This strategy capitalizes on asset price trends, allocating capital to assets showing strong upward momentum."
+    },
+    {
+      "label": "Standard Deviation",
+      "value": "standardDeviation",
+      "tags": "Calculator",
+      "cost": 2,
+      "creator": "0x012B099F50C3CbCc82ccF7Ee557c9d60255c35C359eA6615435B761Ec3336EC8",
+      "rating": 4, 
+      "description": "This tool calculates the standard deviation of asset returns to assess portfolio volatility and risk." 
+    },
+    {
+      "label": "Co-Variance",
+      "value": "coVariance",
+      "tags": "Calculator",
+      "cost": 2,
+      "creator": "0x012B099F50C3CbCc82ccF7Ee557c9d60255c35C359eA6615435B761Ec3336EC8",
+      "rating": 4, 
+      "description": "This tool measures the co-variance between asset returns to optimize portfolio diversification. Add \"-USD\" at the end for crypto symbols." 
+    }
+]
