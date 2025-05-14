@@ -1,23 +1,21 @@
-module eunoia::charity_donation { // TODO: Replace 0x1 with your deployment account address
+module eunoia::eunoia_foundation {
 
     use std::signer;
     use std::string::String;
     use std::vector;
+    // use aptos_framework::type_name; // Removed as we will pass coin identifier string as argument
 
     use aptos_framework::event;
     use aptos_framework::table::{Self, Table};
     use aptos_framework::timestamp;
-    use aptos_std::coin::{Self}; // MintCapability and BurnCapability removed from direct import if not used elsewhere
-    use aptos_std::managed_coin;
-
-    // --- Coin Definition (CharityCoin) ---
-    struct CharityCoin has store, copy, drop {}
+    use aptos_std::coin::{Self}; // Only 'Self' needed for coin functions like transfer, balance
 
     // --- Structs & Resources ---
 
     // Represents a single donation event
     struct HistoryEntry has store, drop, copy {
         charity_name: String,
+        coin_name: String, // Name of the coin type donated
         amount_donated: u64,
         donor_address: address,
         timestamp: u64,
@@ -29,11 +27,8 @@ module eunoia::charity_donation { // TODO: Replace 0x1 with your deployment acco
         histories: Table<address, vector<HistoryEntry>>,
         // Maps charity name (as String ID) to its wallet address
         charity_wallets: Table<String, address>,
-        // Maps charity name (as String ID) to the total amount of CharityCoin raised
-        charity_raised_amounts: Table<String, u64>,
-        // Capabilities for managing CharityCoin are no longer stored here
-        // mint_cap: MintCapability<CharityCoin>,
-        // burn_cap: BurnCapability<CharityCoin>,
+        // Maps charity name to (maps coin type name to total amount raised for that coin)
+        charity_raised_amounts: Table<String, Table<String, u64>>,
     }
 
     // --- Events ---
@@ -41,6 +36,7 @@ module eunoia::charity_donation { // TODO: Replace 0x1 with your deployment acco
     struct DonateEvent has drop, store {
         donor: address,
         charity_name: String,
+        coin_name: String, // Name of the coin type donated
         amount: u64,
         timestamp: u64,
     }
@@ -58,60 +54,23 @@ module eunoia::charity_donation { // TODO: Replace 0x1 with your deployment acco
     const E_CHARITY_ALREADY_EXISTS: u64 = 201;
     const E_CHARITY_NOT_FOUND: u64 = 202;
     const E_INVALID_DONATION_AMOUNT: u64 = 301;
+    const E_CHARITY_NOT_REGISTERED_FOR_COIN: u64 = 302; // New error
     const E_NOT_MODULE_OWNER: u64 = 401;
 
-    // --- Initialization ---
 
-    // Initializes the CharityCoin and the ContractData resource.
-    // Must be called by the account deploying this module.
+    // --- Initialization ---
     public entry fun initialize_module(deployer: &signer) {
         let deployer_addr = signer::address_of(deployer);
         assert!(!exists<ContractData>(deployer_addr), E_ALREADY_INITIALIZED);
 
-        // aptos_framework::managed_coin::initialize does not return capabilities directly in this pattern.
-        // They are implicitly held by the sender/deployer.
-        managed_coin::initialize<CharityCoin>(
-            deployer,
-            b"Charity Coin",
-            b"CHC",
-            6,
-            false
-        );
-
         move_to(deployer, ContractData {
             histories: table::new<address, vector<HistoryEntry>>(),
             charity_wallets: table::new<String, address>(),
-            charity_raised_amounts: table::new<String, u64>(),
-            // mint_cap and burn_cap removed
+            charity_raised_amounts: table::new<String, Table<String, u64>>(),
         });
     }
 
-    // --- CharityCoin Specific Functions ---
-
-    // Allows users to register to hold CharityCoin.
-    public entry fun register_charity_coin(account: &signer) {
-        managed_coin::register<CharityCoin>(account);
-    }
-
-    // Allows the module owner to mint CharityCoin.
-    public entry fun mint_charity_coin(
-        module_owner: &signer, // This must be the account that called initialize_module
-        recipient_addr: address,
-        amount: u64
-    ) /* acquires ContractData - not needed if not reading caps */ {
-        let module_owner_addr = signer::address_of(module_owner);
-        // assert_is_module_owner might still be relevant if ContractData holds other owner-specific info
-        // but for minting, managed_coin::mint will perform its own checks.
-        // If ContractData is only for histories/wallets, assert_is_module_owner might be refactored or rely on this signer check implicitly.
-        assert!(exists<ContractData>(module_owner_addr), E_MODULE_NOT_INITIALIZED); // Or a more specific owner check
-        
-        // Use managed_coin::mint directly. It checks if module_owner is authorized.
-        managed_coin::mint<CharityCoin>(module_owner, recipient_addr, amount);
-    }
-
     // --- Charity Management Functions ---
-
-    // Registers a new charity. Only the module owner can call this.
     public entry fun add_charity(
         module_owner: &signer,
         charity_name: String,
@@ -124,12 +83,9 @@ module eunoia::charity_donation { // TODO: Replace 0x1 with your deployment acco
 
         assert!(!table::contains(&contract_data.charity_wallets, charity_name), E_CHARITY_ALREADY_EXISTS);
 
-        // Ensure the charity wallet is registered for CharityCoin if we want to transfer to it directly
-        // For simplicity, we assume the charity wallet will register separately.
-        // Or, the charity could be an account that can self-register.
-
         table::add(&mut contract_data.charity_wallets, charity_name, charity_wallet_addr);
-        table::add(&mut contract_data.charity_raised_amounts, charity_name, 0u64);
+        // Initialize raised amounts table for the new charity
+        table::add(&mut contract_data.charity_raised_amounts, charity_name, table::new<String, u64>());
 
         event::emit(CharityRegisteredEvent {
             charity_name,
@@ -139,34 +95,39 @@ module eunoia::charity_donation { // TODO: Replace 0x1 with your deployment acco
     }
 
     // --- User Interaction Functions ---
-
-    // Allows a user to donate CharityCoin to a registered charity.
-    public entry fun donate(
+    public entry fun donate<CoinType>(
         donor: &signer,
         charity_name: String,
+        coin_identifier_string: String, // User provides the string identifier for CoinType
         amount: u64
     ) acquires ContractData {
         let donor_addr = signer::address_of(donor);
-        let module_owner_addr = @eunoia;
+        let module_owner_addr = @eunoia; // Address where ContractData is stored
         let contract_data = borrow_global_mut<ContractData>(module_owner_addr);
 
         assert!(amount > 0, E_INVALID_DONATION_AMOUNT);
-        assert!(coin::balance<CharityCoin>(donor_addr) >= amount, 131076);
+        assert!(coin::balance<CoinType>(donor_addr) >= amount, 131076);
         assert!(table::contains(&contract_data.charity_wallets, charity_name), E_CHARITY_NOT_FOUND);
 
         let charity_wallet_addr = *table::borrow(&contract_data.charity_wallets, charity_name);
 
-        // Transfer CharityCoin from donor to charity
-        coin::transfer<CharityCoin>(donor, charity_wallet_addr, amount);
+        assert!(coin::is_account_registered<CoinType>(charity_wallet_addr), E_CHARITY_NOT_REGISTERED_FOR_COIN);
 
-        // Update total raised amount for the charity
-        let current_raised = table::borrow_mut(&mut contract_data.charity_raised_amounts, charity_name);
-        *current_raised = *current_raised + amount;
+        coin::transfer<CoinType>(donor, charity_wallet_addr, amount);
+
+        // Use the provided coin_identifier_string
+        let coin_name_donated = coin_identifier_string;
+
+        // Update total raised amount for the charity and specific coin type
+        let per_charity_raised_table = table::borrow_mut(&mut contract_data.charity_raised_amounts, charity_name);
+        let coin_specific_amount_ref = table::borrow_mut_with_default(per_charity_raised_table, coin_name_donated, 0u64);
+        *coin_specific_amount_ref = *coin_specific_amount_ref + amount;
 
         // Record the donation in history
         let donation_time = timestamp::now_seconds();
         let history_entry = HistoryEntry {
             charity_name: charity_name,
+            coin_name: coin_name_donated, // Storing the provided string
             amount_donated: amount,
             donor_address: donor_addr,
             timestamp: donation_time,
@@ -181,26 +142,13 @@ module eunoia::charity_donation { // TODO: Replace 0x1 with your deployment acco
         event::emit(DonateEvent {
             donor: donor_addr,
             charity_name,
+            coin_name: coin_name_donated, // Emitting the provided string
             amount,
             timestamp: donation_time,
         });
     }
 
     // --- View Functions (Publicly Readable) ---
-
-    // Gets the CharityCoin balance for a given account address.
-    #[view]
-    public fun get_charity_coin_balance(account_addr: address): u64 {
-        // Ensure user is registered for the coin, otherwise balance is 0 or call would fail.
-        // coin::balance handles non-existence of CoinStore gracefully by returning 0 if allow_ungated_balance_query() is true for coin,
-        // or if aptos_std::coin is used with a version that supports it or if the account has a CoinStore.
-        // For managed_coin, it's generally safe.
-        if (coin::is_account_registered<CharityCoin>(account_addr)) {
-            coin::balance<CharityCoin>(account_addr)
-        } else {
-            0u64
-        }
-    }
 
     // Gets the donation history for a given donor address.
     #[view]
@@ -214,19 +162,24 @@ module eunoia::charity_donation { // TODO: Replace 0x1 with your deployment acco
         }
     }
 
-    // Gets the total amount of CharityCoin raised by a specific charity.
+    // Gets the total amount raised by a specific charity for a specific coin type.
     #[view]
-    public fun get_charity_raised_amount(charity_name: String): u64 acquires ContractData {
+    public fun get_charity_raised_amount(charity_name: String, coin_name: String): u64 acquires ContractData {
         let module_owner_addr = @eunoia;
         let contract_data = borrow_global<ContractData>(module_owner_addr);
         if (table::contains(&contract_data.charity_raised_amounts, charity_name)) {
-            *table::borrow(&contract_data.charity_raised_amounts, charity_name)
+            let per_charity_table = table::borrow(&contract_data.charity_raised_amounts, charity_name);
+            if (table::contains(per_charity_table, coin_name)) {
+                *table::borrow(per_charity_table, coin_name)
+            } else {
+                0u64 // No donations of this coin type for this charity
+            }
         } else {
-            // Or return an error/option type if preferred for "not found"
-            0u64
+            0u64 // Charity not found or has no donations
         }
     }
 
+    // Gets the wallet address for a given charity name.
     #[view]
     public fun get_charity_wallet(charity_name: String): address acquires ContractData {
         let module_owner_addr = @eunoia;
@@ -235,31 +188,8 @@ module eunoia::charity_donation { // TODO: Replace 0x1 with your deployment acco
         *table::borrow(&contract_data.charity_wallets, charity_name)
     }
 
-
     // --- Internal Helper Functions ---
-    // Placeholder for a function or constant that returns the module owner's address.
-    // In a real deployment, this would be the address that deployed the module.
-    // For testing, this could be hardcoded or passed around.
-    // For module design, the ContractData resource is stored under the deployer's address.
-    fun an_address_that_deployed_the_module(): address {
-        @eunoia // TODO: This MUST be the address that deployed and initialized the module.
-              // You should make this a const or an immutable global.
-              // Or, better, ensure ContractData is always fetched from signer::address_of(module_owner)
-              // For view functions, this requires passing the owner address or having it stored globally.
-              // For simplicity in view functions that cannot take a signer, we use this placeholder.
-              // A better pattern is to have view functions on resources stored on known accounts or using global state.
-    }
-
-    // Asserts that the signer is the module owner.
-    // This requires ContractData to be initialized.
     fun assert_is_module_owner(addr: address) {
         assert!(exists<ContractData>(addr), E_NOT_MODULE_OWNER);
     }
-
-    // TODO: Add burn function for CharityCoin if needed, using managed_coin::burn.
-    // public entry fun burn_charity_coin(user: &signer, amount: u64) {
-    // managed_coin::burn<CharityCoin>(user, amount);
-    // }
-
-    // TODO: Add freeze/unfreeze account functions if needed, using freeze_cap.
 } 
