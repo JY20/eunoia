@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useCallback} from 'react';
 import { 
     AppBar, 
     Toolbar, 
@@ -215,89 +215,78 @@ const Navbar = () => {
 
     const getDisplayAddress = (acc) => {
         if (!acc) return null;
-
         let rawAddressField = acc.address;
 
-        // Case 1: acc.address is already a string (ideal)
         if (typeof rawAddressField === 'string' && rawAddressField.startsWith('0x')) {
-            console.log("getDisplayAddress: acc.address is a valid string:", rawAddressField);
-            return rawAddressField;
+        return rawAddressField;
         }
 
-        // Case 2: acc.address is an object like { data: Uint8Array }
-        if (typeof rawAddressField === 'object' && rawAddressField !== null && rawAddressField.data instanceof Uint8Array) {
-            console.log("getDisplayAddress: acc.address is an object with Uint8Array data.");
-            let hexAddress = toHexString(rawAddressField.data);
-            if (hexAddress) {
-                if (!hexAddress.startsWith('0x')) {
-                    hexAddress = '0x' + hexAddress;
-                }
-                console.log("getDisplayAddress: Derived address from acc.address.data:", hexAddress);
-                // Basic validation for Aptos address format (0x + 64 hex chars)
-                if (/^0x[0-9a-fA-F]{64}$/.test(hexAddress)) {
-                    return hexAddress;
-                }
-                console.warn("getDisplayAddress: Hex string from acc.address.data does not look like a valid Aptos address:", hexAddress);
-            }
+        if (
+        typeof rawAddressField === 'object' &&
+        rawAddressField !== null &&
+        rawAddressField.data instanceof Uint8Array
+        ) {
+        let hexAddress = toHexString(rawAddressField.data);
+        if (hexAddress) {
+            if (!hexAddress.startsWith('0x')) hexAddress = '0x' + hexAddress;
+            if (/^0x[0-9a-fA-F]{64}$/.test(hexAddress)) return hexAddress;
         }
-        
-        // Fallback/Logging for other unexpected structures if any
-        if (typeof rawAddressField === 'string') { // Was a string, but not starting with 0x or failed validation
-             console.warn("getDisplayAddress: acc.address was a string but not a valid format:", rawAddressField);
         }
-        console.error("getDisplayAddress: Could not determine a valid address string from account object. Account:", JSON.stringify(acc, null, 2));
+
         return null;
     };
 
-    const handleConnectButton = async (event) => {
-        console.log("Attempting to connect wallet...");
+
+    const fetchAddressWithRetry = useCallback(
+        async (retries = 3, delay = 500) => {
+        for (let i = 0; i < retries; i++) {
+            if (account) {
+            const displayAddr = getDisplayAddress(account);
+            if (displayAddr && typeof displayAddr === 'string' && displayAddr.length > 7) {
+                const profile = `${displayAddr.substring(0, 4)}...${displayAddr.substring(displayAddr.length - 4)}`;
+                setButtonLabel(profile);
+                info.setWalletAddress(displayAddr);
+                return true;
+            }
+            }
+            await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+        return false;
+        },
+        [account, info]
+    );
+
+    const handleConnectButton = async () => {
         if (!connected) {
-            try {
-                const petraWallet = wallets.find(
-                    w => w.name.toLowerCase().includes('petra')
-                );
-
-                if (petraWallet) {
-                    console.log(`Petra wallet found: ${petraWallet.name}. Attempting to connect...`);
-                    await connect(petraWallet.name);
-                } else {
-                    alert("Petra wallet is not detected. Please ensure it's installed and enabled.");
-                    setButtonLabel("Connect Wallet");
-                    info.setWalletAddress(null);
-                    console.warn("Petra wallet not found in the list of available wallets.");
-                    return;
-                }
-                
-                console.log("Connection attempt finished. Current 'connected' state from hook:", connected);
-                console.log("Current 'account' object from hook after connect attempt:", account ? JSON.stringify(account, null, 2) : null);
-
-                const displayAddr = getDisplayAddress(account);
-                console.log("Wallet address (displayAddr) based on hook state after connect attempt:", displayAddr);
-
-                if (displayAddr && typeof displayAddr === 'string' && displayAddr.length > 7) {
-                    const profile = displayAddr.substring(0, 4) + "..." + displayAddr.substring(displayAddr.length - 4);
-                    setButtonLabel(profile);
-                    info.setWalletAddress(displayAddr);
-                    console.log("Wallet connected with Petra. Profile:", profile, "Address stored in context:", displayAddr);
-                } else {
-                    console.error("Petra connection attempt finished, but a valid address string could not be determined. Account object:", account ? JSON.stringify(account, null, 2) : null, "Connected state:", connected);
-                    if (connected && !displayAddr) {
-                        console.log("Wallet adapter is in 'connected' state, but no usable address was retrieved from the Petra account object.");
-                    }
-                    setButtonLabel("Connect Wallet");
-                    info.setWalletAddress(null);
-                    alert("Failed to get address after connecting with Petra. Please try again.");
-                }
-            } catch (e) {
-                console.error("Error connecting wallet:", e);
-                alert(`Error connecting wallet: ${e.message || e}`);
-                setButtonLabel("Connect Wallet");
-                info.setWalletAddress(null);
+        try {
+            const petraWallet = wallets.find((w) => w.name.toLowerCase().includes('petra'));
+            if (!petraWallet) {
+            alert('Petra wallet is not detected. Please install the Petra wallet extension.');
+            setButtonLabel('Connect');
+            info.setWalletAddress(null);
+            return;
             }
+            if (petraWallet.readyState !== 'Installed') {
+            alert('Petra wallet is not ready. Please ensure it is installed and enabled.');
+            setButtonLabel('Connect');
+            info.setWalletAddress(null);
+            return;
+            }
+            setButtonLabel('Connecting...');
+            await connect(petraWallet.name);
+        } catch (e) {
+            alert(`Error connecting wallet: ${e.message || 'Unknown error'}`);
+            setButtonLabel('Connect');
+            info.setWalletAddress(null);
+        }
         } else {
-            if (event) {
-                handleAccountMenuOpen(event);
-            }
+        try {
+            await disconnect();
+            setButtonLabel('Connect');
+            info.setWalletAddress(null);
+        } catch (e) {
+            alert(`Error disconnecting wallet: ${e.message || 'Unknown error'}`);
+        }
         }
     };
 
