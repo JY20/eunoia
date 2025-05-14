@@ -310,7 +310,7 @@ const HomePage = () => {
                     lineHeight: 1.1,
                   }}
                 >
-                  Unchained Giving.<br />
+                  Onchained Giving.<br />
                   Borderless Impact.
                 </Typography>
                 <Typography variant="h6" sx={{ 
@@ -324,19 +324,21 @@ const HomePage = () => {
                   Track your donations in real-time, from your wallet to the cause.
                 </Typography>
                 
-                {/* Replace buttons with CharitySearch component */}
-                <CharitySearch variant="minimal" />
-                
-                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+                {/* Wrap CharitySearch and Register Charity button in a Stack */}
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }} sx={{ mb: 3 }}>
+                  <CharitySearch variant="minimal" />
                   <SecondaryButton 
                     size="medium"
                     component={Link}
                     to="/register-charity"
-                    sx={{ ml: 'auto' }}
+                    sx={{ 
+                      width: { xs: '100%', sm: 'auto' }, // Full width on xs, auto on sm+
+                      whiteSpace: 'nowrap' // Prevent text wrapping
+                    }}
                   >
                     Register Charity
                   </SecondaryButton>
-                </Box>
+                </Stack>
                 
                 <Box sx={{ mt: 5, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
                   <Chip 
@@ -378,7 +380,7 @@ const HomePage = () => {
                 </Box>
               </Box>
             </Grid>
-            <Grid item xs={12} md={5}>
+            <Grid item xs={12} md={5} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <Box sx={{ position: 'relative' }}>
                 <Box 
                   component="img" 
@@ -428,8 +430,8 @@ const HomePage = () => {
             </Typography>
           </Box>
 
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={4}>
+          <Grid container spacing={4} direction={{ xs: 'column', md: 'row' }} justifyContent="center">
+            <Grid item xs={12} sm={8} md={4}>
               <GlassCard>
                 <Box sx={{ mb: 2 }}>
                   <Avatar
@@ -459,7 +461,7 @@ const HomePage = () => {
               </GlassCard>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={8} md={4}>
               <GlassCard>
                 <Box sx={{ mb: 2 }}>
                   <Avatar
@@ -489,7 +491,7 @@ const HomePage = () => {
               </GlassCard>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={8} md={4}>
               <GlassCard>
                 <Box sx={{ mb: 2 }}>
                   <Avatar
@@ -525,8 +527,8 @@ const HomePage = () => {
       {/* Stats Section */}
       <StatsSection>
         <Container maxWidth="lg">
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={3}>
+          <Grid container spacing={4} justifyContent="center">
+            <Grid item xs={12} sm={6} md={3}>
               <StatCard>
                 <Typography variant="h3" fontWeight="bold" color="primary.main">
                   $2.8M+
@@ -536,7 +538,7 @@ const HomePage = () => {
                 </Typography>
               </StatCard>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} sm={6} md={3}>
               <StatCard>
                 <Typography variant="h3" fontWeight="bold" color="primary.main">
                   47+
@@ -546,7 +548,7 @@ const HomePage = () => {
                 </Typography>
               </StatCard>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} sm={6} md={3}>
               <StatCard>
                 <Typography variant="h3" fontWeight="bold" color="primary.main">
                   0.2%
@@ -556,7 +558,7 @@ const HomePage = () => {
                 </Typography>
               </StatCard>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} sm={6} md={3}>
               <StatCard>
                 <Typography variant="h3" fontWeight="bold" color="primary.main">
                   100%

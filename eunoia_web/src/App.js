@@ -5,6 +5,8 @@ import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import DonatePage from './pages/DonatePage';
 import HomePage from './pages/HomePage';
 import CharitiesPage from './pages/CharitiesPage';
+import RegisterCharityPage from './pages/RegisterCharityPage';
+import AboutPage from './pages/AboutPage';
 import { AppProvider } from './components/AppProvider';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -88,6 +90,8 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/donate" element={<DonatePage />} />
                 <Route path="/charities" element={<CharitiesPage />} />
+                <Route path="/register-charity" element={<RegisterCharityPage />} />
+                <Route path="/about" element={<AboutPage />} />
               </Routes>
             </main>
             <Footer />
