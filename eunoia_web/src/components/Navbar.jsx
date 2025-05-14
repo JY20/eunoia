@@ -10,6 +10,7 @@ import {
     Box,
     styled
 } from '@mui/material';
+import { Link } from 'react-router-dom';
 import logo from '../assets/logo.jpg';
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { AppContext } from './AppProvider';
@@ -200,6 +201,8 @@ const Navbar = () => {
                         >
                             <Typography 
                                 variant="h6" 
+                                component={Link}
+                                to="/"
                                 sx={{
                                     textDecoration: 'none',
                                     color: '#7E57C2',
@@ -222,6 +225,31 @@ const Navbar = () => {
                                 gap: '16px',
                             }}
                         >
+                            <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: '10px' }}>
+                                <Button
+                                    component={Link}
+                                    to="/"
+                                    sx={{
+                                        color: '#7E57C2',
+                                        fontWeight: 'bold',
+                                        '&:hover': { color: '#6A4BA1' },
+                                    }}
+                                >
+                                    Home
+                                </Button>
+                                <Button
+                                    component={Link}
+                                    to="/donate"
+                                    sx={{
+                                        color: '#7E57C2',
+                                        fontWeight: 'bold',
+                                        '&:hover': { color: '#6A4BA1' },
+                                    }}
+                                >
+                                    Donate
+                                </Button>
+                            </Box>
+                            
                             <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                                 <Button
                                     variant="contained"

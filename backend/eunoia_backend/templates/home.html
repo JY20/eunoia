@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | Eunoia{% endblock %}
+
+{% block content %}
+<div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white py-20 px-4 text-center">
+    <h1 class="text-5xl font-bold mb-4">Welcome to Eunoia</h1>
+    <p class="text-xl mb-8">A transparent and efficient decentralized giving platform.</p>
+    <div class="space-x-4">
+        <a href="{% url 'main:register-charity' %}" class="bg-white text-purple-600 font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition duration-300">Register Your Charity</a>
+        <a href="{% url 'main:charity-list' %}" class="border border-white text-white font-semibold py-3 px-6 rounded-lg hover:bg-white hover:text-purple-600 transition duration-300">Discover Charities</a>
+    </div>
+</div>
+
+<div class="container mx-auto py-12 px-4">
+    <h2 class="text-3xl font-semibold text-gray-800 mb-8 text-center">Featured Charities</h2>
+    {% if charities %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for charity in charities %}
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition duration-300">
+                {% if charity.logo %}
+                    <img src="{{ charity.logo.url }}" alt="{{ charity.name }} Logo" class="w-full h-48 object-cover">
+                {% else %}
+                    <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                        <span class="text-gray-500">No Logo</span>
+                    </div>
+                {% endif %}
+                <div class="p-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">{{ charity.name }}</h3>
+                    <p class="text-gray-600 text-sm mb-4">{{ charity.description|truncatewords:20 }}</p>
+                    <a href="#" class="text-indigo-600 hover:text-indigo-800 font-semibold">Learn More & Donate</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if charities.count > 6 %}
+        <div class="text-center mt-12">
+            <a href="{% url 'main:charity-list' %}" class="bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-purple-700 transition duration-300">View All Charities</a>
+        </div>
+        {% endif %}
+    {% else %}
+        <p class="text-gray-600 text-center">No verified charities yet. Stay tuned!</p>
+    {% endif %}
+</div>
+
+<div class="bg-gray-50 py-12 px-4">
+    <div class="container mx-auto text-center">
+        <h2 class="text-3xl font-semibold text-gray-800 mb-4">Join Us in Making a Difference</h2>
+        <p class="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+            Eunoia connects donors directly with causes they care about, leveraging blockchain technology for secure and transparent contributions. 
+            Help us build a better world, one donation at a time.
+        </p>
+        <a href="{% url 'main:register-charity' %}" class="bg-green-500 text-white font-semibold py-3 px-8 rounded-lg hover:bg-green-600 transition duration-300">Become a Partner Charity</a>
+    </div>
+</div>
+{% endblock %} 

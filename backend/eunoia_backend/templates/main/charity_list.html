@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | Eunoia{% endblock %}
+
+{% block content %}
+<div class="container mx-auto py-12 px-4">
+    <h1 class="text-4xl font-bold text-gray-800 mb-10 text-center">{{ page_title }}</h1>
+
+    {% if charities %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for charity in charities %}
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition duration-300">
+                {% if charity.logo %}
+                    <img src="{{ charity.logo.url }}" alt="{{ charity.name }} Logo" class="w-full h-56 object-cover">
+                {% else %}
+                    <div class="w-full h-56 bg-gray-200 flex items-center justify-center">
+                        <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    </div>
+                {% endif %}
+                <div class="p-6">
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-2">{{ charity.name }}</h3>
+                    <p class="text-gray-600 text-sm mb-1"><span class="font-medium">Wallet:</span> {{ charity.aptos_wallet_address|truncatechars:20 }}</p>
+                    {% if charity.website_url %}
+                        <p class="text-gray-600 text-sm mb-1"><a href="{{ charity.website_url }}" target="_blank" class="text-blue-500 hover:text-blue-700">Visit Website</a></p>
+                    {% endif %}
+                    <p class="text-gray-700 my-3 leading-relaxed">{{ charity.description|truncatewords:30 }}</p>
+                    <a href="#" class="inline-block bg-green-500 text-white font-semibold py-2 px-5 rounded-lg hover:bg-green-600 transition duration-300 text-center w-full">
+                        Donate with Aptos
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if is_paginated %}
+            <div class="mt-12 flex justify-center items-center space-x-4">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Previous</a>
+                {% endif %}
+                <span class="text-sm text-gray-700">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                </span>
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Next</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <p class="text-gray-600 text-center text-lg">There are currently no verified charities listed. Please check back soon!</p>
+    {% endif %}
+</div>
+{% endblock %} 
