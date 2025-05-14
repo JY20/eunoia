@@ -18,8 +18,9 @@ import {
   alpha
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 // import axios from 'axios'; // Commented out as API call is mocked
+import CharitySearch from '../components/CharitySearch';
 
 // Import icons
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -54,6 +55,81 @@ const HeroPattern = styled(Box)(({ theme }) => ({
   left: 0,
   background: 'url("data:image/svg+xml,%3Csvg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z" fill="%23ffffff" fill-opacity="0.05" fill-rule="evenodd"/%3E%3C/svg%3E")',
   zIndex: 0,
+}));
+
+// New styled components for Web3 aesthetic
+const GlowingButton = styled(Button)(({ theme }) => ({
+  position: 'relative',
+  overflow: 'hidden',
+  background: 'linear-gradient(90deg, #4cc9f0 0%, #4361ee 100%)',
+  padding: '16px 36px',
+  fontSize: '1.2rem',
+  fontWeight: 'bold',
+  borderRadius: '50px',
+  color: 'white',
+  textTransform: 'none',
+  boxShadow: '0 8px 30px rgba(67, 97, 238, 0.4)',
+  transition: 'all 0.4s ease',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: '-2px',
+    left: '-2px',
+    right: '-2px',
+    bottom: '-2px',
+    zIndex: -1,
+    background: 'linear-gradient(45deg, #f72585, #4cc9f0, #4361ee, #3a0ca3)',
+    backgroundSize: '400%',
+    animation: 'glowing 8s linear infinite',
+    filter: 'blur(8px)',
+    opacity: 0.7,
+    transition: 'opacity 0.3s ease-in-out',
+    borderRadius: '50px',
+  },
+  '&:hover': {
+    transform: 'translateY(-5px) scale(1.02)',
+    boxShadow: '0 15px 40px rgba(67, 97, 238, 0.6)',
+    '&::before': {
+      opacity: 1,
+    },
+  },
+  '@keyframes glowing': {
+    '0%': { backgroundPosition: '0 0' },
+    '50%': { backgroundPosition: '400% 0' },
+    '100%': { backgroundPosition: '0 0' },
+  },
+}));
+
+const SecondaryButton = styled(Button)(({ theme }) => ({
+  padding: '16px 36px',
+  fontSize: '1.1rem',
+  fontWeight: 'bold',
+  borderRadius: '50px',
+  borderColor: 'rgba(255, 255, 255, 0.7)',
+  borderWidth: '2px',
+  color: 'white',
+  textTransform: 'none',
+  transition: 'all 0.3s ease',
+  backdropFilter: 'blur(5px)',
+  background: 'rgba(255, 255, 255, 0.05)',
+  '&:hover': {
+    borderColor: 'white',
+    borderWidth: '2px',
+    background: 'rgba(255, 255, 255, 0.15)',
+    transform: 'translateY(-3px)',
+  },
+}));
+
+const FloatingElement = styled(Box)(({ theme, delay = 0 }) => ({
+  position: 'absolute',
+  zIndex: 0,
+  opacity: 0.1,
+  animation: `float 10s ease-in-out ${delay}s infinite`,
+  '@keyframes float': {
+    '0%': { transform: 'translateY(0px)' },
+    '50%': { transform: 'translateY(-25px)' },
+    '100%': { transform: 'translateY(0px)' },
+  },
 }));
 
 const GlassCard = styled(Paper)(({ theme }) => ({
@@ -123,6 +199,7 @@ const HomePage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   // const isTablet = useMediaQuery(theme.breakpoints.down('md')); // Removed unused variable
+  const navigate = useNavigate();
   
   const [featuredCharities, setFeaturedCharities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -175,10 +252,48 @@ const HomePage = () => {
     fetchCharities();
   }, []);
 
+  const handleDonateClick = () => {
+    navigate('/donate');
+  };
+
   return (
     <>
       <HeroSection>
         <HeroPattern />
+        {/* Web3 floating elements */}
+        <FloatingElement 
+          sx={{ 
+            top: '15%', 
+            left: '10%',
+            width: '150px',
+            height: '150px',
+            borderRadius: '40%',
+            background: 'radial-gradient(circle, rgba(76,201,240,0.3) 0%, rgba(67,97,238,0) 70%)',
+          }} 
+        />
+        <FloatingElement 
+          delay={2}
+          sx={{ 
+            top: '60%', 
+            right: '15%',
+            width: '200px',
+            height: '200px',
+            borderRadius: '30%',
+            background: 'radial-gradient(circle, rgba(247,37,133,0.2) 0%, rgba(58,12,163,0) 70%)',
+          }} 
+        />
+        <FloatingElement 
+          delay={4}
+          sx={{ 
+            bottom: '10%', 
+            left: '20%',
+            width: '180px',
+            height: '180px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(58,12,163,0.2) 0%, rgba(76,201,240,0) 70%)',
+          }} 
+        />
+
         <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
           <Grid container spacing={4} alignItems="center">
             <Grid item xs={12} md={7}>
@@ -194,59 +309,39 @@ const HomePage = () => {
                     textFillColor: 'transparent',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
+                    letterSpacing: '-0.03em',
+                    lineHeight: 1.1,
                   }}
                 >
                   Unchained Giving.<br />
                   Borderless Impact.
                 </Typography>
-                <Typography variant="h6" sx={{ mb: 4, maxWidth: '600px', opacity: 0.9 }}>
+                <Typography variant="h6" sx={{ 
+                  mb: 4, 
+                  maxWidth: '600px', 
+                  opacity: 0.9,
+                  lineHeight: 1.6,
+                  fontSize: '1.25rem',
+                }}>
                   The first truly transparent giving platform built on Aptos blockchain.
                   Track your donations in real-time, from your wallet to the cause.
                 </Typography>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                  <AnimatedButton 
-                    variant="contained" 
-                    size="large" 
-                    component={Link}
-                    to="/charities"
-                    endIcon={<ArrowForwardIcon />}
-                    sx={{ 
-                      py: 1.5, 
-                      px: 4,
-                      background: 'linear-gradient(90deg, #4cc9f0 0%, #4361ee 100%)',
-                      fontWeight: 'bold',
-                      fontSize: '1.1rem',
-                      borderRadius: '50px',
-                      boxShadow: '0 10px 20px rgba(67, 97, 238, 0.3)',
-                    }}
-                  >
-                    Donate Now
-                  </AnimatedButton>
-                  <AnimatedButton 
-                    variant="outlined" 
-                    size="large"
+                
+                {/* Replace buttons with CharitySearch component */}
+                <CharitySearch variant="minimal" />
+                
+                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+                  <SecondaryButton 
+                    size="medium"
                     component={Link}
                     to="/register-charity"
-                    sx={{ 
-                      py: 1.5, 
-                      px: 4,
-                      borderColor: 'white',
-                      color: 'white',
-                      borderRadius: '50px',
-                      fontWeight: 'bold',
-                      fontSize: '1.1rem',
-                      borderWidth: '2px',
-                      '&:hover': {
-                        borderColor: 'white',
-                        borderWidth: '2px',
-                        background: 'rgba(255, 255, 255, 0.1)',
-                      },
-                    }}
+                    sx={{ ml: 'auto' }}
                   >
                     Register Charity
-                  </AnimatedButton>
-                </Stack>
-                <Box sx={{ mt: 4, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  </SecondaryButton>
+                </Box>
+                
+                <Box sx={{ mt: 5, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
                   <Chip 
                     icon={<VerifiedIcon />} 
                     label="100% Transparent" 
@@ -255,34 +350,67 @@ const HomePage = () => {
                       color: theme.palette.common.white,
                       backdropFilter: 'blur(10px)',
                       fontWeight: 'medium',
+                      borderRadius: '50px',
+                      py: 1,
                     }} 
                   />
                   <Chip 
                     icon={<PaidIcon />} 
-                    label="0.20% Fee Only" 
+                    label="0.20% Optional Fee" 
                     sx={{ 
                       bgcolor: alpha(theme.palette.common.white, 0.1),
                       color: theme.palette.common.white,
                       backdropFilter: 'blur(10px)',
                       fontWeight: 'medium',
+                      borderRadius: '50px',
+                      py: 1,
+                    }} 
+                  />
+                  <Chip 
+                    icon={<AccountBalanceWalletIcon />} 
+                    label="Web3 Native" 
+                    sx={{ 
+                      bgcolor: alpha(theme.palette.common.white, 0.1),
+                      color: theme.palette.common.white,
+                      backdropFilter: 'blur(10px)',
+                      fontWeight: 'medium',
+                      borderRadius: '50px',
+                      py: 1,
                     }} 
                   />
                 </Box>
               </Box>
             </Grid>
             <Grid item xs={12} md={5}>
-              <Box 
-                component="img" 
-                src="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?q=80&w=800&auto=format&fit=crop"
-                alt="People helping each other"
-                sx={{ 
-                  width: '100%', 
-                  borderRadius: '20px',
-                  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
-                  transform: { xs: 'none', md: 'rotate(2deg)' },
-                  border: '5px solid white',
-                }}
-              />
+              <Box sx={{ position: 'relative' }}>
+                <Box 
+                  component="img" 
+                  src="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?q=80&w=800&auto=format&fit=crop"
+                  alt="People helping each other"
+                  sx={{ 
+                    width: '100%', 
+                    borderRadius: '20px',
+                    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+                    transform: { xs: 'none', md: 'rotate(2deg)' },
+                    border: '5px solid white',
+                    position: 'relative',
+                    zIndex: 2,
+                  }}
+                />
+                {/* Glow effect behind image */}
+                <Box sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '80%',
+                  height: '80%',
+                  borderRadius: '30px',
+                  background: 'radial-gradient(circle, rgba(76,201,240,0.4) 0%, rgba(67,97,238,0) 70%)',
+                  filter: 'blur(30px)',
+                  zIndex: 1,
+                }} />
+              </Box>
             </Grid>
           </Grid>
         </Container>
