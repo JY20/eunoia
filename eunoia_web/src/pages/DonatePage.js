@@ -40,7 +40,8 @@ const DonatePage = () => {
 
   const handleRun = async (strategy) => {
       try {
-          const result = await contract.run_strategy(info.wallet.account, strategy, selectedInfo.cost);
+          const result = "test";
+          // await contract.run_strategy(info.wallet.account, strategy, selectedInfo.cost);
           console.log("Run Strategy Result:", result);
       } catch (error) {
           console.error("An error occurred during the run strategy process:", error);
@@ -61,8 +62,9 @@ const DonatePage = () => {
   };
 
   const refreshData = async () => {
-    const values = await contract.getUserHistory(info.walletAddress);
-    setHistory(values);
+    // const values = await contract.getUserHistory(info.walletAddress);
+
+    // setHistory(values);
     info.setRouteTrigger(true);
   };
 
