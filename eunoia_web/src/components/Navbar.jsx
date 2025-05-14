@@ -361,6 +361,15 @@ const Navbar = () => {
                         color: location.pathname === '/donate' ? 'primary' : 'inherit'
                     }} />
                 </ListItem>
+                <ListItem button component={Link} to="/register-charity">
+                    <ListItemIcon>
+                        <VolunteerActivismIcon color={location.pathname === '/register-charity' ? 'primary' : 'inherit'} />
+                    </ListItemIcon>
+                    <ListItemText primary="Register Charity" primaryTypographyProps={{ 
+                        fontWeight: location.pathname === '/register-charity' ? 700 : 400,
+                        color: location.pathname === '/register-charity' ? 'primary' : 'inherit'
+                    }} />
+                </ListItem>
                 <ListItem button component={Link} to="/about">
                     <ListItemIcon>
                         <InfoIcon color={location.pathname === '/about' ? 'primary' : 'inherit'} />
@@ -440,6 +449,14 @@ const Navbar = () => {
                                 active={location.pathname === '/donate' ? 1 : 0}
                             >
                                 Donate
+                            </NavLink>
+                            <NavLink 
+                                component={Link} 
+                                to="/register-charity" 
+                                disableRipple
+                                active={location.pathname === '/register-charity' ? 1 : 0}
+                            >
+                                Register Charity
                             </NavLink>
                             <NavLink 
                                 component={Link} 
