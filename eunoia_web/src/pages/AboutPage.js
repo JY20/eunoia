@@ -33,6 +33,7 @@ import VpnKeyIcon from '@mui/icons-material/VpnKey'; // For Key Features
 import CampaignIcon from '@mui/icons-material/Campaign'; // For Key Features
 import ReceiptIcon from '@mui/icons-material/Receipt'; // For Key Features
 import HowToRegIcon from '@mui/icons-material/HowToReg'; // For Key Features
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward'; // For How It Works flow
 
 
 const PageHeader = styled(Box)(({ theme }) => ({
@@ -51,31 +52,56 @@ const SectionPaper = styled(Paper)(({ theme }) => ({
   boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
 }));
 
-const FeatureItem = ({ icon, title, text }) => {
+const FeatureItem = ({ icon, title }) => {
   const theme = useTheme(); // Ensure theme is available
   return (
-    <Grid item xs={12} sm={10} md={8}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-        <Avatar sx={{ bgcolor: alpha(theme.palette.primary.light, 0.2), color: 'primary.main' }}>
+    <Grid item xs={12} md={6}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', mb: 4, px: 2 }}>
+        <Avatar sx={{ bgcolor: alpha(theme.palette.primary.light, 0.2), color: 'primary.main', width: 60, height: 60, mb: 2 }}>
           {icon}
         </Avatar>
-        <Box>
-          <Typography variant="h6" fontWeight="bold" gutterBottom>{title}</Typography>
-          <Typography variant="body2" color="text.secondary">{text}</Typography>
-        </Box>
+        <Typography variant="h6" fontWeight="bold">{title}</Typography>
       </Box>
     </Grid>
   );
 };
 
-const HowItWorksStep = ({ number, title, text }) => (
-  <Grid item xs={12} sm={10} md={8} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-    <Avatar sx={{ bgcolor: 'primary.main', color: 'white', width: 40, height: 40, fontWeight: 'bold' }}>{number}</Avatar>
-    <Box>
-      <Typography variant="h6" fontWeight="bold">{title}</Typography>
-      <Typography variant="body2" color="text.secondary">{text}</Typography>
+const StepArrow = () => {
+  const theme = useTheme();
+  return (
+    <Box sx={{ 
+      display: 'flex',
+      alignItems: 'center', 
+      justifyContent: 'center',
+      minWidth: '22px',
+      mx: 0.6
+    }}>
+      <Box sx={{ 
+        color: theme.palette.primary.main, 
+        animation: 'pulse 1.5s infinite',
+        '@keyframes pulse': {
+          '0%': { opacity: 0.6, transform: 'scale(0.95)' },
+          '50%': { opacity: 1, transform: 'scale(1.05)' },
+          '100%': { opacity: 0.6, transform: 'scale(0.95)' },
+        }
+      }}>
+        <ArrowForwardIcon sx={{ fontSize: '1.1rem' }} />
+      </Box>
     </Box>
-  </Grid>
+  );
+};
+
+const HowItWorksStep = ({ number, title, text, isLast }) => (
+  <>
+    <Grid item>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', height: '100%', px: 1 }}>
+        <Avatar sx={{ bgcolor: 'primary.main', color: 'white', width: 50, height: 50, fontWeight: 'bold', mb: 2 }}>{number}</Avatar>
+        <Typography variant="h6" fontWeight="bold" gutterBottom>{title}</Typography>
+        <Typography variant="body2" color="text.secondary" fontSize={{xs: '0.75rem', sm: '0.875rem'}}>{text}</Typography>
+      </Box>
+    </Grid>
+    {!isLast && <StepArrow />}
+  </>
 );
 
 const AboutPage = () => {
@@ -150,21 +176,73 @@ const AboutPage = () => {
         </SectionPaper>
 
         <SectionPaper elevation={3}>
-          <Typography variant="h4" component="h2" fontWeight="bold" gutterBottom sx={{ color: 'primary.main', mb: 3, textAlign: 'center' }}>
+          <Typography variant="h4" component="h2" fontWeight="bold" gutterBottom sx={{ color: 'primary.main', mb: 4, textAlign: 'center' }}>
             Key Features
           </Typography>
-          <Grid container spacing={4} sx={{ justifyContent: 'center' }}>
+          <Grid container spacing={2}>
             {keyFeatures.map(feature => <FeatureItem key={feature.title} {...feature} />)}
           </Grid>
         </SectionPaper>
 
-        <SectionPaper elevation={3}>
-          <Typography variant="h4" component="h2" fontWeight="bold" gutterBottom sx={{ color: 'primary.main', mb: 3, textAlign: 'center' }}>
+        <SectionPaper elevation={3} sx={{ px: { xs: 2, sm: 4 }, py: { xs: 3, sm: 5 } }}>
+          <Typography variant="h4" component="h2" fontWeight="bold" gutterBottom sx={{ color: 'primary.main', mb: 4, textAlign: 'center', fontSize: '2.2rem' }}>
             How It Works
           </Typography>
-          <Grid container spacing={3} sx={{ justifyContent: 'center' }}>
-            {howItWorks.map(step => <HowItWorksStep key={step.number} {...step} />)}
-          </Grid>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'row', 
+            justifyContent: 'center', 
+            alignItems: 'flex-start',
+            flexWrap: 'nowrap',
+            overflowX: 'auto',
+            pb: 3,
+            '& > *': { transform: 'scale(1.1)', my: 1 }
+          }}>
+            {howItWorks.map((step, index) => (
+              <React.Fragment key={step.number}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  textAlign: 'center',
+                  minWidth: { xs: '132px', sm: '165px' },
+                  maxWidth: { xs: '132px', sm: '165px' },
+                  px: 1.1
+                }}>
+                  <Avatar sx={{ bgcolor: 'primary.main', color: 'white', width: 44, height: 44, fontWeight: 'bold', mb: 1.2 }}>
+                    {step.number}
+                  </Avatar>
+                  <Typography variant="subtitle1" fontWeight="bold" fontSize={{ xs: '1rem', sm: '1.1rem' }} gutterBottom>
+                    {step.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" fontSize={{ xs: '0.77rem', sm: '0.83rem' }}>
+                    {step.text}
+                  </Typography>
+                </Box>
+                {index < howItWorks.length - 1 && (
+                  <Box sx={{ 
+                    display: 'flex',
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    minWidth: '22px',
+                    mx: 0.6
+                  }}>
+                    <Box sx={{ 
+                      color: 'primary.main', 
+                      animation: 'pulse 1.5s infinite',
+                      '@keyframes pulse': {
+                        '0%': { opacity: 0.6, transform: 'scale(0.95)' },
+                        '50%': { opacity: 1, transform: 'scale(1.05)' },
+                        '100%': { opacity: 0.6, transform: 'scale(0.95)' },
+                      }
+                    }}>
+                      <ArrowForwardIcon sx={{ fontSize: '1.1rem' }} />
+                    </Box>
+                  </Box>
+                )}
+              </React.Fragment>
+            ))}
+          </Box>
         </SectionPaper>
 
         <SectionPaper elevation={3}>
@@ -199,47 +277,21 @@ const AboutPage = () => {
           </TableContainer>
         </SectionPaper>
 
-        <Grid container spacing={4} sx={{ justifyContent: 'center' }}>
-          <Grid item xs={12} md={6}>
-            <SectionPaper elevation={3} sx={{ height: '100%' }}>
-              <Typography variant="h4" component="h2" fontWeight="bold" gutterBottom sx={{ color: 'primary.main', mb: 2 }}>
-                MVP Goals
-              </Typography>
-              <List dense>
-                {mvpGoals.map((goal, index) => (
-                  <ListItem key={index} disablePadding>
-                    <ListItemIcon sx={{minWidth: '32px'}}>
-                      <Avatar sx={{ width: 24, height: 24, bgcolor: alpha(theme.palette.success.main, 0.8), fontSize: '0.8rem' }}>
-                        <CheckIcon sx={{fontSize: '1rem'}}/>
-                      </Avatar>
-                    </ListItemIcon>
-                    <ListItemText primary={goal} />
-                  </ListItem>
-                ))}
-              </List>
-            </SectionPaper>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <SectionPaper elevation={3} sx={{ height: '100%' }}>
-              <Typography variant="h4" component="h2" fontWeight="bold" gutterBottom sx={{ color: 'primary.main', mb: 2 }}>
-                Built on Aptos
-              </Typography>
-              <List>
-                {builtOnAptos.map((item) => (
-                  <ListItem key={item.title} disablePadding sx={{mb: 1.5}}>
-                    <ListItemIcon sx={{minWidth: '48px'}}>
-                      <Avatar sx={{ bgcolor: alpha(theme.palette.primary.light, 0.2), color: 'primary.main' }}>
-                        {item.icon}
-                      </Avatar>
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{fontWeight:'medium'}} primary={item.title} />
-                  </ListItem>
-                ))}
-              </List>
-            </SectionPaper>
-          </Grid>
-        </Grid>
+        <SectionPaper elevation={3}>
+          <Typography variant="h4" component="h2" fontWeight="bold" gutterBottom sx={{ color: 'primary.main', mb: 2, textAlign: 'center' }}>
+            Built on Aptos
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 4, mt: 3 }}>
+            {builtOnAptos.map((item) => (
+              <Box key={item.title} sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: '220px' }}>
+                <Avatar sx={{ bgcolor: alpha(theme.palette.primary.light, 0.2), color: 'primary.main', width: 60, height: 60 }}>
+                  {item.icon}
+                </Avatar>
+                <Typography variant="h6" fontWeight="medium">{item.title}</Typography>
+              </Box>
+            ))}
+          </Box>
+        </SectionPaper>
 
       </Container>
     </Box>

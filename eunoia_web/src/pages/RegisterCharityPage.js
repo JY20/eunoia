@@ -363,67 +363,156 @@ const RegisterCharityPage = () => {
 
   // Render field for current step
   const renderStepContent = (step) => {
-    const fields = steps[step].fields;
-    
-    return (
-      <Fade in={true} timeout={800}>
-        <Box>
-          <Box mb={4} display="flex" alignItems="center">
-            <IconContainer>
-              {steps[step].icon}
-            </IconContainer>
-            <Box ml={2}>
-              <Typography variant="h5" fontWeight="bold" gutterBottom>
-                {steps[step].label}
+    switch(step.label) {
+      case 'Basics':
+        return (
+          <Grow in={true}>
+            <Box sx={{ width: '100%' }}>
+              <IconContainer>
+                <VolunteerActivismIcon sx={{ fontSize: 30 }} />
+              </IconContainer>
+              <Typography variant="h5" fontWeight="bold" gutterBottom align="center">
+                {step.description}
               </Typography>
-              <Typography variant="body1" color="textSecondary">
-                {steps[step].description}
-              </Typography>
+              <TextField 
+                fullWidth
+                margin="normal"
+                name="name"
+                label="Charity Name"
+                value={formData.name}
+                onChange={handleChange}
+                error={!!errors.name}
+                helperText={errors.name}
+                variant="outlined"
+                sx={{ mb: 2, width: '100%' }}
+                InputProps={{
+                  sx: { borderRadius: 2 }
+                }}
+              />
             </Box>
-          </Box>
-
-          <Grid container spacing={3}>
-            {fields.map(field => (
-              <Grid item xs={12} key={field}>
-                <Zoom in={true} style={{ transitionDelay: '150ms' }}>
-                  <TextField
-                    fullWidth
-                    label={
-                      field === 'name' ? 'Charity Name' :
-                      field === 'walletAddress' ? 'Wallet Address' :
-                      field === 'description' ? 'Description' :
-                      field === 'mission' ? 'Mission Statement' :
-                      'Goal Planning'
-                    }
-                    name={field}
-                    value={formData[field]}
-                    onChange={handleChange}
-                    error={!!errors[field]}
-                    helperText={errors[field] || (
-                      field === 'walletAddress' ? 'Enter your Aptos wallet address (starting with 0x)' :
-                      field === 'goal' ? 'What are your fundraising goals and how will funds be used?' :
-                      ''
-                    )}
-                    multiline={['description', 'mission', 'goal'].includes(field)}
-                    rows={['description', 'mission'].includes(field) ? 4 : field === 'goal' ? 3 : 1}
-                    variant="outlined"
-                    InputProps={{
-                      sx: {
-                        borderRadius: 2,
-                        backgroundColor: 'white',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.9)'
-                        }
-                      }
-                    }}
-                  />
-                </Zoom>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-      </Fade>
-    );
+          </Grow>
+        );
+      case 'Wallet':
+        return (
+          <Grow in={true}>
+            <Box sx={{ width: '100%' }}>
+              <IconContainer>
+                <AccountBalanceWalletIcon sx={{ fontSize: 30 }} />
+              </IconContainer>
+              <Typography variant="h5" fontWeight="bold" gutterBottom align="center">
+                {step.description}
+              </Typography>
+              <TextField
+                fullWidth
+                margin="normal"
+                name="walletAddress"
+                label="Wallet Address (Aptos)"
+                value={formData.walletAddress}
+                onChange={handleChange}
+                error={!!errors.walletAddress}
+                helperText={errors.walletAddress}
+                variant="outlined"
+                sx={{ mb: 2, width: '100%' }}
+                InputProps={{
+                  sx: { borderRadius: 2 }
+                }}
+              />
+            </Box>
+          </Grow>
+        );
+      case 'Mission':
+        return (
+          <Grow in={true}>
+            <Box sx={{ width: '100%' }}>
+              <IconContainer>
+                <MissionIcon sx={{ fontSize: 30 }} />
+              </IconContainer>
+              <Typography variant="h5" fontWeight="bold" gutterBottom align="center">
+                {step.description}
+              </Typography>
+              <TextField
+                fullWidth
+                margin="normal"
+                name="mission"
+                label="Charity Mission (Short & impactful)"
+                value={formData.mission}
+                onChange={handleChange}
+                error={!!errors.mission}
+                helperText={errors.mission}
+                variant="outlined"
+                multiline
+                rows={3}
+                sx={{ mb: 2, width: '100%' }}
+                InputProps={{
+                  sx: { borderRadius: 2 }
+                }}
+              />
+            </Box>
+          </Grow>
+        );
+      case 'Goals':
+        return (
+          <Grow in={true}>
+            <Box sx={{ width: '100%' }}>
+              <IconContainer>
+                <GoalIcon sx={{ fontSize: 30 }} />
+              </IconContainer>
+              <Typography variant="h5" fontWeight="bold" gutterBottom align="center">
+                {step.description}
+              </Typography>
+              <TextField
+                fullWidth
+                margin="normal"
+                name="goal"
+                label="Fundraising Goal (e.g., Target amount, specific project)"
+                value={formData.goal}
+                onChange={handleChange}
+                error={!!errors.goal}
+                helperText={errors.goal}
+                variant="outlined"
+                multiline
+                rows={3}
+                sx={{ mb: 2, width: '100%' }}
+                InputProps={{
+                  sx: { borderRadius: 2 }
+                }}
+              />
+            </Box>
+          </Grow>
+        );
+      case 'Description':
+        return (
+          <Grow in={true}>
+            <Box sx={{ width: '100%' }}>
+              <IconContainer>
+                <DescriptionIcon sx={{ fontSize: 30 }} />
+              </IconContainer>
+              <Typography variant="h5" fontWeight="bold" gutterBottom align="center">
+                {step.description}
+              </Typography>
+              <TextField
+                fullWidth
+                margin="normal"
+                name="description"
+                label="Detailed Description (Tell your story)"
+                value={formData.description}
+                onChange={handleChange}
+                error={!!errors.description}
+                helperText={errors.description}
+                variant="outlined"
+                multiline
+                rows={5}
+                sx={{ mb: 2, width: '100%' }}
+                InputProps={{
+                  sx: { borderRadius: 2 }
+                }}
+              />
+            </Box>
+          </Grow>
+        );
+      default:
+        return 'Unknown step';
+    }
   };
 
   // Render review step
@@ -573,7 +662,7 @@ const RegisterCharityPage = () => {
 
           <FormContent>
             <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              {activeStep === steps.length ? renderReview() : renderStepContent(activeStep)}
+              {activeStep === steps.length ? renderReview() : renderStepContent(steps[activeStep])}
             </Box>
             <NavigationContainer isFirstStep={activeStep === 0}>
               <Box>
