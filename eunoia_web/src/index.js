@@ -3,11 +3,29 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { WalletProvider } from "@aptos-labs/wallet-adapter-react";
+import { PetraWallet } from "@aptos-labs/petra-wallet-adapter";
+// If you want to use Martian Wallet, uncomment the line below
+// import { MartianWallet } from "@martianwallet/aptos-wallet-adapter";
+
+const wallets = [
+  new PetraWallet(),
+  // If you want to use Martian Wallet, uncomment the line below
+  // new MartianWallet(),
+];
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <WalletProvider
+      wallets={wallets}
+      autoConnect={true} /* autoConnect is optional */
+      onError={(error) => {
+        console.error("Wallet Provider Error:", error);
+      }}
+    >
+      <App />
+    </WalletProvider>
   </React.StrictMode>
 );
 
