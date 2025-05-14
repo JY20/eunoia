@@ -3,9 +3,6 @@ name = "my-dapp"
 version = "1.0.0"
 authors = []
 
-[addresses]
-usdc='edd306440026a83a0aa162c3e7a3630a8341d6b516507bf942bbcf9628a664e4'
-
 [dev-addresses]
 
 [dependencies.AptosFramework]
