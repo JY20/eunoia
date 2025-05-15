@@ -11,7 +11,7 @@ from .serializers import (
 from aptos_sdk.account_address import AccountAddress
 from aptos_sdk.transactions import (EntryFunction, TransactionPayload)
 # Ensure you have a way to get the REST client, e.g., from settings or a utility function
-# from aptos_sdk.client import RestClient 
+# from aptos_sdk.client import RestClient # This line can be removed if not used elsewhere
 # For this example, we are only creating the payload, not sending it, so RestClient might not be directly needed here.
 
 # Constants for your deployed module
