@@ -46,7 +46,7 @@ Traditional charitable giving often suffers from a lack of transparency, high in
 *   Pillow for image processing
 *   `django-cors-headers` for Cross-Origin Resource Sharing
 
-### 🔗 Blockchain
+### 🔗 Blockchain (contract)
 *   Aptos Network
 *   Move for smart contracts
 
@@ -128,74 +128,83 @@ The smart contract is configured in `contract/Move.toml` and deployed to the Apt
 
 ### Prerequisites
 
-*   Node.js and npm (or Yarn)
-*   Python 3.8+
-*   Pip (Python package installer)
-*   Git
-*   An Aptos-compatible wallet (e.g., Petra Wallet browser extension)
+* Node.js and npm
+* Python 3.8+
+* Pip (Python package installer)
+* Git
+* An Aptos-compatible wallet (e.g., Petra Wallet browser extension)
 
-### Backend Setup (`eunoia_backend`)
+### Installation and Setup
 
-1. **Clone the repository (if you haven't already):**  
-git clone <repository-url>  
-cd eunoia
-2. **Navigate to the backend directory:**  
-cd backend/eunoia_backend
-3. **Create and activate a Python virtual environment:**  
-python -m venv venv  
-# On Windows  
-.\venv\Scripts\activate  
-# On macOS/Linux  
-source venv/bin/activate
-4. **Install Python dependencies:**  
-pip install -r requirements.txt
-5. **Apply database migrations:**  
-python manage.py migrate
-6. **Create a superuser (for Django Admin access):**  
-python manage.py createsuperuser  
-(Follow the prompts to set username, email, and password)
-7. **(Optional) Load initial sample data (if a script is provided, e.g., `create_charity.py`):**  
-python create_charity.py
-8. **Start the Django development server:**  
-python manage.py runserver  
-The backend API will be available at `http://localhost:8000/api/`  
-The Django Admin interface will be accessible at `http://localhost:8000/admin/`
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd eunoia
+   ```
 
-### Frontend Setup (`eunoia_web`)
+2. **Backend Setup:**
+   ```bash
+   # Navigate to the backend directory
+   cd backend/eunoia_backend
+   
+   # Create and activate a virtual environment
+   python -m venv venv
+   
+   # On Windows
+   .\venv\Scripts\activate
+   
+   # On macOS/Linux
+   source venv/bin/activate
+   
+   # Install dependencies
+   pip install -r requirements.txt
+   
+   # Apply database migrations
+   python manage.py migrate
+   
+   # Create a superuser for admin access
+   python manage.py createsuperuser
+   # Follow the prompts to set username, email, and password
+   
+   # (Optional) Load initial sample data if available
+   python create_charity.py
+   
+   # Start the Django server
+   python manage.py runserver
+   ```
+   The backend will be available at `http://localhost:8000/api/`  
+   The admin interface will be accessible at `http://localhost:8000/admin/`
 
-1. **Navigate to the frontend directory from the project root:**  
-cd eunoia_web  
-# (If you are in backend/eunoia_backend, use: cd ../../eunoia_web)
-2. **Install Node.js dependencies:**  
-npm install  
-# or if you use Yarn  
-# yarn install
+3. **Frontend Setup:**
+   ```bash
+   # Navigate to the frontend directory (from project root)
+   cd eunoia_web
+   
+   # Install dependencies
+   npm install
+   
+   # Start the development server
+   npm start
+   ```
+   The frontend will be accessible at `http://localhost:3000`
 
-### Smart Contract Setup (Optional for Developers)
-
-1. **Install Aptos CLI:**  
-Follow instructions at [https://aptos.dev/tools/aptos-cli/](https://aptos.dev/tools/aptos-cli/)
-2. **Navigate to the contract directory:**  
-cd contract
-3. **Compile the Move contract:**  
-aptos move compile
-4. **Test the contract (if test modules exist):**  
-aptos move test
-5. **Deploy the contract (requires Aptos account with funds):**  
-aptos move publish --named-addresses eunoia=<your-account-address>
-
-## Running the Application
-
-1. **Start the Django Backend Server:**  
-   * Navigate to `backend/eunoia_backend`.  
-   * Ensure your virtual environment is activated.  
-   * Run: `python manage.py runserver`  
-   * The backend will typically run on `http://localhost:8000`.  
-   * The Django Admin will be accessible at `http://localhost:8000/admin/`.
-2. **Start the React Frontend Development Server:**  
-   * Navigate to `eunoia_web`.  
-   * Run: `npm start` (or `yarn start`)  
-   * The frontend will typically run on `http://localhost:3000` and open automatically in your browser.
+4. **Smart Contract Development (Optional):**
+   ```bash
+   # Install Aptos CLI
+   # Follow instructions at https://aptos.dev/tools/aptos-cli/
+   
+   # Navigate to contract directory
+   cd contract
+   
+   # Compile Move contract
+   aptos move compile
+   
+   # Test the contract
+   aptos move test
+   
+   # Deploy the contract (requires Aptos account with funds)
+   aptos move publish --named-addresses eunoia=<your-account-address>
+   ```
 
 ---
 
