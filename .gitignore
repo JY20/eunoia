@@ -1,14 +1,42 @@
-.env
-/venv
+# Virtual Environment
+venv/
+env/
+ENV/
+virtualenv/
+.venv/
+.env/
+.ENV/
+.virtualenv/
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-#Django
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-*.pyw
-*.pyz
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
 
 ##cacheDjango
 *.pyc
@@ -17,7 +45,6 @@ __pycache__
 *.pyw
 *.pyz
 
-db.sqlite3
 .cursor/rules/README_md.mdc
 .cursor/rules/eunoia_web_public_layout.mdc
 .cursor/rules/eunoia_web_src_layout.mdc

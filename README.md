@@ -125,6 +125,13 @@ Eunoia operates with a decoupled frontend and backend architecture:
     python create_charity.py
     ```
 
+8.  **Start the Django development server:**
+    ```bash
+    python manage.py runserver
+    ```
+    The backend API will be available at `http://localhost:8000/api/`
+    The Django Admin interface will be accessible at `http://localhost:8000/admin/`
+
 ### Frontend Setup (`eunoia_web`)
 
 1.  **Navigate to the frontend directory from the project root:**
