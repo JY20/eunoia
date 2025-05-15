@@ -1,0 +1,26 @@
+[package]
+name = "eunoia_new"
+version = "0.1.0"
+authors = ["Eunoia Team"]
+edition = "2021"
+
+[dependencies]
+ink = { version = "5.1.1", default-features = false }
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2.6", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+ink_e2e = { version = "5.1.1" }
+
+[lib]
+path = "lib.rs"
+
+[features]
+default = ["std"]
+std = [
+    "ink/std",
+    "scale/std",
+    "scale-info/std",
+]
+ink-as-dependency = []
+e2e-tests = []

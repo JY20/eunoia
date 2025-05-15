@@ -385,7 +385,7 @@ const HomePage = () => {
                         <PaidIcon fontSize="small" sx={{ color: '#ffffff' }} />
                       </Avatar>
                     }
-                    label="0.20% Optional Fee" 
+                    label="0.2% Optional Fee" 
                     sx={{ 
                       bgcolor: 'rgba(153, 102, 255, 0.3)',
                       color: theme.palette.common.white,

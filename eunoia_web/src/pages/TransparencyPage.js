@@ -15,70 +15,148 @@ const FlowSection = () => {
   return (
     <Box sx={{ mb: 6 }}>
       <Typography variant="h4" gutterBottom>
-        Donation Flow
+        Flow
       </Typography>
       <Box sx={{ 
+        position: 'relative',
         display: 'flex', 
         alignItems: 'center', 
-        justifyContent: 'center',
-        gap: 2,
-        flexWrap: 'wrap',
-        p: 3,
-        backgroundColor: '#f8f9fa',
-        borderRadius: 2
+        justifyContent: 'space-between',
+        p: 4,
+        backgroundColor: 'rgba(0,0,0,0.02)',
+        borderRadius: 4,
+        boxShadow: 'inset 0 0 20px rgba(0,0,0,0.03)',
+        overflow: 'hidden',
+        mb: 3
       }}>
+        {/* Background gradient line */}
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: 0,
+          right: 0,
+          height: '4px',
+          background: 'linear-gradient(90deg, rgba(76,175,80,0.6) 0%, rgba(33,150,243,0.6) 50%, rgba(255,152,0,0.6) 100%)',
+          transform: 'translateY(-50%)',
+          zIndex: 0
+        }} />
+        
+        {/* Donor Node */}
         <Box sx={{ 
+          position: 'relative',
           p: 3, 
           backgroundColor: '#4caf50', 
           color: 'white',
-          borderRadius: 2,
-          minWidth: 200,
-          textAlign: 'center'
+          borderRadius: '16px',
+          minWidth: 180,
+          textAlign: 'center',
+          boxShadow: '0 8px 16px rgba(76,175,80,0.3)',
+          transition: 'transform 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: '0 12px 20px rgba(76,175,80,0.4)',
+          },
+          zIndex: 1
         }}>
-          <Typography variant="h6" gutterBottom>Donor</Typography>
-          <Typography variant="body2">Sends APT</Typography>
+          <Typography variant="h6" gutterBottom>Giver</Typography>
+          <Typography variant="body2">Initiates Transfer</Typography>
         </Box>
         
-        <ArrowForwardIcon sx={{ color: '#666' }} />
-        
+        {/* Custom arrow with animation */}
         <Box sx={{ 
+          position: 'relative',
+          zIndex: 1,
+          animation: 'flow 2s infinite',
+          '@keyframes flow': {
+            '0%': { transform: 'translateX(-5px)' },
+            '50%': { transform: 'translateX(5px)' },
+            '100%': { transform: 'translateX(-5px)' },
+          }
+        }}>
+          <ArrowForwardIcon sx={{ fontSize: 32, color: '#333' }} />
+        </Box>
+        
+        {/* Platform Node */}
+        <Box sx={{ 
+          position: 'relative',
           p: 3, 
           backgroundColor: '#2196f3', 
           color: 'white',
-          borderRadius: 2,
-          minWidth: 200,
-          textAlign: 'center'
+          borderRadius: '16px',
+          minWidth: 180,
+          textAlign: 'center',
+          boxShadow: '0 8px 16px rgba(33,150,243,0.3)',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: '0 12px 20px rgba(33,150,243,0.4)',
+          },
+          zIndex: 1
         }}>
-          <Typography variant="h6" gutterBottom>Eunoia Platform</Typography>
-          <Typography variant="body2">Processes & Distributes</Typography>
+          <Typography variant="h6" gutterBottom>Eunoia</Typography>
+          <Typography variant="body2">Processes & Routes</Typography>
         </Box>
         
-        <ArrowForwardIcon sx={{ color: '#666' }} />
-        
+        {/* Custom arrow with animation */}
         <Box sx={{ 
+          position: 'relative',
+          zIndex: 1,
+          animation: 'flow 2s infinite',
+          '@keyframes flow': {
+            '0%': { transform: 'translateX(-5px)' },
+            '50%': { transform: 'translateX(5px)' },
+            '100%': { transform: 'translateX(-5px)' },
+          }
+        }}>
+          <ArrowForwardIcon sx={{ fontSize: 32, color: '#333' }} />
+        </Box>
+        
+        {/* Charity Node */}
+        <Box sx={{ 
+          position: 'relative',
           p: 3, 
           backgroundColor: '#ff9800', 
           color: 'white',
-          borderRadius: 2,
-          minWidth: 200,
-          textAlign: 'center'
+          borderRadius: '16px',
+          minWidth: 180,
+          textAlign: 'center',
+          boxShadow: '0 8px 16px rgba(255,152,0,0.3)',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: '0 12px 20px rgba(255,152,0,0.4)',
+          },
+          zIndex: 1
         }}>
           <Typography variant="h6" gutterBottom>Charity</Typography>
-          <Typography variant="body2">Receives 98%</Typography>
+          <Typography variant="body2">Receives Funds</Typography>
         </Box>
       </Box>
       
+      {/* Platform fee badge */}
       <Box sx={{ 
-        mt: 2, 
-        p: 2, 
-        backgroundColor: '#9c27b0', 
-        color: 'white',
-        borderRadius: 2,
-        maxWidth: 200,
-        mx: 'auto',
-        textAlign: 'center'
+        display: 'flex',
+        justifyContent: 'center',
+        mt: 2
       }}>
-        <Typography variant="body2">Platform Fee: 2%</Typography>
+        <Box sx={{ 
+          p: 2,
+          px: 3,
+          backgroundColor: 'rgba(156,39,176,0.9)', 
+          color: 'white',
+          borderRadius: '50px',
+          boxShadow: '0 4px 12px rgba(156,39,176,0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'scale(1.05)',
+            boxShadow: '0 6px 16px rgba(156,39,176,0.4)',
+          }
+        }}>
+          <Typography variant="body1" fontWeight="medium">Platform Fee: 0.2%</Typography>
+        </Box>
       </Box>
     </Box>
   );
@@ -173,7 +251,7 @@ const TransparencyPage = () => {
       <FlowSection />
       
       <Typography variant="h4" gutterBottom>
-        Recent Donations
+        Recent Transactions
       </Typography>
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>

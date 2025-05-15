@@ -108,7 +108,7 @@ const AboutPage = () => {
   const theme = useTheme();
 
   const keyFeatures = [
-    { icon: <AttachMoneyIcon />, title: "Ultra-Low Fees", text: "Core fee of just 0.25%. Optional 0.20% goes to a marketing fund that benefits all campaigns." },
+    { icon: <AttachMoneyIcon />, title: "Ultra-Low Fees", text: "Core fee of just 0.2%. Optional 0.2% goes to a marketing fund that benefits all campaigns." },
     { icon: <TrackChangesIcon />, title: "On-Chain Transparency", text: "View live fund flows and spend dashboards. Every gift is publicly verifiable." },
     { icon: <GroupWorkIcon />, title: "Advocate-Aligned Mission", text: "Eunoia is inspired by stewardship and collective impact." },
     { icon: <VpnKeyIcon />, title: "Anonymity + Tax Flexibility", text: "Give anonymously or opt-in for tax receipts via secure KYC." },
@@ -143,7 +143,7 @@ const AboutPage = () => {
   ];
 
   const comparisonData = [
-    { platform: 'Eunoia', fee: '0.25%', tracking: true, multiCharity: true, anonymity: 'Optional', marketing: true },
+    { platform: 'Eunoia', fee: '0.2%', tracking: true, multiCharity: true, anonymity: 'Optional', marketing: true },
     { platform: 'Tithe.ly (Web2)', fee: '~2.9%', tracking: false, multiCharity: false, anonymity: false, marketing: false },
     { platform: 'Givebutter (Web2)', fee: '1-5%', tracking: false, multiCharity: true, anonymity: false, marketing: false },
     { platform: 'The Giving Block (Web3)', fee: '$2,500+/yr', tracking: 'Partial', multiCharity: false, anonymity: true, marketing: false },
