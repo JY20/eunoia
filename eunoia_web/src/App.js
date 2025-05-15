@@ -12,6 +12,12 @@ import TransparencyPage from './pages/TransparencyPage';
 import { AppProvider } from './components/AppProvider';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import { WalletProvider } from './context/WalletContext';
+import { PetraWallet } from "petra-plugin-wallet-adapter";
+import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
+
+// Setup wallets for Aptos
+const wallets = [new PetraWallet()];
 
 // Create a custom theme
 const theme = createTheme({
@@ -84,23 +90,27 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <AppProvider>
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <Navbar />
-            <main style={{ flex: 1 }}>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/donate" element={<DonatePage />} />
-                <Route path="/charities" element={<CharitiesPage />} />
-                <Route path="/register-charity" element={<RegisterCharityPage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/management" element={<ManagementPage />} />
-                <Route path="/transparency" element={<TransparencyPage />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
-        </AppProvider>
+        <AptosWalletAdapterProvider plugins={wallets} autoConnect={false}>
+          <WalletProvider>
+            <AppProvider>
+              <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                <Navbar />
+                <main style={{ flex: 1 }}>
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/donate" element={<DonatePage />} />
+                    <Route path="/charities" element={<CharitiesPage />} />
+                    <Route path="/register-charity" element={<RegisterCharityPage />} />
+                    <Route path="/about" element={<AboutPage />} />
+                    <Route path="/management" element={<ManagementPage />} />
+                    <Route path="/transparency" element={<TransparencyPage />} />
+                  </Routes>
+                </main>
+                <Footer />
+              </div>
+            </AppProvider>
+          </WalletProvider>
+        </AptosWalletAdapterProvider>
       </Router>
     </ThemeProvider>
   );
