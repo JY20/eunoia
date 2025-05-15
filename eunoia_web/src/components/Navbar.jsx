@@ -32,6 +32,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import HomeIcon from '@mui/icons-material/Home';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import InfoIcon from '@mui/icons-material/Info';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import logo from '../assets/logo.jpg';
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { AppContext } from './AppProvider';
@@ -457,6 +458,14 @@ const Navbar = () => {
                                 active={location.pathname === '/register-charity' ? 1 : 0}
                             >
                                 Register Charity
+                            </NavLink>
+                            <NavLink 
+                                component={Link} 
+                                to="/transparency" 
+                                disableRipple
+                                active={location.pathname === '/transparency' ? 1 : 0}
+                            >
+                                Tracking
                             </NavLink>
                             <NavLink 
                                 component={Link} 
