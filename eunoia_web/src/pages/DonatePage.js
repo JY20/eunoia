@@ -67,6 +67,7 @@ import { Connected } from '../components/Alert';
 import Loading from '../components/Loading';
 import { AppContract } from '../components/AppContract';
 import CompassAnimation from '../components/CompassAnimation'; // Import the new component
+import SwipeableImageCards from '../components/SwipeableImageCards'; // Import the new component
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -208,20 +209,22 @@ const VisionPromptView = ({
   platformFeeActive,
   setPlatformFeeActive,
   calculatePlatformFee,
-  selectedMoodboardTags,
-  setSelectedMoodboardTags,
   socialHandles,
   setSocialHandles,
   theme
 }) => {
-  const MIN_MOODBOARD_SELECTION = 3;
-  const MAX_MOODBOARD_SELECTION = 4;
+  const MIN_LIKED_IMAGES = 2; // New threshold for enabling continue button
+
+  const [likedImageIds, setLikedImageIds] = useState([]);
 
   const moodboardItems = [
-    { id: 'education', imgSrc: '/images/Education.png', label: 'Education', tags: ['education', 'children', 'learning'] },
-    { id: 'environment', imgSrc: '/images/Environment.jpg', label: 'Environment', tags: ['nature', 'conservation', 'sustainability'] },
-    { id: 'faith', imgSrc: '/images/Religion.jpg', label: 'Faith-Based', tags: ['spirituality', 'community', 'mission'] },
-    { id: 'innovation', imgSrc: '/images/Innovation.jpg', label: 'Innovation', tags: ['technology', 'progress', 'future'] },
+    { id: 'education', imgSrc: process.env.PUBLIC_URL + '/images/Education.png', label: 'Education' },
+    { id: 'environment', imgSrc: process.env.PUBLIC_URL + '/images/Environment.jpg', label: 'Environment' },
+    { id: 'faith', imgSrc: process.env.PUBLIC_URL + '/images/Religion.jpg', label: 'Faith-Based' },
+    { id: 'innovation', imgSrc: process.env.PUBLIC_URL + '/images/Innovation.jpg', label: 'Innovation' },
+    // Add more if desired for swiping
+    { id: 'community', imgSrc: 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?q=80&w=400&auto=format&fit=crop', label: 'Community Support' }, 
+    { id: 'health', imgSrc: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=400&auto=format&fit=crop', label: 'Healthcare' },
   ];
 
   const cryptoOptions = [
@@ -232,33 +235,26 @@ const VisionPromptView = ({
     { value: 'USDC', label: 'USD Coin (USDC)' }
   ];
 
-  const handleMoodboardSelect = (itemId) => {
-    setSelectedMoodboardTags(prevTags => {
-      if (prevTags.includes(itemId)) {
-        return prevTags.filter(tag => tag !== itemId);
-      } else {
-        if (prevTags.length < MAX_MOODBOARD_SELECTION) {
-          return [...prevTags, itemId];
-        }
-      }
-      return prevTags;
-    });
-  };
-
   const handleSocialChange = (platform, value) => {
     setSocialHandles(prev => ({ ...prev, [platform]: value }));
   };
 
+  const handleImageSwipe = (direction, card) => {
+    console.log(`Swiped ${direction} on ${card.label} (ID: ${card.id})`);
+    if (direction === 'right') { // 'right' is typically 'like'
+      setLikedImageIds(prev => [...new Set([...prev, card.id])]); // Add to liked, ensure uniqueness
+    }
+    // If you also need to track dislikes, you can add logic here
+  };
+
   const isNextDisabled = 
-    selectedMoodboardTags.length < MIN_MOODBOARD_SELECTION || 
-    selectedMoodboardTags.length > MAX_MOODBOARD_SELECTION ||
+    likedImageIds.length < MIN_LIKED_IMAGES || // Check against liked images
     !visionPrompt.trim() || 
     totalDonationAmount <= 0;
 
   const hasNavigatedRef = useRef(false);
   
-  // Debug: Log on every render of the standalone VisionPromptView
-  console.log('Standalone VisionPromptView render, visionPrompt:', visionPrompt);
+  console.log('Standalone VisionPromptView render, visionPrompt:', visionPrompt, 'Liked IDs:', likedImageIds);
 
   return (
     <StepContent sx={{maxWidth: '700px', mx: 'auto'}}>
@@ -291,71 +287,17 @@ const VisionPromptView = ({
         </Button>
       </Paper>
 
+      {/* Visual Preference Selector - Tinder Style */}
       <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
         <Typography variant="h6" fontWeight="medium" gutterBottom>
-          Pick what resonates with you
+          Which of these resonate with you?
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{mb:2}}>
-          These images help us understand your values. (Select {MIN_MOODBOARD_SELECTION}-{MAX_MOODBOARD_SELECTION})
+        <Typography variant="body2" color="text.secondary" sx={{mb:1}}>
+          Swipe right for images that align with your values. (Like at least {MIN_LIKED_IMAGES})
         </Typography>
-        <Grid container spacing={2} justifyContent="center">
-          {moodboardItems.map(item => (
-            <Grid item xs={6} sm={3} key={item.id} sx={{textAlign: 'center'}}>
-              <Paper 
-                elevation={selectedMoodboardTags.includes(item.id) ? 8 : 3}
-                onClick={() => handleMoodboardSelect(item.id)}
-              sx={{ 
-                  p: 0.5,
-                  borderRadius: '12px', 
-                  cursor: 'pointer', 
-                  border: selectedMoodboardTags.includes(item.id) ? `3px solid ${theme.palette.primary.main}` : `3px solid transparent`,
-                  backgroundColor: alpha(theme.palette.background.paper, 0.9),
-                  transition: 'all 0.25s ease-in-out',
-                  overflow: 'hidden',
-                  aspectRatio: '1 / 1',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  maxWidth: '140px',
-                  maxHeight: '140px',
-                  mx: 'auto',
-                  '&:hover': {
-                      transform: 'scale(1.03)',
-                      boxShadow: theme.shadows[10]
-                  }
-                }}
-              >
-                {item.imgSrc ? (
-                  <img 
-                      src={process.env.PUBLIC_URL + item.imgSrc} 
-                      alt={item.label} 
-                      style={{ 
-                          width: '100%', 
-                          height: '100%', 
-                          objectFit: 'cover', 
-                          display:'block',
-                          borderRadius: '8px'
-              }}
-            />
-          ) : (
-                  <item.Icon sx={{fontSize: 40, color: selectedMoodboardTags.includes(item.id) ? theme.palette.primary.main : 'action.active' }}/>
-                )}
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
-         {selectedMoodboardTags.length > 0 && selectedMoodboardTags.length < MIN_MOODBOARD_SELECTION && (
-          <Typography color="error" variant="caption" display="block" sx={{mt:1, textAlign:'center'}}>
-              Please select at least {MIN_MOODBOARD_SELECTION} images.
-              </Typography>
-         )}
-         {selectedMoodboardTags.length > MAX_MOODBOARD_SELECTION && (
-          <Typography color="error" variant="caption" display="block" sx={{mt:1, textAlign:'center'}}>
-              Please select no more than {MAX_MOODBOARD_SELECTION} images.
-              </Typography>
-         )}
+        <SwipeableImageCards imagesData={moodboardItems} onSwipe={handleImageSwipe} />
       </Paper>
-
+      
       <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
         <Typography variant="h6" fontWeight="medium" gutterBottom>
           Set Your Donation Amount
@@ -528,7 +470,6 @@ const DonatePage = () => {
   const [totalDonationAmount, setTotalDonationAmount] = useState(50);
   const [aiMatchedCharities, setAiMatchedCharities] = useState([]);
   const [aiSuggestedAllocations, setAiSuggestedAllocations] = useState({});
-  const [selectedMoodboardTags, setSelectedMoodboardTags] = useState([]);
   const [socialHandles, setSocialHandles] = useState({ twitter: '', instagram: '', linkedin: '' });
   const [selectedCrypto, setSelectedCrypto] = useState('APT');
 
@@ -575,10 +516,8 @@ const DonatePage = () => {
   const calculateTotal = () => { /* ... */ };
   const calculatePlatformFee = () => {
     if (!platformFeeActive) return 0;
-    if (['visionPrompt', 'aiProcessing', 'charityResults', 'donationConfirmation', 'impactTracker'].includes(currentStage)) {
-        return totalDonationAmount * 0.002;
-    }
-    return Object.values(donationAmounts).reduce((sum, amount) => sum + Number(amount), 0) * 0.002; // Fallback for other stages if any
+    // This calculation seems fine as it uses totalDonationAmount which is available
+    return totalDonationAmount * 0.002;
   };
   const handleDonate = async () => { /* ... */ };
   const handleNext = () => { /* ... */ };
@@ -681,7 +620,7 @@ const DonatePage = () => {
           <CompassAnimation />
         </Box>
         <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
-          🧭 Hang tight, I’m cross-checking thousands of causes to find your perfect match ...
+          🧭 Hang tight, I'm cross-checking thousands of causes to find your perfect match ...
         </Typography>
         <Typography variant="h6" color="text.secondary" paragraph sx={{mb:3}}>
           Matching your vision with high-impact causes.
@@ -1010,8 +949,6 @@ const DonatePage = () => {
           platformFeeActive={platformFeeActive}
           setPlatformFeeActive={setPlatformFeeActive}
           calculatePlatformFee={calculatePlatformFee}
-          selectedMoodboardTags={selectedMoodboardTags}
-          setSelectedMoodboardTags={setSelectedMoodboardTags}
           socialHandles={socialHandles}
           setSocialHandles={setSocialHandles}          
           theme={theme}
