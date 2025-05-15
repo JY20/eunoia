@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Box, 
   Typography, 
@@ -21,7 +21,9 @@ import {
   IconButton,
   Fade,
   Grow,
-  Zoom
+  Zoom,
+  Input,
+  FormHelperText
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -30,9 +32,11 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import DescriptionIcon from '@mui/icons-material/Description';
 import MissionIcon from '@mui/icons-material/EmojiObjects';
 import GoalIcon from '@mui/icons-material/Flag';
+import EmailIcon from '@mui/icons-material/Email';
+import LinkIcon from '@mui/icons-material/Link';
+import ImageIcon from '@mui/icons-material/Image';
 
 // Constants
 const API_BASE_URL = 'http://localhost:8000/api';
@@ -178,12 +182,15 @@ const NavigationContainer = styled(Box, {
 const RegisterCharityPage = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const logoInputRef = useRef(null);
   
   // Form state
   const [formData, setFormData] = useState({
     name: '',
     walletAddress: '',
-    description: '',
+    contactEmail: '',
+    websiteUrl: '',
+    logo: null,
     mission: '',
     goal: '',
   });
@@ -213,6 +220,24 @@ const RegisterCharityPage = () => {
       fields: ['walletAddress']
     },
     {
+      label: 'Contact',
+      icon: <EmailIcon />,
+      description: 'Provide a contact email for your charity',
+      fields: ['contactEmail']
+    },
+    {
+      label: 'Website',
+      icon: <LinkIcon />,
+      description: 'Enter your charity\'s official website URL',
+      fields: ['websiteUrl']
+    },
+    {
+      label: 'Logo',
+      icon: <ImageIcon />,
+      description: 'Upload your charity\'s logo (optional)',
+      fields: ['logo']
+    },
+    {
       label: 'Mission',
       icon: <MissionIcon />,
       description: 'What is your charity\'s mission?',
@@ -224,24 +249,28 @@ const RegisterCharityPage = () => {
       description: 'What are your fundraising goals?',
       fields: ['goal']
     },
-    {
-      label: 'Description',
-      icon: <DescriptionIcon />,
-      description: 'Tell us more about your charity',
-      fields: ['description']
-    }
   ];
 
   // Handle form input changes
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    const { name, value, files } = e.target;
+    if (name === 'logo') {
+      setFormData(prev => ({
+        ...prev,
+        logo: files[0] || null
+      }));
+      if (errors.logo) {
+        setErrors(prev => ({ ...prev, logo: '' }));
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
     
     // Clear error when field is edited
-    if (errors[name]) {
+    if (name !== 'logo' && errors[name]) {
       setErrors(prev => ({
         ...prev,
         [name]: ''
@@ -256,12 +285,24 @@ const RegisterCharityPage = () => {
     let isValid = true;
 
     currentFields.forEach(field => {
-      if (!formData[field] || !formData[field].trim()) {
+      if (field === 'logo') return;
+
+      if (!formData[field] || (typeof formData[field] === 'string' && !formData[field].trim())) {
         newErrors[field] = `This field is required`;
         isValid = false;
       } else if (field === 'walletAddress' && !/^0x[a-fA-F0-9]{64}$/.test(formData.walletAddress)) {
         newErrors.walletAddress = 'Please enter a valid Aptos wallet address';
         isValid = false;
+      } else if (field === 'contactEmail' && !/\S+@\S+\.\S+/.test(formData.contactEmail)) {
+        newErrors.contactEmail = 'Please enter a valid email address';
+        isValid = false;
+      } else if (field === 'websiteUrl') {
+        try {
+          new URL(formData.websiteUrl);
+        } catch (_) {
+          newErrors.websiteUrl = 'Please enter a valid URL (e.g., https://example.com)';
+          isValid = false;
+        }
       }
     });
 
@@ -283,8 +324,29 @@ const RegisterCharityPage = () => {
       newErrors.walletAddress = 'Please enter a valid Aptos wallet address';
     }
 
-    if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
+    if (!formData.contactEmail.trim()) {
+      newErrors.contactEmail = 'Contact email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.contactEmail)) {
+      newErrors.contactEmail = 'Please enter a valid email address';
+    }
+
+    if (!formData.websiteUrl.trim()) {
+      newErrors.websiteUrl = 'Website URL is required';
+    } else if (!/^https?:\/\/[^\s]+$/.test(formData.websiteUrl)) {
+      newErrors.websiteUrl = 'Please enter a valid URL (e.g., https://example.com)';
+    }
+
+    if (!formData.logo) {
+      newErrors.logo = 'Logo is required';
+    } else {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+      if (!allowedTypes.includes(formData.logo.type)) {
+        newErrors.logo = 'Invalid file type. Please upload JPG, PNG, or GIF.';
+      }
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (formData.logo.size > maxSize) {
+        newErrors.logo = 'File is too large. Maximum size is 5MB.';
+      }
     }
 
     if (!formData.mission.trim()) {
@@ -320,14 +382,21 @@ const RegisterCharityPage = () => {
 
     setLoading(true);
 
+    const submissionData = new FormData();
+    submissionData.append('name', formData.name);
+    submissionData.append('aptos_wallet_address', formData.walletAddress);
+    submissionData.append('contact_email', formData.contactEmail);
+    submissionData.append('website_url', formData.websiteUrl);
+    if (formData.logo) {
+      submissionData.append('logo', formData.logo);
+    }
+    submissionData.append('tagline', formData.mission);
+
     try {
-      // Replace with actual API endpoint when available
-      const response = await axios.post(`${API_BASE_URL}/charities/register/`, {
-        name: formData.name,
-        wallet_address: formData.walletAddress,
-        description: formData.description,
-        mission: formData.mission,
-        goal_planning: formData.goal
+      const response = await axios.post(`${API_BASE_URL}/charities/`, submissionData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       setSnackbar({
@@ -336,7 +405,6 @@ const RegisterCharityPage = () => {
         severity: 'success'
       });
 
-      // Redirect to charities page after successful registration
       setTimeout(() => {
         navigate('/charities');
       }, 2000);
@@ -344,9 +412,18 @@ const RegisterCharityPage = () => {
     } catch (error) {
       console.error('Error registering charity:', error);
       
+      let errorMessage = 'Failed to register charity. Please try again.';
+      if (error.response && error.response.data) {
+        const errors = error.response.data;
+        const messages = Object.values(errors).flat();
+        if (messages.length > 0) {
+          errorMessage = messages.join(' \n');
+        }
+      }
+
       setSnackbar({
         open: true,
-        message: error.response?.data?.message || 'Failed to register charity. Please try again.',
+        message: errorMessage,
         severity: 'error'
       });
     } finally {
@@ -420,6 +497,83 @@ const RegisterCharityPage = () => {
             </Box>
           </Grow>
         );
+      case 'Contact':
+        return (
+          <Grow in={true}>
+            <Box sx={{ width: '100%' }}>
+              <IconContainer>
+                <EmailIcon sx={{ fontSize: 30 }} />
+              </IconContainer>
+              <Typography variant="h5" fontWeight="bold" gutterBottom align="center">
+                {step.description}
+              </Typography>
+              <TextField
+                fullWidth
+                margin="normal"
+                name="contactEmail"
+                label="Contact Email"
+                type="email"
+                value={formData.contactEmail}
+                onChange={handleChange}
+                error={!!errors.contactEmail}
+                helperText={errors.contactEmail}
+                variant="outlined"
+                sx={{ mb: 2, width: '100%' }}
+                InputProps={{
+                  sx: { borderRadius: 2 }
+                }}
+              />
+            </Box>
+          </Grow>
+        );
+      case 'Website':
+        return (
+          <Grow in={true}>
+            <Box sx={{ width: '100%' }}>
+              <IconContainer>
+                <LinkIcon sx={{ fontSize: 30 }} />
+              </IconContainer>
+              <Typography variant="h5" fontWeight="bold" gutterBottom align="center">
+                {step.description}
+              </Typography>
+              <TextField
+                fullWidth
+                margin="normal"
+                name="websiteUrl"
+                label="Website URL (e.g., https://example.com)"
+                type="url"
+                value={formData.websiteUrl}
+                onChange={handleChange}
+                error={!!errors.websiteUrl}
+                helperText={errors.websiteUrl}
+                variant="outlined"
+                sx={{ mb: 2, width: '100%' }}
+                InputProps={{
+                  sx: { borderRadius: 2 }
+                }}
+              />
+            </Box>
+          </Grow>
+        );
+      case 'Logo':
+        return (
+          <Grow in={true}>
+            <Box sx={{ width: '100%', textAlign: 'center' }}>
+              <IconContainer sx={{ mx: 'auto' }}>
+                <ImageIcon sx={{ fontSize: 30 }} />
+              </IconContainer>
+              <Typography variant="h5" fontWeight="bold" gutterBottom align="center">
+                {step.description}
+              </Typography>
+              <Button variant="contained" component="label" sx={{ my: 2, background: 'linear-gradient(90deg, #7209b7 0%, #9d4edd 100%)', color: 'white', borderRadius: 2, padding: '10px 20px', '&:hover': { background: 'linear-gradient(90deg, #560bad 0%, #7209b7 100%)' } }}>
+                Upload Logo
+                <input type="file" name="logo" hidden onChange={handleChange} accept="image/png, image/jpeg, image/gif" ref={logoInputRef} />
+              </Button>
+              {formData.logo && <Typography variant="body2" sx={{ mt: 1 }}>Selected: {formData.logo.name}</Typography>}
+              {errors.logo && <FormHelperText error sx={{ textAlign: 'center' }}>{errors.logo}</FormHelperText>}
+            </Box>
+          </Grow>
+        );
       case 'Mission':
         return (
           <Grow in={true}>
@@ -434,7 +588,7 @@ const RegisterCharityPage = () => {
                 fullWidth
                 margin="normal"
                 name="mission"
-                label="Charity Mission (Short & impactful)"
+                label="Charity Mission/Tagline (Short & impactful)"
                 value={formData.mission}
                 onChange={handleChange}
                 error={!!errors.mission}
@@ -480,36 +634,6 @@ const RegisterCharityPage = () => {
             </Box>
           </Grow>
         );
-      case 'Description':
-        return (
-          <Grow in={true}>
-            <Box sx={{ width: '100%' }}>
-              <IconContainer>
-                <DescriptionIcon sx={{ fontSize: 30 }} />
-              </IconContainer>
-              <Typography variant="h5" fontWeight="bold" gutterBottom align="center">
-                {step.description}
-              </Typography>
-              <TextField
-                fullWidth
-                margin="normal"
-                name="description"
-                label="Detailed Description (Tell your story)"
-                value={formData.description}
-                onChange={handleChange}
-                error={!!errors.description}
-                helperText={errors.description}
-                variant="outlined"
-                multiline
-                rows={5}
-                sx={{ mb: 2, width: '100%' }}
-                InputProps={{
-                  sx: { borderRadius: 2 }
-                }}
-              />
-            </Box>
-          </Grow>
-        );
       default:
         return 'Unknown step';
     }
@@ -534,7 +658,7 @@ const RegisterCharityPage = () => {
                 </Box>
                 <Box sx={{ p: 3 }}>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={4}>
+                    <Grid item xs={12} sm={6}>
                       <Typography variant="subtitle2" color="textSecondary">
                         Wallet Address
                       </Typography>
@@ -542,10 +666,40 @@ const RegisterCharityPage = () => {
                         {formData.walletAddress}
                       </Typography>
                     </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="subtitle2" color="textSecondary">
+                        Contact Email
+                      </Typography>
+                      <Typography variant="body2" sx={{ wordBreak: 'break-all', mt: 0.5 }}>
+                        {formData.contactEmail}
+                      </Typography>
+                    </Grid>
+                    {formData.websiteUrl && (
+                      <Grid item xs={12}>
+                        <Divider sx={{ my: 1 }} />
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Website URL
+                        </Typography>
+                        <Typography variant="body2" sx={{ wordBreak: 'break-all', mt: 0.5 }}>
+                          {formData.websiteUrl}
+                        </Typography>
+                      </Grid>
+                    )}
+                    {formData.logo && (
+                      <Grid item xs={12}>
+                        <Divider sx={{ my: 1 }} />
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Logo
+                        </Typography>
+                        <Typography variant="body2" sx={{ mt: 0.5 }}>
+                          {formData.logo.name}
+                        </Typography>
+                      </Grid>
+                    )}
                     <Grid item xs={12}>
                       <Divider sx={{ my: 2 }} />
                       <Typography variant="subtitle2" color="textSecondary">
-                        Mission
+                        Mission/Tagline
                       </Typography>
                       <Typography variant="body2" sx={{ mt: 0.5 }}>
                         {formData.mission}
@@ -558,15 +712,6 @@ const RegisterCharityPage = () => {
                       </Typography>
                       <Typography variant="body2" sx={{ mt: 0.5 }}>
                         {formData.goal}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Divider sx={{ my: 2 }} />
-                      <Typography variant="subtitle2" color="textSecondary">
-                        Description
-                      </Typography>
-                      <Typography variant="body2" sx={{ mt: 0.5 }}>
-                        {formData.description}
                       </Typography>
                     </Grid>
                   </Grid>

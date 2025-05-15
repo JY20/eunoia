@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 class Charity(models.Model):
     name = models.CharField(max_length=255)
-    description = models.TextField()
+    description = models.TextField(blank=True, null=True)
     # For registration_proof, consider how you want to handle file uploads and validation.
     # For simplicity, starting with CharField, but FileField is better for actual files.
     registration_document = models.FileField(upload_to='charity_documents/', blank=True, null=True)
@@ -40,7 +40,7 @@ class Charity(models.Model):
         default=CharityCategory.OTHER,
         blank=True, null=True
     )
-    country_of_operation = models.CharField(_("Country of Operation"), max_length=100, blank=True, null=True) # Consider using django-countries if specific country selection is needed
+    country_of_operation = models.CharField(_("Country of Operation"), max_length=100, blank=True, null=True)
     year_founded = models.PositiveIntegerField(_("Year Founded"), blank=True, null=True)
     contact_person = models.CharField(_("Contact Person"), max_length=255, blank=True, null=True)
     tagline = models.CharField(_("Tagline/Short Summary"), max_length=255, blank=True, null=True)
