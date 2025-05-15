@@ -12,11 +12,48 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# # Load .env file from the project root (one level up from BASE_DIR if settings.py is in a subdirectory)
+# # Or adjust the path to your .env file if it's located elsewhere relative to settings.py
+# # Assuming .env is in the same directory as manage.py, which is BASE_DIR.parent for this structure
+# # If your .env is at BASE_DIR (alongside manage.py), then it should be: load_dotenv(BASE_DIR / '.env')
+# # Given the project structure, manage.py is likely at BASE_DIR.parent if BASE_DIR is eunoia_backend/eunoia_backend
+# # Let's assume .env is in the root of the *Django project* (eunoia_backend folder)
+# # So, if BASE_DIR = eunoia_backend/eunoia_backend, then .env is at BASE_DIR.parent
+# # If .env is at the absolute root of the repo (alongside the backend/ folder), the path needs to be BASE_DIR.parent.parent
+# # For now, let's assume .env is at the Django project root (backend/eunoia_backend/.env)
+# # This would usually be BASE_DIR itself if settings.py is directly in the project root.
+# # Correct path if .env is in the same directory as manage.py (which is parent of eunoia_backend dir that contains settings.py):
+# # load_dotenv(BASE_DIR.parent / '.env')
+# # The error shows the project root is /c%3A/Users/aleja/OneDrive/Escritorio/eunoia/
+# # And settings.py is at /c%3A/Users/aleja/OneDrive/Escritorio/eunoia/backend/eunoia_backend/eunoia_backend/settings.py
+# # So BASE_DIR is eunoia/backend/eunoia_backend/eunoia_backend
+# # .env is likely at eunoia/.env
+# # So, the path would be BASE_DIR.parent.parent.parent / '.env'
 
+# # Let's try to be robust: check a few common locations for .env
+# dotenv_path_project_root = BASE_DIR.parent / '.env' # e.g., backend/eunoia_backend/.env
+# dotenv_path_repo_root = BASE_DIR.parent.parent / '.env' # e.g., backend/.env
+# dotenv_path_workspace_root = BASE_DIR.parent.parent.parent / '.env' # e.g., eunoia/.env
+
+# if dotenv_path_workspace_root.exists():
+#     load_dotenv(dotenv_path_workspace_root)
+#     print(f"Loaded .env from {dotenv_path_workspace_root}")
+# elif dotenv_path_repo_root.exists():
+#     load_dotenv(dotenv_path_repo_root)
+#     print(f"Loaded .env from {dotenv_path_repo_root}")
+# elif dotenv_path_project_root.exists():
+#     load_dotenv(dotenv_path_project_root)
+#     print(f"Loaded .env from {dotenv_path_project_root}")
+# else:
+#     print("Warning: .env file not found in common locations. OPENAI_API_KEY might not be loaded.")
+
+## just load dotenv
+load_dotenv()
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -27,6 +64,12 @@ SECRET_KEY = 'django-insecure-#da0k)&*ea)01gqr)3a_7$g#166x#&q2!$-2if+3zr#a6m(jy6
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
+# OpenAI API Key
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
+if not OPENAI_API_KEY:
+    print("Warning: OPENAI_API_KEY not found in environment variables after attempting to load .env. Please ensure it is set.")
 
 
 # Application definition

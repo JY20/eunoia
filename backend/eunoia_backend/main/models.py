@@ -16,6 +16,7 @@ class Charity(models.Model):
     is_verified = models.BooleanField(default=False)
     date_registered = models.DateTimeField(auto_now_add=True)
 
+    extracted_text_data = models.TextField(blank=True, null=True, help_text="Raw text extracted from the charity's website")
     embedding = models.JSONField(blank=True, null=True, help_text="Embedding of the charity description")
 
     # New fields
