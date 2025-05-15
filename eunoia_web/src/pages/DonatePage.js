@@ -24,7 +24,9 @@ import {
   alpha,
   Paper,
   Avatar,
-  CircularProgress
+  CircularProgress,
+  LinearProgress,
+  Slider
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
@@ -37,6 +39,27 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import TextsmsIcon from '@mui/icons-material/Textsms';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
+
+// New Icons for AI flow
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'; // For AI
+import InsightsIcon from '@mui/icons-material/Insights'; // For AI analysis
+import ShareIcon from '@mui/icons-material/Share'; // For sharing impact
+import InfoIcon from '@mui/icons-material/Info';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import ExploreIcon from '@mui/icons-material/Explore'; // Placeholder for Compass
+
+// Icons for Moodboard (placeholders)
+import SchoolIcon from '@mui/icons-material/School'; // Education
+import ForestIcon from '@mui/icons-material/Forest'; // Environment
+import GavelIcon from '@mui/icons-material/Gavel'; // Justice
+import ChurchIcon from '@mui/icons-material/Church'; // Faith-based (example)
+import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism'; // Local support/Community
+import CodeIcon from '@mui/icons-material/Code'; // Innovation
+import TwitterIcon from '@mui/icons-material/Twitter';
+import InstagramIcon from '@mui/icons-material/Instagram';
+import LinkedInIcon from '@mui/icons-material/LinkedIn';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'; // For Next button
 
 import { AppContext } from '../components/AppProvider';
 import { Connected } from '../components/Alert';
@@ -51,50 +74,44 @@ const MODULE_NAME = "eunoia_foundation";
 const DONATE_FUNCTION_NAME = "donate";
 
 // Mock data until API integration
-/*
-const MOCK_CHARITIES = [
+const MOCK_CHARITIES_DATA = [
   {
     id: 1,
-    name: 'Ocean Cleanup Foundation',
-    description: "Working to rid the world's oceans of plastic pollution through innovative technologies.",
-    logo: 'https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?q=80&w=500&auto=format&fit=crop',
+    name: 'Hope Uganda Initiative',
+    description: "Empowering children in Uganda through education and healthcare.",
+    logo: 'https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?q=80&w=500&auto=format&fit=crop', // Placeholder
     aptos_wallet_address: '0x123...abc',
-    category: 'Environment',
-    match_score: 0.95,
-    match_reason: "This charity focuses on ocean cleanup which directly relates to your interest in environmental protection and marine conservation."
+    category: 'Education & Health',
+    match_score_percent: 92,
+    trust_score_grade: 'A',
+    ai_explanation: "Strongly aligns with Christian values and focus on children in Africa, specifically Uganda.",
+    suggested_allocation_percent: 60,
   },
   {
     id: 2,
-    name: 'Reforestation Alliance',
-    description: "Planting trees and protecting forests to combat climate change and preserve biodiversity.",
-    logo: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?q=80&w=500&auto=format&fit=crop',
+    name: "African Children's Fund",
+    description: "Providing essential needs and educational support across various African regions.",
+    logo: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?q=80&w=500&auto=format&fit=crop', // Placeholder
     aptos_wallet_address: '0x456...def',
-    category: 'Environment',
-    match_score: 0.85,
-    match_reason: "This charity's reforestation efforts align with your concern about climate change and environmental preservation."
+    category: 'General Aid',
+    match_score_percent: 85,
+    trust_score_grade: 'B+',
+    ai_explanation: "Broadly supports children in Africa, aligning with stated interests.",
+    suggested_allocation_percent: 25,
   },
   {
     id: 3,
-    name: 'Education For All',
-    description: "Providing educational opportunities to underprivileged children around the world.",
-    logo: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=500&auto=format&fit=crop',
+    name: 'Faithful Scholars Africa',
+    description: "Supporting faith-based educational programs for children in rural African communities.",
+    logo: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=500&auto=format&fit=crop', // Placeholder
     aptos_wallet_address: '0x789...ghi',
-    category: 'Education',
-    match_score: 0.72,
-    match_reason: "While not directly related to environmental concerns, education is foundational to creating awareness about environmental issues."
-  },
-  {
-    id: 4,
-    name: 'Wildlife Conservation Trust',
-    description: "Protecting endangered species and habitats from climate change and human threats.",
-    logo: 'https://images.unsplash.com/photo-1564652518878-669c5d2e6b9c?q=80&w=500&auto=format&fit=crop',
-    aptos_wallet_address: '0xabc...123',
-    category: 'Environment',
-    match_score: 0.91,
-    match_reason: "This charity focuses on wildlife protection which is closely related to your interest in biodiversity conservation."
+    category: 'Faith-Based Education',
+    match_score_percent: 78,
+    trust_score_grade: 'A-',
+    ai_explanation: "Directly supports faith-based education for children in Africa.",
+    suggested_allocation_percent: 15,
   }
 ];
-*/
 
 // Styled components
 const GlassCard = styled(Paper)(({ theme }) => ({
@@ -184,32 +201,42 @@ const DonatePage = () => {
   
   // Parse location state if available
   const initialState = location.state || {};
-  const startStep = initialState.startStep || 0;
   const initialSearchValue = initialState.searchValue || '';
   const initialSearchMode = initialState.searchMode || 'direct';
   const initialSelectedCharities = initialState.selectedCharities || [];
   
-  const [activeStep, setActiveStep] = useState(startStep);
+  // New Stage Management for AI Flow
+  const [currentStage, setCurrentStage] = useState('welcomeAI');
+  
+  // States for AI Flow
+  const [visionPrompt, setVisionPrompt] = useState('');
+  const [totalDonationAmount, setTotalDonationAmount] = useState(50);
+  const [aiMatchedCharities, setAiMatchedCharities] = useState([]);
+  const [aiSuggestedAllocations, setAiSuggestedAllocations] = useState({});
+  const [selectedMoodboardTags, setSelectedMoodboardTags] = useState([]);
+  const [socialHandles, setSocialHandles] = useState({ twitter: '', instagram: '', linkedin: '' });
+
   const [searchValue, setSearchValue] = useState(initialSearchValue);
   const [needsDescription, setNeedsDescription] = useState(initialSearchMode === 'needs' ? initialSearchValue : '');
   const [searchMode, setSearchMode] = useState(initialSearchMode);
   const [matchedCharities, setMatchedCharities] = useState([]);
+  
   const [loading, setLoading] = useState(false);
   const [selectedCharities, setSelectedCharities] = useState(initialSelectedCharities);
   const [donationAmounts, setDonationAmounts] = useState(
-    // Initialize amounts for any pre-selected charities
     initialSelectedCharities.reduce((acc, charity) => {
-      acc[charity.id] = 10; // Default amount
+      acc[charity.id] = 10;
       return acc;
     }, {})
   );
-  const [amplifyImpact, setAmplifyImpact] = useState(true);
+  const [platformFeeActive, setPlatformFeeActive] = useState(true);
   const [donationComplete, setDonationComplete] = useState(false);
   const [transactionPending, setTransactionPending] = useState(false);
   const [transactionError, setTransactionError] = useState(null);
+  const [impactActivities, setImpactActivities] = useState([]);
+  const [showSocialSharePreview, setShowSocialSharePreview] = useState(false);
   
-  // Mock wallet balance (would come from blockchain)
-  const [walletBalance, setWalletBalance] = useState(150.75); // APT tokens
+  const [walletBalance, setWalletBalance] = useState(150.75);
 
   const steps = [
     'Find Charities',
@@ -218,15 +245,20 @@ const DonatePage = () => {
     'Confirm & Donate'
   ];
 
-  // On component mount, run search if there's an initial search value
   useEffect(() => {
-    if (initialSearchValue && activeStep === 0) {
-      handleFindMatches();
+    if (initialSearchValue && currentStage === 'traditionalSearch') {
+      handleManualSearch();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Simulate fetching matches based on search or description
+  const handleManualSearch = async () => {
+    setLoading(true);
+    console.log("Manual search triggered with:", searchValue, "or description:", needsDescription);
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+  };
+
   const handleFindMatches = async () => {
     setLoading(true);
     
@@ -264,13 +296,11 @@ const DonatePage = () => {
     if (selectedCharities.some(c => c.id === charity.id)) {
       setSelectedCharities(selectedCharities.filter(c => c.id !== charity.id));
       
-      // Also remove donation amount
       const updatedAmounts = {...donationAmounts};
       delete updatedAmounts[charity.id];
       setDonationAmounts(updatedAmounts);
     } else {
       setSelectedCharities([...selectedCharities, charity]);
-      // Set default donation amount
       setDonationAmounts({
         ...donationAmounts,
         [charity.id]: 10
@@ -287,19 +317,23 @@ const DonatePage = () => {
   };
 
   const handleConnectWallet = () => {
-    // This would interact with the wallet adapter in a real implementation
-    // For now, just simulate a successful connection
     setWalletAddress('0x742...3fd9');
     handleNext();
   };
 
   const calculateTotal = () => {
+    if (currentStage === 'charityResults' || currentStage === 'donationConfirmation' || currentStage === 'impactTracker') {
+        return Object.values(aiSuggestedAllocations).reduce((sum, amount) => sum + Number(amount), 0);
+    }
     return Object.values(donationAmounts).reduce((sum, amount) => sum + Number(amount), 0);
   };
 
-  const calculateFees = () => {
-    if (!amplifyImpact) return 0;
-    return calculateTotal() * 0.002; // 0.20%
+  const calculatePlatformFee = () => {
+    if (!platformFeeActive) return 0;
+    if (['visionPrompt', 'aiProcessing', 'charityResults', 'donationConfirmation', 'impactTracker'].includes(currentStage)) {
+        return totalDonationAmount * 0.002;
+    }
+    return calculateTotal() * 0.002;
   };
 
   const handleDonate = async () => {
@@ -308,7 +342,7 @@ const DonatePage = () => {
       return;
     }
 
-    const charityToDonate = selectedCharities[0]; // Example: process first selected
+    const charityToDonate = selectedCharities[0];
     const amountToDonate = donationAmounts[charityToDonate.id];
 
     if (!amountToDonate || amountToDonate <= 0) {
@@ -316,41 +350,31 @@ const DonatePage = () => {
       return;
     }
 
-    // 1 APT = 10^8 OCTA
     const amountInOcta = Math.round(amountToDonate * Math.pow(10, 8)); 
-    const coinIdentifier = '0x1::aptos_coin::AptosCoin'; // Default to APT
+    const coinIdentifier = '0x1::aptos_coin::AptosCoin';
 
-    // setLoading(true); // setLoading is now part of transactionPending
     setTransactionPending(true);
     setTransactionError(null);
     setDonationComplete(false);
 
     try {
-      // 1. Construct the transaction payload directly on the frontend
       const entryFunctionPayload = {
-        type: "entry_function_payload", // Ensure this type string is exactly what the wallet expects
+        type: "entry_function_payload",
         function: `${MODULE_ADDRESS}::${MODULE_NAME}::${DONATE_FUNCTION_NAME}`,
-        type_arguments: [coinIdentifier], // The CoinType generic type argument
+        type_arguments: [coinIdentifier],
         arguments: [
-          charityToDonate.name,       // charity_name: String
-          coinIdentifier,             // coin_identifier_string: String (runtime argument)
-          amountInOcta.toString()     // amount: u64 (passed as string for safety)
+          charityToDonate.name,
+          coinIdentifier,
+          amountInOcta.toString()
         ],
       };
 
-      // 2. Use wallet to sign and submit the transaction
-      // Adhering to the new standard suggested by Petra (wrapping the payload)
       if (window.aptos && window.aptos.isConnected) {
         console.log("Constructed Entry Function Payload:", JSON.stringify(entryFunctionPayload, null, 2));
         
-        // Updated to use { payload } as per deprecation warning
         const pendingTransaction = await window.aptos.signAndSubmitTransaction({ payload: entryFunctionPayload }); 
-        // IF THE ABOVE STILL FAILS WITH TYPEERRORS or similar, TRY:
-        // const pendingTransaction = await window.aptos.signAndSubmitTransaction({ data: entryFunctionPayload });
 
         console.log("Transaction submitted:", pendingTransaction); 
-        // pendingTransaction typically contains { hash: string, ... }
-        // You might want to use pendingTransaction.hash to link to an explorer
         setDonationComplete(true);
       } else {
         throw new Error("Aptos wallet not connected or not available. Please connect your wallet.");
@@ -375,21 +399,42 @@ const DonatePage = () => {
       setTransactionError(errorMessage);
       setDonationComplete(false);
     } finally {
-      // setLoading(false);
       setTransactionPending(false);
     }
   };
 
   const handleNext = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    setCurrentStage((prevStage) => {
+      if (prevStage === 'welcomeAI') return 'visionPrompt';
+      if (prevStage === 'visionPrompt') return 'aiProcessing';
+      if (prevStage === 'aiProcessing') return 'charityResults';
+      if (prevStage === 'charityResults') return 'donationConfirmation';
+      if (prevStage === 'donationConfirmation') return 'impactTracker';
+      return 'welcomeAI';
+    });
   };
 
   const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    setCurrentStage((prevStage) => {
+      if (prevStage === 'welcomeAI') return 'welcomeAI';
+      if (prevStage === 'visionPrompt') return 'welcomeAI';
+      if (prevStage === 'aiProcessing') return 'visionPrompt';
+      if (prevStage === 'charityResults') return 'visionPrompt';
+      if (prevStage === 'donationConfirmation') return 'charityResults';
+      if (prevStage === 'impactTracker') return 'donationConfirmation';
+      return 'welcomeAI';
+    });
   };
 
   const handleReset = () => {
-    setActiveStep(0);
+    setCurrentStage('welcomeAI');
+    setVisionPrompt('');
+    setTotalDonationAmount(50);
+    setAiMatchedCharities([]);
+    setAiSuggestedAllocations({});
+    setSelectedMoodboardTags([]);
+    setSocialHandles({ twitter: '', instagram: '', linkedin: '' });
+    
     setSearchValue('');
     setNeedsDescription('');
     setSearchMode('direct');
@@ -397,572 +442,725 @@ const DonatePage = () => {
     setSelectedCharities([]);
     setDonationAmounts({});
     setDonationComplete(false);
+    setTransactionError(null);
+    setTransactionPending(false);
+    setImpactActivities([]);
+    setShowSocialSharePreview(false);
   };
 
-  // Generate the appropriate step content based on active step
-  const getStepContent = (step) => {
-    switch (step) {
-      case 0:
-        return (
-          <StepContent>
-            <Typography variant="h5" fontWeight="bold" gutterBottom>
-              Find charities you'd like to support
-            </Typography>
-            <Typography variant="body1" color="text.secondary" paragraph>
-              You can search for specific charities or describe what cause you'd like to support.
-            </Typography>
-            
-            <Box sx={{ display: 'flex', mb: 3 }}>
-              <Button 
-                variant={searchMode === 'direct' ? 'contained' : 'outlined'} 
-                onClick={() => setSearchMode('direct')}
-                startIcon={<SearchIcon />}
-                sx={{ 
-                  mr: 2, 
-                  borderRadius: '50px',
-                  textTransform: 'none'
-                }}
-              >
-                Direct Search
-              </Button>
-              <Button 
-                variant={searchMode === 'needs' ? 'contained' : 'outlined'} 
-                onClick={() => setSearchMode('needs')}
-                startIcon={<TextsmsIcon />}
-                sx={{ 
-                  borderRadius: '50px',
-                  textTransform: 'none'
-                }}
-              >
-                Describe Your Cause
-              </Button>
-            </Box>
-            
-            {searchMode === 'direct' ? (
-              <TextField
-                fullWidth
-                variant="outlined"
-                placeholder="Search for charity names, categories, or keywords..."
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                sx={{ 
-                  mb: 3,
-                  borderRadius: '8px',
+  const AllocationWelcomeView = () => (
+    <StepContent sx={{ textAlign: 'center', py: {xs: 4, sm: 6} }}>
+      <Box mb={4}>
+        <ExploreIcon sx={{ fontSize: 90, color: 'primary.main', mb:1 }} />
+      </Box>
+      <Typography variant="h3" fontWeight="bold" gutterBottom sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
+        Find Your Compass.
+      </Typography>
+      <Typography variant="h6" color="text.secondary" paragraph sx={{ mb: 5, maxWidth: '600px', mx: 'auto' }}>
+        Giving guided by your values.
+      </Typography>
+      
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" alignItems="center">
+        <GlowButton 
+          onClick={() => setCurrentStage('visionPrompt')} 
+          size="large" 
+          sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}
+          startIcon={<AutoAwesomeIcon />}
+        >
+          Use Eunoia Compass
+        </GlowButton>
+        <Button 
+          variant="outlined" 
+          color="primary"
+          component={Link} 
+          to="/explore"
+          size="large" 
+          sx={{py: 1.5, px: 5, fontSize: '1.1rem', borderRadius: '50px'}}
+          startIcon={<SearchIcon />}
+        >
+          Donate Directly
+        </Button>
+      </Stack>
+      
+      <Typography variant="body1" sx={{ mt: 6, fontStyle: 'italic', color: 'text.secondary' }}>
+        Unchained Giving. Borderless Impact.
+      </Typography>
+    </StepContent>
+  );
+
+  const VisionPromptView = () => {
+    const MIN_MOODBOARD_SELECTION = 3;
+    const MAX_MOODBOARD_SELECTION = 5;
+
+    const moodboardItems = [
+      { id: 'education', imgSrc: '/images/Education.png', label: 'Education', tags: ['education', 'children', 'learning'] },
+      { id: 'environment', imgSrc: '/images/Environment.jpg', label: 'Environment', tags: ['nature', 'conservation', 'sustainability'] },
+      { id: 'faith', imgSrc: '/images/Religion.jpg', label: 'Faith-Based', tags: ['spirituality', 'community', 'mission'] },
+      { id: 'innovation', imgSrc: '/images/Innovation.jpg', label: 'Innovation', tags: ['technology', 'progress', 'future'] },
+    ];
+
+    const handleMoodboardSelect = (itemId) => {
+      setSelectedMoodboardTags(prevTags => {
+        if (prevTags.includes(itemId)) {
+          return prevTags.filter(tag => tag !== itemId);
+        } else {
+          if (prevTags.length < MAX_MOODBOARD_SELECTION) {
+            return [...prevTags, itemId];
+          }
+        }
+        return prevTags; // Return previous tags if max is reached and not deselecting
+      });
+    };
+
+    const handleSocialChange = (platform, value) => {
+      setSocialHandles(prev => ({ ...prev, [platform]: value }));
+    };
+
+    const isNextDisabled = 
+      selectedMoodboardTags.length < MIN_MOODBOARD_SELECTION || 
+      selectedMoodboardTags.length > MAX_MOODBOARD_SELECTION ||
+      !visionPrompt.trim() || 
+      totalDonationAmount <= 0;
+
+    return (
+      <StepContent sx={{maxWidth: '700px', mx: 'auto'}}>
+        <Typography variant="h4" fontWeight="bold" gutterBottom align="center" sx={{ fontFamily: "'Space Grotesk', sans-serif", mb:1}}>
+          Define Your Impact
+        </Typography>
+        
+        {/* 1. Mission Prompt Input */}
+        <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
+          <Typography variant="h6" fontWeight="medium" gutterBottom>
+            What kind of change do you care about?
+          </Typography>
+          <TextField
+              fullWidth
+              multiline
+              rows={3}
+              variant="outlined"
+              placeholder="I want to support education for girls in rural communities."
+              value={visionPrompt}
+              onChange={(e) => setVisionPrompt(e.target.value)}
+              sx={{ 
+                  mb: 1,
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: '50px',
+                      borderRadius: '12px',
+                      backgroundColor: alpha(theme.palette.common.white, 0.5)
                   }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
+              }}
+          />
+          <Button size="small" variant="text" sx={{textTransform: 'none'}}>
+            Let Compass help (Suggest ideas)
+          </Button>
+        </Paper>
+
+        {/* 2. Visual Moodboard Selector */}
+        <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
+          <Typography variant="h6" fontWeight="medium" gutterBottom>
+            Pick what resonates with you
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{mb:2}}>
+            These images help us understand your values. (Select {MIN_MOODBOARD_SELECTION}-{MAX_MOODBOARD_SELECTION})
+          </Typography>
+          <Grid container spacing={2}>
+            {moodboardItems.map(item => (
+              <Grid item xs={4} sm={2} key={item.id} sx={{textAlign: 'center'}}>
+                <Paper 
+                  elevation={selectedMoodboardTags.includes(item.id) ? 6 : 2}
+                  onClick={() => handleMoodboardSelect(item.id)}
+                  sx={{
+                    p: selectedMoodboardTags.includes(item.id) ? 0.5 : 1,
+                    borderRadius: '12px', 
+                    cursor: 'pointer', 
+                    border: selectedMoodboardTags.includes(item.id) ? `3px solid ${theme.palette.primary.main}` : `3px solid transparent`,
+                    backgroundColor: selectedMoodboardTags.includes(item.id) ? alpha(theme.palette.primary.light, 0.1) : alpha(theme.palette.background.paper, 0.7),
+                    transition: 'all 0.2s ease-in-out',
+                    overflow: 'hidden',
+                    '&:hover': {
+                        transform: 'scale(1.05)',
+                        boxShadow: theme.shadows[5]
+                    }
+                  }}
+                >
+                  {item.imgSrc ? (
+                    <img src={process.env.PUBLIC_URL + item.imgSrc} alt={item.label} style={{ width: '100%', height: '60px', objectFit: 'cover', display:'block', borderRadius: '8px 8px 0 0' }} />
+                  ) : (
+                    <item.Icon sx={{fontSize: 30, mt: 1, height: '60px', color: selectedMoodboardTags.includes(item.id) ? theme.palette.primary.main : 'action.active' }}/>
+                  )}
+                  <Typography variant="caption" display="block" sx={{ mt: 0.5, p:0.5, backgroundColor: alpha(theme.palette.background.paper, 0.5) }}>{item.label}</Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+           {selectedMoodboardTags.length > 0 && selectedMoodboardTags.length < MIN_MOODBOARD_SELECTION && (
+            <Typography color="error" variant="caption" display="block" sx={{mt:1, textAlign:'center'}}>
+                Please select at least {MIN_MOODBOARD_SELECTION} images.
+            </Typography>
+           )}
+           {selectedMoodboardTags.length > MAX_MOODBOARD_SELECTION && (
+            <Typography color="error" variant="caption" display="block" sx={{mt:1, textAlign:'center'}}>
+                Please select no more than {MAX_MOODBOARD_SELECTION} images.
+            </Typography>
+           )}
+        </Paper>
+
+        {/* Donation Amount Slider - Keeping this as it's crucial for donation */}
+        <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, alignItems: 'baseline' }}>
+              <Typography variant="h6" fontWeight="medium">Set Your Donation Amount (APT):</Typography>
+              <Typography variant="h5" fontWeight="bold" color="primary.main">{totalDonationAmount} APT</Typography>
+          </Box>
+          <Slider
+              value={totalDonationAmount}
+              min={5}
+              max={100} 
+              step={1}
+              onChange={(e, newValue) => setTotalDonationAmount(Number(newValue))}
+              aria-labelledby="donation-amount-slider"
+              sx={{color: 'primary.main'}}
+              valueLabelDisplay="auto"
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', typography: 'caption', color: 'text.secondary' }}>
+              <span>5 APT</span>
+              <span>100 APT</span>
+          </Box>
+        </Paper>
+        
+        {/* 3. Social Media Input */}
+        <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
+          <Typography variant="h6" fontWeight="medium" gutterBottom>
+            Want smarter matches? Share your socials. <Chip label="Optional" size="small" variant="outlined"/>
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{mb:2}}>
+            We'll never post or share anything. This helps our AI understand your interests better.
+          </Typography>
+          <Stack spacing={2}>
+            <TextField 
+              label="Twitter / X Handle"
+              variant="outlined" 
+              size="small"
+              value={socialHandles.twitter}
+              onChange={(e) => handleSocialChange('twitter', e.target.value)}
+              InputProps={{ startAdornment: <InputAdornment position="start"><TwitterIcon /></InputAdornment> }}
+              sx={{backgroundColor: alpha(theme.palette.common.white, 0.5), borderRadius: '8px'}}
+            />
+            <TextField 
+              label="Instagram Handle"
+              variant="outlined" 
+              size="small"
+              value={socialHandles.instagram}
+              onChange={(e) => handleSocialChange('instagram', e.target.value)}
+              InputProps={{ startAdornment: <InputAdornment position="start"><InstagramIcon /></InputAdornment> }}
+              sx={{backgroundColor: alpha(theme.palette.common.white, 0.5), borderRadius: '8px'}}
+            />
+            <TextField 
+              label="LinkedIn Profile URL"
+              variant="outlined" 
+              size="small"
+              value={socialHandles.linkedin}
+              onChange={(e) => handleSocialChange('linkedin', e.target.value)}
+              InputProps={{ startAdornment: <InputAdornment position="start"><LinkedInIcon /></InputAdornment> }}
+              sx={{backgroundColor: alpha(theme.palette.common.white, 0.5), borderRadius: '8px'}}
+            />
+          </Stack>
+        </Paper>
+
+        {/* Platform Fee Toggle - Keeping this */}
+        <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={platformFeeActive}
+                onChange={(e) => setPlatformFeeActive(e.target.checked)}
+                color="primary"
               />
-            ) : (
-              <TextField
-                fullWidth
-                variant="outlined"
-                placeholder="Describe the cause you're passionate about..."
-                value={needsDescription}
-                onChange={(e) => setNeedsDescription(e.target.value)}
-                multiline
-                rows={4}
-                sx={{ 
-                  mb: 3,
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                  }
-                }}
-              />
-            )}
-            
-            <GlowButton 
-              onClick={handleFindMatches}
-              disabled={searchMode === 'direct' ? !searchValue : !needsDescription}
-              sx={{ px: 4 }}
-            >
-              Find Matching Charities
-            </GlowButton>
-            
-            {loading && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-                <CircularProgress />
-              </Box>
-            )}
-            
-            {!loading && matchedCharities.length > 0 && (
-              <Box mt={4}>
-                <Typography variant="h6" gutterBottom>
-                  {matchedCharities.length} {matchedCharities.length === 1 ? 'charity' : 'charities'} matched your search
-                </Typography>
-                
-                <Grid container spacing={3} sx={{ mt: 2 }}>
-                  {matchedCharities.map((charity) => (
-                    <Grid item xs={12} sm={6} md={4} key={charity.id}>
-                      <CharityCard selected={selectedCharities.some(c => c.id === charity.id)}>
-                        <CardMedia
-                          component="img"
-                          height="140"
-                          image={charity.logo}
-                          alt={charity.name}
-                        />
-                        <CardContent sx={{ flexGrow: 1 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                              {charity.name}
-                            </Typography>
-                            <VerifiedIcon color="primary" fontSize="small" />
-                          </Box>
-                          <Typography variant="body2" color="text.secondary" paragraph>
-                            {charity.description}
-                          </Typography>
-                          <Chip 
-                            label={charity.category} 
-                            size="small" 
-                            sx={{ mb: 1, borderRadius: '50px' }} 
-                          />
-                          {searchMode === 'needs' && (
-                            <Box 
-                              sx={{ 
-                                mt: 2,
-                                p: 1.5, 
-                                bgcolor: alpha(theme.palette.primary.main, 0.08),
-                                borderRadius: '12px',
-                              }}
-                            >
-                              <Typography variant="caption" fontWeight="medium" color="primary.main" display="block" gutterBottom>
-                                {Math.round(charity.match_score * 100)}% Match
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                {charity.match_reason}
-                              </Typography>
-                            </Box>
-                          )}
-                        </CardContent>
-                        <CardActions sx={{ p: 2 }}>
-                          <Button
-                            variant={selectedCharities.some(c => c.id === charity.id) ? "contained" : "outlined"}
-                            fullWidth
-                            onClick={() => handleSelectCharity(charity)}
-                            startIcon={selectedCharities.some(c => c.id === charity.id) ? <CheckCircleIcon /> : <FavoriteIcon />}
-                            sx={{ 
-                              borderRadius: '50px',
-                              textTransform: 'none',
-                            }}
-                          >
-                            {selectedCharities.some(c => c.id === charity.id) ? "Selected" : "Select"}
-                          </Button>
-                        </CardActions>
-                      </CharityCard>
-                    </Grid>
-                  ))}
-                </Grid>
-                
-                <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary">
-                    {selectedCharities.length} {selectedCharities.length === 1 ? 'charity' : 'charities'} selected
-                  </Typography>
-                  <GlowButton 
-                    onClick={handleNext}
-                    disabled={selectedCharities.length === 0}
-                  >
-                    Continue to Allocation
-                  </GlowButton>
-                </Box>
-              </Box>
-            )}
-            
-            {!loading && matchedCharities.length === 0 && searchValue && (
-              <Box sx={{ textAlign: 'center', my: 4, p: 3, bgcolor: alpha(theme.palette.primary.main, 0.05), borderRadius: '16px' }}>
-                <Typography variant="h6" gutterBottom>
-                  No charities found matching your search
+            }
+            labelPlacement="start"
+            label={
+              <Box sx={{textAlign: 'left', flexGrow:1, mr:1}}>
+                <Typography variant="body1" fontWeight="medium">
+                  Support Eunoia Platform (+0.20%)
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Try different keywords or categories.
+                  Helps us grow! Fee: {calculatePlatformFee().toFixed(2)} APT
                 </Typography>
               </Box>
-            )}
+            }
+            sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', ml:0 }}
+          />
+        </Paper>
+        
+        {/* Navigation */}
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <BackButton onClick={() => setCurrentStage('welcomeAI')}>Back</BackButton>
+          <GlowButton 
+              onClick={() => setCurrentStage('aiProcessing')} 
+              disabled={isNextDisabled}
+              sx={{py: 1.5, fontSize: '1.1rem'}}
+              endIcon={<ChevronRightIcon />}
+          >
+            Continue with Compass
+          </GlowButton>
+        </Box>
+        <Typography variant="caption" display="block" sx={{mt:2, textAlign: 'center', color: 'text.secondary'}}>
+            Your data stays private. We only use it to guide your giving journey.
+        </Typography>
+      </StepContent>
+    );
+  };
+
+  const AiProcessingView = () => {
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        const mockResults = MOCK_CHARITIES_DATA.slice(0, 3);
+        setAiMatchedCharities(mockResults);
+        
+        const allocations = {};
+        let currentTotalAllocation = 0;
+        mockResults.forEach((charity, index) => {
+            const suggestedPercent = Number(charity.suggested_allocation_percent);
+            if (isNaN(suggestedPercent)) {
+                console.error("Invalid suggested_allocation_percent for charity:", charity.name);
+                allocations[charity.id] = 0;
+                return;
+            }
+            let allocatedAmount;
+            if (index === mockResults.length - 1) {
+                allocatedAmount = totalDonationAmount - currentTotalAllocation;
+            } else {
+                allocatedAmount = totalDonationAmount * (suggestedPercent / 100);
+            }
+            allocatedAmount = Math.max(0, parseFloat(allocatedAmount.toFixed(2)));
+            allocations[charity.id] = allocatedAmount;
+            currentTotalAllocation += allocatedAmount;
+        });
+
+        const sumOfAllocations = Object.values(allocations).reduce((sum, val) => sum + val, 0);
+        if (sumOfAllocations !== totalDonationAmount && mockResults.length > 0) {
+            const lastCharityId = mockResults[mockResults.length -1].id;
+            const diff = totalDonationAmount - sumOfAllocations;
+            allocations[lastCharityId] = parseFloat((allocations[lastCharityId] + diff).toFixed(2));
+            if (allocations[lastCharityId] < 0) allocations[lastCharityId] = 0;
+        }
+
+        setAiSuggestedAllocations(allocations);
+        setCurrentStage('charityResults');
+      }, 4000);
+      return () => clearTimeout(timer);
+    }, []);
+
+    const keywords = visionPrompt.split(' ').filter(k => k.length > 3);
+    if(keywords.length === 0) keywords.push(...['Impact', 'Faith', 'Children', 'Education', 'Africa']);
+
+    return (
+      <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+        <Box sx={{ position: 'relative', width: 120, height: 120, marginX: 'auto', mb: 3 }}>
+            <InsightsIcon sx={{ fontSize: 100, color: 'primary.light', position:'absolute', top:'50%', left:'50%', transform:'translate(-50%, -50%)', opacity: 0.2 }} />
+            <CircularProgress size={120} thickness={2} sx={{ position:'absolute', top:0, left:0 }} />
+            <AutoAwesomeIcon sx={{ fontSize: 60, color: 'primary.main', position:'absolute', top:'50%', left:'50%', transform:'translate(-50%, -50%)' }} />
+        </Box>
+        <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
+          🧠 Agent Theo is analyzing...
+                </Typography>
+        <Typography variant="h6" color="text.secondary" paragraph>
+          Matching your vision with high-impact causes.
+                </Typography>
+        <Box sx={{my:3, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 1}}>
+            {keywords.slice(0,5).map(kw => <Chip key={kw} label={kw} variant="outlined" />)}
+              </Box>
+        <LinearProgress sx={{my:2, maxWidth: 300, mx:'auto'}}/> 
+        <Typography variant="body2" color="text.secondary">
+          <i>This may take a few moments...</i>
+        </Typography>
           </StepContent>
         );
-      
-      case 1:
-        return (
-          <StepContent>
-            <Typography variant="h5" fontWeight="bold" gutterBottom>
-              Allocate your donation
+  };
+
+  const CharityResultsView = () => (
+    <StepContent sx={{maxWidth: '900px', mx: 'auto'}}>
+      <Typography variant="h4" fontWeight="bold" gutterBottom align="center" sx={{ fontFamily: "'Space Grotesk', sans-serif", mb:1}}>
+        Your Personalized Charity Matches
             </Typography>
-            <Typography variant="body1" color="text.secondary" paragraph>
-              Decide how much you'd like to donate to each charity.
+      <Typography variant="subtitle1" align="center" color="text.secondary" sx={{mb:3}}>
+        Based on your vision, Agent Theo suggests these organizations:
             </Typography>
             
-            {selectedCharities.map((charity) => (
-              <Box 
-                key={charity.id} 
-                sx={{ 
-                  mb: 3, 
-                  p: 3, 
-                  backgroundColor: alpha(theme.palette.background.paper, 0.7),
-                  backdropFilter: 'blur(10px)',
-                  borderRadius: '16px',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-                }}
-              >
-                <Grid container spacing={2} alignItems="center">
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar 
-                        src={charity.logo} 
-                        sx={{ width: 48, height: 48, mr: 2 }} 
-                        variant="rounded"
-                      />
-                      <Box>
-                        <Typography variant="h6">{charity.name}</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Wallet: {charity.aptos_wallet_address}
+      <Grid container spacing={3} sx={{ mt: 0 }}>
+        {aiMatchedCharities.map(charity => (
+          <Grid item xs={12} md={4} key={charity.id}>
+            <CharityCard selected={false} sx={{boxShadow: 'lg', transition: 'transform 0.3s, box-shadow 0.3s', '&:hover': {transform: 'translateY(-5px)', boxShadow: 'xl'} }}>
+              <CardMedia
+                component="img"
+                height="160"
+                image={charity.logo || 'https://via.placeholder.com/300x160.png?text=Charity+Logo'}
+                alt={charity.name}
+              />
+              <CardContent sx={{ flexGrow: 1, p: 2 }}>
+                <Typography variant="h6" component="div" fontWeight="bold" gutterBottom noWrap title={charity.name}>
+                  {charity.name}
                         </Typography>
-                      </Box>
-                    </Box>
+                <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap" }}>
+                  <Chip icon={<CheckCircleIcon />} label={`${charity.match_score_percent}% Match`} color="primary" size="small" variant="filled" />
+                  <Chip label={`Trust: ${charity.trust_score_grade}`} color="success" size="small" variant="outlined" />
+                </Stack>
+                <Typography variant="h6" color="primary.dark" sx={{ my: 1.5}}>
+                  Suggested: {aiSuggestedAllocations[charity.id] ? aiSuggestedAllocations[charity.id].toFixed(2) : '0.00'} APT
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.8rem', height: '50px', overflow: 'hidden' }}>
+                  AI Note: {charity.ai_explanation}
+                </Typography>
+              </CardContent>
+              <CardActions sx={{ p:2, justifyContent: 'space-around'}}>
+                <Button size="small" variant="outlined" sx={{borderRadius: '50px'}}>Details</Button> 
+                <Button size="small" variant="contained" sx={{borderRadius: '50px'}} onClick={() => {
+                }}>Accept Suggestion</Button> 
+              </CardActions>
+            </CharityCard>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <IconButton 
-                        onClick={() => handleDonationAmountChange(
-                          charity.id, 
-                          Math.max(0, Number(donationAmounts[charity.id]) - 1)
-                        )}
-                        sx={{ color: theme.palette.primary.main }}
-                      >
-                        <RemoveCircleOutlineIcon />
-                      </IconButton>
-                      
-                      <AmountInput
-                        value={donationAmounts[charity.id] || 0}
-                        onChange={(e) => handleDonationAmountChange(
-                          charity.id, 
-                          e.target.value === '' ? 0 : Number(e.target.value)
-                        )}
-                        type="number"
-                        variant="outlined"
-                        size="small"
-                        sx={{ width: '100px', mx: 1 }}
-                        inputProps={{ 
-                          min: 0,
-                          step: 0.1
-                        }}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              $
-                            </InputAdornment>
-                          ),
-                        }}
-                      />
-                      
-                      <IconButton 
-                        onClick={() => handleDonationAmountChange(
-                          charity.id, 
-                          Number(donationAmounts[charity.id]) + 1
-                        )}
-                        sx={{ color: theme.palette.primary.main }}
-                      >
-                        <AddCircleOutlineIcon />
-                      </IconButton>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Box>
-            ))}
-            
-            <Box 
-              sx={{ 
-                mt: 4, 
-                p: 3, 
-                backgroundColor: alpha(theme.palette.primary.main, 0.05),
-                borderRadius: '16px',
-              }}
-            >
+        ))}
+      </Grid>
+      
+      <Paper elevation={3} sx={{ mt: 4, p: {xs: 2, sm:3}, borderRadius: '16px', background: alpha(theme.palette.background.paper, 0.8), backdropFilter: 'blur(5px)' }}>
               <FormControlLabel
                 control={
                   <Switch 
-                    checked={amplifyImpact} 
-                    onChange={(e) => setAmplifyImpact(e.target.checked)}
+              checked={platformFeeActive}
+              onChange={(e) => setPlatformFeeActive(e.target.checked)}
                     color="primary"
                   />
                 }
+          labelPlacement="start"
                 label={
-                  <Box>
+            <Box sx={{textAlign: 'left'}}>
                     <Typography variant="body1" fontWeight="medium">
-                      Amplify Your Impact (+0.20%)
+                Support Eunoia Platform (+0.20%)
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      This small contribution helps fund marketing for all charities on our platform.
+                Helps us operate & grow! Fee: {calculatePlatformFee().toFixed(2)} APT
                     </Typography>
                   </Box>
                 }
-                sx={{ mb: 2 }}
+          sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', ml:0 }}
               />
-              
               <Divider sx={{ my: 2 }} />
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body1">Donation Total:</Typography>
-                <Typography variant="body1" fontWeight="bold">${calculateTotal().toFixed(2)}</Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2" color="text.secondary">Amplify Impact Fee:</Typography>
-                <Typography variant="body2" color="text.secondary">${calculateFees().toFixed(2)}</Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body1" fontWeight="bold">Total Amount:</Typography>
-                <Typography variant="body1" fontWeight="bold" color="primary.main">
-                  ${(calculateTotal() + calculateFees()).toFixed(2)}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt:1 }}>
+            <Typography variant="h5" fontWeight="bold">Total Donation:</Typography>
+            <Typography variant="h5" fontWeight="bold" color="primary.main">
+                {(totalDonationAmount + calculatePlatformFee()).toFixed(2)} APT
                 </Typography>
               </Box>
-            </Box>
-            
-            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
-              <BackButton onClick={handleBack}>
-                Back to Search
-              </BackButton>
+      </Paper>
+
+      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <BackButton onClick={() => setCurrentStage('visionPrompt')}>Adjust Vision</BackButton>
               <GlowButton 
-                onClick={handleNext}
-                disabled={calculateTotal() <= 0}
-              >
-                Proceed to Wallet Connection
+            onClick={() => {
+                setCurrentStage('donationConfirmation');
+            }}
+            disabled={aiMatchedCharities.length === 0 || transactionPending}
+            size="large"
+            sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}
+        >
+          {transactionPending ? <CircularProgress size={24} color="inherit"/> : 'Confirm & Donate'}
               </GlowButton>
             </Box>
           </StepContent>
         );
       
-      case 2:
+  const DonationConfirmationView = () => {
+    useEffect(() => {
+        if (currentStage === 'donationConfirmation' && !transactionPending && !donationComplete && !transactionError) {
+            if (!walletAddress) {
+                 setTransactionError("Wallet not connected. Please connect your wallet first.");
+                 return;
+            }
+            handleDonate();
+        }
+    }, [currentStage]);
+
+    if (transactionPending) {
         return (
-          <StepContent>
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography variant="h5" fontWeight="bold" gutterBottom>
-                Connect your wallet
-              </Typography>
-              <Typography variant="body1" color="text.secondary" paragraph>
-                Connect your Aptos wallet to make your donation securely.
-              </Typography>
-              
-              <Box 
-                sx={{ 
-                  display: 'inline-block',
-                  p: 3,
-                  mt: 3,
-                  mb: 5,
-                  borderRadius: '24px',
-                  backgroundColor: alpha(theme.palette.background.paper, 0.8),
-                  backdropFilter: 'blur(10px)',
-                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)'
-                }}
-              >
-                <AccountBalanceWalletIcon 
-                  sx={{ 
-                    fontSize: 80, 
-                    color: theme.palette.primary.main,
-                    mb: 2
-                  }} 
-                />
-                
-                <Typography variant="h6" gutterBottom>
-                  Total Donation Amount
-                </Typography>
-                <Typography 
-                  variant="h4" 
-                  color="primary.main" 
-                  fontWeight="bold" 
-                  gutterBottom
-                >
-                  ${(calculateTotal() + calculateFees()).toFixed(2)}
-                </Typography>
-                
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-                  Supporting {selectedCharities.length} {selectedCharities.length === 1 ? 'charity' : 'charities'}
-                </Typography>
-                
-                <GlowButton
-                  onClick={handleConnectWallet}
-                  sx={{ 
-                    px: 4,
-                    py: 1.5,
-                    fontSize: '1.1rem'
-                  }}
-                  startIcon={<AccountBalanceWalletIcon />}
-                >
-                  Connect Petra Wallet
-                </GlowButton>
-              </Box>
-            </Box>
-            
-            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
-              <BackButton onClick={handleBack}>
-                Back to Allocation
-              </BackButton>
-            </Box>
-          </StepContent>
+            <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+                <CircularProgress sx={{ mb: 3, width: '60px !important', height: '60px !important' }}/>
+                <Typography variant="h5" fontWeight="bold" gutterBottom>Processing Your Donation...</Typography>
+                <Typography variant="body1" color="text.secondary">Please confirm the transaction in your wallet.</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{mt:1}}><i>(This may take a moment)</i></Typography>
+            </StepContent>
         );
-      
-      case 3:
+    }
+
+    if (transactionError) {
         return (
-          <StepContent>
-            <Typography variant="h5" fontWeight="bold" gutterBottom>
-              Confirm your donation
-            </Typography>
-            <Typography variant="body1" color="text.secondary" paragraph>
-              Review your donation details and confirm.
-            </Typography>
-            
-            <Box 
-              sx={{ 
-                p: 3, 
-                borderRadius: '16px',
-                backgroundColor: alpha(theme.palette.success.main, 0.05),
-                mb: 4
-              }}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="body1">Connected Wallet:</Typography>
-                <Typography variant="body1" fontWeight="medium">{walletAddress}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="body1">Available Balance:</Typography>
-                <Typography variant="body1" fontWeight="medium">{walletBalance} APT</Typography>
-              </Box>
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="body1" fontWeight="medium" gutterBottom>Donation Breakdown:</Typography>
-              
-              {selectedCharities.map((charity) => (
-                <Box key={charity.id} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">{charity.name}:</Typography>
-                  <Typography variant="body2" fontWeight="medium">${donationAmounts[charity.id]}</Typography>
-                </Box>
-              ))}
-              
-              {amplifyImpact && (
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">Amplify Impact (0.20%):</Typography>
-                  <Typography variant="body2" fontWeight="medium">${calculateFees().toFixed(2)}</Typography>
-                </Box>
-              )}
-              
-              <Divider sx={{ my: 2 }} />
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body1" fontWeight="bold">Total Amount:</Typography>
-                <Typography variant="body1" fontWeight="bold" color="primary.main">
-                  ${(calculateTotal() + calculateFees()).toFixed(2)}
-                </Typography>
-              </Box>
-            </Box>
-            
-            {donationComplete ? (
-              <Box 
-                sx={{ 
-                  textAlign: 'center', 
-                  py: 4, 
-                  bgcolor: alpha(theme.palette.success.main, 0.1),
-                  borderRadius: '16px'
-                }}
-              >
-                <CheckCircleIcon 
-                  sx={{ 
-                    fontSize: 60, 
-                    color: theme.palette.success.main,
-                    mb: 2
-                  }} 
-                />
-                <Typography variant="h5" gutterBottom color="success.main">
+            <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+                <ReportProblemIcon color="error" sx={{ fontSize: 60, mb: 2 }} />
+                <Typography variant="h5" color="error" fontWeight="bold" gutterBottom>Donation Failed</Typography>
+                <Typography color="error" paragraph>{transactionError}</Typography>
+                <GlowButton variant="outlined" onClick={() => setCurrentStage('charityResults')} sx={{background: 'transparent', color: 'primary.main', mr:1}}>Try Again</GlowButton>
+                <Button variant="text" onClick={handleReset}>Start Over</Button>
+            </StepContent>
+        );
+    }
+
+    if (donationComplete) {
+        return (
+            <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+                <CheckCircleIcon sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
+                <Typography variant="h4" gutterBottom fontWeight="bold" color="success.main" sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
                   Donation Successful!
                 </Typography>
-                <Typography variant="body1" paragraph>
-                  Thank you for your contribution to these amazing causes.
+                <Typography variant="h6" color="text.secondary" sx={{mb:3}}>
+                    Thank you for your generosity and trust in Eunoia.
                 </Typography>
-                <Button 
-                  variant="outlined" 
-                  color="primary"
-                  onClick={handleReset}
-                  sx={{ 
-                    mt: 2,
-                    borderRadius: '50px',
-                    textTransform: 'none'
-                  }}
-                >
-                  Make Another Donation
-                </Button>
-              </Box>
-            ) : (
-              <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
-                <BackButton onClick={handleBack}>
-                  Back to Wallet Connection
-                </BackButton>
-                {
-                  transactionPending ? (
-                    <Box sx={{ textAlign: 'center' }}>
-                      <CircularProgress sx={{ mb: 2 }}/>
-                      <Typography>Processing transaction...</Typography>
-                      <Typography variant="body2" color="text.secondary">Please confirm in your wallet.</Typography>
-                    </Box>
-                  ) : (
-                    <GlowButton 
-                      onClick={handleDonate}
-                    >
-                      Confirm Donation
-                    </GlowButton>
-                  )
-                }
-              </Box>
-            )}
-            {transactionError && (
-              <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>
-                {transactionError}
-              </Typography>
-            )}
+                <GlowButton onClick={() => setCurrentStage('impactTracker')} size="large" sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}>
+                  Track Your Impact
+                </GlowButton>
+                <Button sx={{ml: 2, textTransform:'none'}} variant="text" onClick={handleReset}>Make Another Donation</Button>
           </StepContent>
         );
+    }
       
+        return (
+      <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+        <Typography variant="h5" fontWeight="bold">Preparing your donation...</Typography>
+        <CircularProgress sx={{my: 3, width: '50px !important', height: '50px !important'}} />
+      </StepContent>
+    );
+  };
+
+  const ImpactTrackerView = () => {
+    useEffect(() => {
+        setImpactActivities([]); 
+        const baseDonationAmount = aiSuggestedAllocations[aiMatchedCharities[0]?.id] || 0;
+        const charityName = aiMatchedCharities[0]?.name || 'the selected cause';
+
+        const activities = [
+            { id: 1, text: `✅ ${(baseDonationAmount).toFixed(2)} APT sent to ${charityName} Wallet`, time: "Just now", type: "transfer" },
+        ];
+        
+        let currentDelay = 0;
+        const scheduleActivity = (text, time, type, delay) => {
+            currentDelay += delay;
+            setTimeout(() => {
+                setImpactActivities(prev => [...prev, {id: prev.length + 2, text, time, type}])
+            }, currentDelay);
+        }
+
+        if (baseDonationAmount > 0) {
+            scheduleActivity(`📬 Confirmation received from ${charityName}`, "Moments ago", "confirmation", 1500);
+
+            const books = Math.floor(baseDonationAmount / 5); 
+            if (books > 0) {
+                scheduleActivity(`📘 ${books} book${books > 1 ? 's' : ''} being prepared for distribution`, "Updates soon", "action", 2000);
+            }
+            const meals = Math.floor(baseDonationAmount / 2);
+            if (meals > 0) {
+                scheduleActivity(`🍲 ${meals} meal${meals > 1 ? 's' : ''} funding allocated to kitchen partners`, "Updates soon", "action", 2500);
+            }
+             if (baseDonationAmount > 10) {
+                scheduleActivity(`🤝 Community outreach program benefiting from your support`, "In progress", "action", 3000);
+            }
+        }
+        setImpactActivities(activities);
+
+    }, []);
+
+    const totalImpactStats = {
+        mealsFunded: aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? Math.floor(aiSuggestedAllocations[aiMatchedCharities[0].id] / 2) : 0,
+        booksProvided: aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? Math.floor(aiSuggestedAllocations[aiMatchedCharities[0].id] / 5) : 0,
+        childrenHelped: aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? Math.floor(aiSuggestedAllocations[aiMatchedCharities[0].id] / 1.5) : 0, 
+    };
+
+    const getSocialPostText = () => {
+        const charityName = aiMatchedCharities[0]?.name || 'a great cause';
+        let impactHighlights = [];
+        if (totalImpactStats.childrenHelped > 0) impactHighlights.push(`${totalImpactStats.childrenHelped} children helped`);
+        if (totalImpactStats.mealsFunded > 0) impactHighlights.push(`${totalImpactStats.mealsFunded} meals funded`);
+        if (totalImpactStats.booksProvided > 0) impactHighlights.push(`${totalImpactStats.booksProvided} books provided`);
+        
+        let post = `Just made an AI-guided donation via @EunoiaImpact! 💖 My contribution is supporting ${charityName}`;
+        if (impactHighlights.length > 0) {
+            post += ` - already making a difference: ${impactHighlights.join(', ')}!`;
+        }
+        post += " Trackable on Aptos! #Eunoia #TransparentGiving #Web3ForGood";
+        return post;
+    };
+
+    return (
+        <StepContent sx={{maxWidth: '900px', mx: 'auto'}}>
+            <Typography variant="h4" fontWeight="bold" gutterBottom align="center" sx={{ fontFamily: "'Space Grotesk', sans-serif", mb:1}}>
+                Your Impact Tracker
+                </Typography>
+             <Typography variant="subtitle1" align="center" color="text.secondary" sx={{mb:3}}>
+                Follow the real-time progress of your donation to {aiMatchedCharities[0]?.name || "the cause"}.
+                </Typography>
+            <Grid container spacing={3}>
+                <Grid item xs={12} md={7}>
+                    <Typography variant="h6" gutterBottom fontWeight="medium">Donation Timeline</Typography>
+                    <Paper elevation={2} sx={{ p: {xs:1.5, sm:2}, borderRadius: '16px', minHeight: 200, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)' }}>
+                        {impactActivities.length === 0 && <Typography color="textSecondary" sx={{p:2, textAlign: 'center'}}>Tracking updates will appear here shortly...</Typography>}
+                        {impactActivities.map((activity, index) => (
+                            <Box 
+                                key={activity.id}
+                  sx={{ 
+                                    mb: 1.5, 
+                                    pb: 1.5, 
+                                    borderBottom: index === impactActivities.length -1 ? 'none' : `1px dashed ${theme.palette.divider}`,
+                                    display: 'flex',
+                                    alignItems: 'flex-start'
+                                }}
+                            >
+                                <Chip 
+                                    icon={activity.type === 'transfer' ? <CheckCircleIcon /> : activity.type === 'confirmation' ? <VerifiedIcon/> : <InfoIcon/>}
+                                    color={activity.type === 'transfer' ? "success" : activity.type === 'confirmation' ? "info" : "secondary"}
+                                    size="small"
+                                    sx={{mr: 1.5, mt: 0.5, borderRadius: '50px'}}
+                                />
+                                <Box>
+                                    <Typography variant="body1">{activity.text}</Typography>
+                                    <Typography variant="caption" color="text.secondary">{activity.time}</Typography>
+              </Box>
+                    </Box>
+                        ))}
+                    </Paper>
+                </Grid>
+                <Grid item xs={12} md={5}>
+                    <Typography variant="h6" gutterBottom fontWeight="medium">Total Impact Summary</Typography>
+                     <Paper elevation={2} sx={{ p: {xs:1.5, sm:2}, borderRadius: '16px', mb: 2.5, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)' }}>
+                        <Grid container spacing={2}>
+                            {Object.entries(totalImpactStats).map(([key, value]) => {
+                                if (value === 0) return null;
+                                const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                                return (
+                                    <Grid item xs={6} sm={6} sx={{textAlign: 'center'}} key={key}>
+                                        <Typography variant="h4" color="primary.main" fontWeight="bold">{value}</Typography>
+                                        <Typography variant="caption">{label}</Typography>
+                                    </Grid>
+                                );
+                            })}
+                            {Object.values(totalImpactStats).every(v => v === 0) && 
+                                <Typography sx={{p:2, textAlign: 'center', width:'100%'}} color="textSecondary">Impact stats will update as activities are confirmed.</Typography>}
+                        </Grid>
+                    </Paper>
+
+                    <Paper elevation={2} sx={{ p: {xs:1.5, sm:2}, borderRadius: '16px', background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)' }}>
+                         <FormControlLabel
+                            control={
+                                <Switch
+                                checked={showSocialSharePreview}
+                                onChange={(e) => setShowSocialSharePreview(e.target.checked)}
+                                color="primary"
+                                />
+                            }
+                            labelPlacement="start"
+                            label={"Share Your Impact"}
+                            sx={{ mb: 1, display:'flex', justifyContent:'space-between', width:'100%', ml:0, fontWeight:'medium' }}
+                        />
+                        {showSocialSharePreview && (
+                            <Paper variant="outlined" sx={{ p:1.5, borderRadius: '12px', bgcolor: alpha(theme.palette.common.white, 0.7), my:1.5 }}>
+                                <Box sx={{display: 'flex', alignItems: 'center', mb:1}}>
+                                    <Avatar sx={{width:32, height:32, bgcolor: 'primary.light', mr:1}}>You</Avatar>
+                                    <Typography variant="subtitle2" fontWeight="bold">@YourHandle</Typography>
+              </Box>
+                                <Typography variant="body2" sx={{mt:0.5, fontSize: '0.85rem'}}>
+                                   {getSocialPostText()}
+              </Typography>
+                                <Chip label="Verified by Aptos" size="small" variant="outlined" color="secondary" sx={{mt:1, fontSize: '0.7rem'}}/>
+                            </Paper>
+                        )}
+                        <GlowButton fullWidth startIcon={<ShareIcon />} disabled={!showSocialSharePreview} sx={{py:1.2, fontSize: '1rem'}}>
+                            Share Now (Mock)
+                        </GlowButton>
+                    </Paper>
+                </Grid>
+            </Grid>
+            <Box sx={{ textAlign: 'center', mt: 4, display:'flex', justifyContent:'center', gap: 2 }}>
+                <GlowButton onClick={handleReset} size="large" sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}>
+                    Make Another Donation
+                </GlowButton>
+                 <Button component={Link} to="/explore" variant="outlined" sx={{textTransform:'none'}}>Explore Charities</Button>
+            </Box>
+          </StepContent>
+        );
+  };
+
+  const renderCurrentStage = () => {
+    switch (currentStage) {
+      case 'welcomeAI':
+        return <AllocationWelcomeView />;
+      case 'visionPrompt':
+        return <VisionPromptView />;
+      case 'aiProcessing':
+        return <AiProcessingView />;
+      case 'charityResults':
+        return <CharityResultsView />;
+      case 'donationConfirmation':
+        return <DonationConfirmationView />;
+      case 'impactTracker':
+        return <ImpactTrackerView />;
       default:
-        return 'Unknown step';
+        setCurrentStage('welcomeAI'); 
+        return <AllocationWelcomeView />;
     }
   };
 
-  // If the user is not connected and at a later step, show the connect message
-  if (!walletAddress && activeStep >= 2) {
-    return <Connected />;
-  }
-
   return (
-    <Box sx={{ py: 6, background: 'linear-gradient(135deg, #f5f7fa 0%, #e4ecfb 100%)' }}>
+    <Box sx={{ py: {xs:3, sm:6}, background: 'linear-gradient(135deg, #f0f4f8 0%, #e0eafc 100%)', minHeight: '100vh' }}>
       <Container maxWidth="lg">
-        <Typography variant="h4" align="center" fontWeight="bold" gutterBottom>
-          Make a Donation
+        <Box sx={{textAlign: 'center', mb: {xs:3, sm:5}}}>
+            <Typography 
+                variant="h2" 
+                fontWeight="bold" 
+                gutterBottom 
+                sx={{ 
+                    fontFamily: "'Space Grotesk', sans-serif", 
+                    color: 'primary.dark',
+                    display: 'inline-flex',
+                    alignItems: 'center'
+                }}
+            >
+                 <AutoAwesomeIcon sx={{fontSize: 'inherit', mr: 1.5, color: 'primary.main'}}/> Eunoia
         </Typography>
-        <Typography variant="body1" align="center" color="text.secondary" sx={{ mb: 6, maxWidth: '700px', mx: 'auto' }}>
-          Your contribution makes a direct impact. Choose your charities and track your donation transparently on the blockchain.
+            <Typography variant="subtitle1" color="text.secondary" sx={{ maxWidth: '700px', mx: 'auto' }}>
+            {currentStage === 'welcomeAI' 
+                ? "Experience a new way to give, guided by intelligence, powered by transparency on Aptos." 
+                : currentStage === 'impactTracker' 
+                ? "Track your generous contribution and see the difference it makes in real-time."
+                : "Your contribution makes a direct impact. Follow its journey transparently on the blockchain."}
         </Typography>
-        
-        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-        
-        <Box sx={{ 
-          bgcolor: 'white', 
-          borderRadius: '24px', 
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-          p: { xs: 2, sm: 4 }, 
-          mb: 6,
-          minHeight: '600px'
-        }}>
-          {getStepContent(activeStep)}
         </Box>
+        
+        {currentStage !== 'welcomeAI' && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 3 }}>
+                {['visionPrompt', 'aiProcessing', 'charityResults', 'donationConfirmation', 'impactTracker'].map((stage, index, arr) => {
+                    const stageIndex = arr.indexOf(currentStage);
+                    const isActive = stage === currentStage;
+                    const isCompleted = stageIndex < arr.indexOf(currentStage);
+                    return (
+                        <React.Fragment key={stage}>
+                            <Chip 
+                                label={index + 1}
+                                color={isActive ? 'primary' : isCompleted ? 'success' : 'default'}
+                                variant={isActive || isCompleted ? 'filled' : 'outlined'}
+                                sx={{ fontWeight: isActive ? 'bold' : 'normal', cursor: 'default'}}
+                            />
+                            {index < arr.length - 1 && <Divider sx={{flexGrow: 1, maxWidth: '50px', mx:1, borderColor: isCompleted ? 'success.main' : 'grey.400'}}/>}
+                        </React.Fragment>
+                    );
+                })}
+            </Box>
+        )}
+        
+        <Paper sx={{ 
+          bgcolor: alpha(theme.palette.background.paper, 0.9),
+          backdropFilter: 'blur(8px)',
+          borderRadius: '24px', 
+          boxShadow: theme.shadows[6],
+          p: { xs: 2, sm: 3, md: 4 }, 
+          mb: 6,
+          minHeight: '500px' 
+        }}>
+          {renderCurrentStage()}
+        </Paper>
       </Container>
     </Box>
   );
