@@ -14,12 +14,25 @@ import {
   useTheme
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-import TwitterIcon from '@mui/icons-material/Twitter';
 import TelegramIcon from '@mui/icons-material/Telegram';
-import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import VpnLockIcon from '@mui/icons-material/VpnLock';
+import SvgIcon from '@mui/material/SvgIcon';
+
+// Custom X icon (formerly Twitter) component
+const XIcon = (props) => (
+  <SvgIcon {...props}>
+    <path d="M16.99 2H20.25l-6.722 7.695 7.94 10.306h-5.847l-4.847-6.323-5.55 6.323H2l7.167-8.193L1.53 2h5.974l4.367 5.768L16.99 2zm-1.387 15.053h1.644L7.09 3.887H5.327l10.276 13.166z" />
+  </SvgIcon>
+);
+
+// Custom Discord icon component
+const DiscordIcon = (props) => (
+  <SvgIcon {...props}>
+    <path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09-.01-.02-.04-.03-.07-.03-1.5.26-2.93.71-4.27 1.33-.01 0-.02.01-.03.02-2.72 4.07-3.47 8.03-3.1 11.95 0 .02.01.04.03.05 1.8 1.32 3.53 2.12 5.24 2.65.03.01.06 0 .07-.02.4-.55.76-1.13 1.07-1.74.02-.04 0-.08-.04-.09-.57-.22-1.11-.48-1.64-.78-.04-.02-.04-.08-.01-.11.11-.08.22-.17.33-.25.02-.02.05-.02.07-.01 3.44 1.57 7.15 1.57 10.55 0 .02-.01.05-.01.07.01.11.09.22.17.33.26.04.03.04.09-.01.11-.52.31-1.07.56-1.64.78-.04.01-.05.06-.04.09.32.61.68 1.19 1.07 1.74.03.02.06.03.09.02 1.72-.53 3.45-1.33 5.25-2.65.02-.01.03-.03.03-.05.44-4.53-.73-8.46-3.1-11.95-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.83 2.12-1.89 2.12z"/>
+  </SvgIcon>
+);
 
 const Footer = () => {
   const theme = useTheme();
@@ -60,10 +73,10 @@ const Footer = () => {
             </Typography>
             <Stack direction="row" spacing={1}>
               <IconButton 
-                aria-label="Twitter" 
+                aria-label="X (Twitter)" 
                 size="small"
                 component={Link}
-                href="https://twitter.com/eunoia"
+                href="https://x.com/eunoia_give"
                 target="_blank"
                 sx={{ 
                   color: theme.palette.primary.main,
@@ -72,13 +85,13 @@ const Footer = () => {
                   }
                 }}
               >
-                <TwitterIcon fontSize="small" />
+                <XIcon fontSize="small" />
               </IconButton>
               <IconButton 
                 aria-label="Telegram" 
                 size="small"
                 component={Link}
-                href="https://t.me/eunoia"
+                href="https://t.me/+aDt6-_BdrTtjODMx"
                 target="_blank"
                 sx={{ 
                   color: theme.palette.primary.main,
@@ -90,10 +103,10 @@ const Footer = () => {
                 <TelegramIcon fontSize="small" />
               </IconButton>
               <IconButton 
-                aria-label="LinkedIn" 
+                aria-label="Discord" 
                 size="small"
                 component={Link}
-                href="https://linkedin.com/company/eunoia"
+                href="https://discord.gg/CWYXFqyQe6"
                 target="_blank"
                 sx={{ 
                   color: theme.palette.primary.main,
@@ -102,13 +115,13 @@ const Footer = () => {
                   }
                 }}
               >
-                <LinkedInIcon fontSize="small" />
+                <DiscordIcon fontSize="small" />
               </IconButton>
               <IconButton 
                 aria-label="GitHub" 
                 size="small"
                 component={Link}
-                href="https://github.com/eunoia"
+                href="https://github.com/JY20/eunoia"
                 target="_blank"
                 sx={{ 
                   color: theme.palette.primary.main,

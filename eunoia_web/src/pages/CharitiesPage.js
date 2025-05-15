@@ -200,7 +200,7 @@ const CharitiesPage = () => {
           <CharitySearch />
         </SearchCard>
 
-        <Box sx={{ mt: 6, mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ mt: 12, mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h5" fontWeight="bold">
             All Verified Charities
           </Typography>

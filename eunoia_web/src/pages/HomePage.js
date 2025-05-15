@@ -491,16 +491,15 @@ const HomePage = () => {
             
             <Box sx={{ 
               display: 'flex', 
-              flexDirection: 'row', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              flexWrap: 'nowrap',
-              overflowX: 'auto',
+              flexDirection: { xs: 'column', md: 'row' }, 
+              alignItems: 'stretch', 
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
               py: 2,
               gap: { xs: 2, md: 3 }
             }}>
               {/* Step 1 */}
-              <Box sx={{ minWidth: '280px', flex: '0 0 auto' }}>
+              <Box sx={{ flex: 1, minWidth: { xs: '100%', md: 0 } }}>
                 <GlassCard
                   sx={{
                     boxShadow: '0 10px 40px rgba(114, 9, 183, 0.1)',
@@ -540,20 +539,21 @@ const HomePage = () => {
                 </GlassCard>
               </Box>
 
-              {/* Arrow 1 to 2 */}
+              {/* Arrow 1 to 2 - visible only on mobile */}
               <Box sx={{ 
-                display: 'flex', 
+                display: { xs: 'flex', md: 'none' }, 
                 alignItems: 'center',
                 justifyContent: 'center', 
-                flex: '0 0 auto'
+                py: 1
               }}>
                 <Box sx={{ 
                   animation: 'pulse 1.5s infinite',
                   color: 'primary.main',
+                  transform: 'rotate(90deg)',
                   '@keyframes pulse': {
-                    '0%': { opacity: 0.6, transform: 'scale(1)' },
-                    '50%': { opacity: 1, transform: 'scale(1.2)' },
-                    '100%': { opacity: 0.6, transform: 'scale(1)' },
+                    '0%': { opacity: 0.6, transform: 'rotate(90deg) scale(1)' },
+                    '50%': { opacity: 1, transform: 'rotate(90deg) scale(1.2)' },
+                    '100%': { opacity: 0.6, transform: 'rotate(90deg) scale(1)' },
                   }
                 }}>
                   <KeyboardDoubleArrowRightIcon sx={{ fontSize: 40 }} />
@@ -561,7 +561,7 @@ const HomePage = () => {
               </Box>
 
               {/* Step 2 */}
-              <Box sx={{ minWidth: '280px', flex: '0 0 auto' }}>
+              <Box sx={{ flex: 1, minWidth: { xs: '100%', md: 0 } }}>
                 <GlassCard
                   sx={{
                     boxShadow: '0 10px 40px rgba(114, 9, 183, 0.1)',
@@ -601,20 +601,21 @@ const HomePage = () => {
                 </GlassCard>
               </Box>
 
-              {/* Arrow 2 to 3 */}
+              {/* Arrow 2 to 3 - visible only on mobile */}
               <Box sx={{ 
-                display: 'flex', 
+                display: { xs: 'flex', md: 'none' }, 
                 alignItems: 'center',
                 justifyContent: 'center', 
-                flex: '0 0 auto'
+                py: 1
               }}>
                 <Box sx={{ 
                   animation: 'pulse 1.5s infinite',
                   color: 'primary.main',
+                  transform: 'rotate(90deg)',
                   '@keyframes pulse': {
-                    '0%': { opacity: 0.6, transform: 'scale(1)' },
-                    '50%': { opacity: 1, transform: 'scale(1.2)' },
-                    '100%': { opacity: 0.6, transform: 'scale(1)' },
+                    '0%': { opacity: 0.6, transform: 'rotate(90deg) scale(1)' },
+                    '50%': { opacity: 1, transform: 'rotate(90deg) scale(1.2)' },
+                    '100%': { opacity: 0.6, transform: 'rotate(90deg) scale(1)' },
                   }
                 }}>
                   <KeyboardDoubleArrowRightIcon sx={{ fontSize: 40 }} />
@@ -622,7 +623,7 @@ const HomePage = () => {
               </Box>
 
               {/* Step 3 */}
-              <Box sx={{ minWidth: '280px', flex: '0 0 auto' }}>
+              <Box sx={{ flex: 1, minWidth: { xs: '100%', md: 0 } }}>
                 <GlassCard
                   sx={{
                     boxShadow: '0 10px 40px rgba(114, 9, 183, 0.1)',
