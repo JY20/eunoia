@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage';
 import CharitiesPage from './pages/CharitiesPage';
 import RegisterCharityPage from './pages/RegisterCharityPage';
 import AboutPage from './pages/AboutPage';
+import ManagementPage from './pages/ManagementPage';
 import { AppProvider } from './components/AppProvider';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -92,6 +93,7 @@ function App() {
                 <Route path="/charities" element={<CharitiesPage />} />
                 <Route path="/register-charity" element={<RegisterCharityPage />} />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/management" element={<ManagementPage />} />
               </Routes>
             </main>
             <Footer />
