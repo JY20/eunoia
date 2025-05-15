@@ -24,6 +24,9 @@ urlpatterns = [
     # New endpoint for preparing donation transaction
     path('api/prepare-donation-transaction/', api_views.PrepareDonationTransactionView.as_view(), name='prepare-donation-transaction'),
 
+    # New endpoint for semantic charity search
+    path('api/charity-semantic-search/', api_views.CharitySemanticSearchView.as_view(), name='charity-semantic-search'),
+
     # Old API endpoints (to be removed or commented out)
     # path('api/charities/featured/', api.featured_charities, name='api-featured-charities'),
     # path('api/charities/', api.all_charities, name='api-all-charities'),

@@ -79,3 +79,42 @@ class PrepareDonationTransactionView(views.APIView):
                 return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
+
+from .utils import enhance_query_and_search # Import the new function
+import asyncio
+
+class CharitySemanticSearchView(views.APIView):
+    permission_classes = [] # Or your preferred permissions
+
+    async def get(self, request, *args, **kwargs):
+        query = request.query_params.get('query', None)
+        if not query:
+            return Response({"error": "Query parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Since enhance_query_and_search is async, and DRF views are typically sync,
+            # we need to run the async function in an event loop.
+            # Django 4.1+ with ASGI servers handle this more gracefully.
+            # For older versions or WSGI, using asgiref.sync.async_to_sync is common.
+            # For simplicity here, assuming an environment where asyncio.run can be used or 
+            # that the view itself is made async if supported by your DRF/Django version.
+            
+            # If your Django/DRF setup supports async views directly:
+            # (e.g., if using Django 3.1+ and an ASGI server like Uvicorn/Daphne)
+            # you can define the view method as `async def get(self, request, *args, **kwargs):`
+            # and then `await enhance_query_and_search(query)`
+            
+            # For this example, let's assume the view method is async as shown above.
+            results = await enhance_query_and_search(query)
+            
+            if not results:
+                return Response({"message": "No matching charities found.", "results": []}, status=status.HTTP_200_OK)
+            
+            # Serialize the results
+            # Make sure your CharitySerializer can handle the Charity model instances
+            serializer = CharitySerializer(results, many=True, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            # Log the exception e
+            return Response({"error": f"An error occurred during search: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
