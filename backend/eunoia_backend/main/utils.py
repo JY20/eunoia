@@ -1,21 +1,29 @@
 import os
 import openai
 import requests
+import json # Import json for parsing
 from bs4 import BeautifulSoup
-from pydantic import BaseModel, Field
-from typing import List, Optional, Tuple
+from pydantic import BaseModel, Field, ValidationError
+from typing import List, Optional
 from django.conf import settings
 from .models import Charity # Assuming Charity model is in the same app's models.py
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 # --- Pydantic Models for OpenAI Structured Output ---
 
+# Get CharityCategory choices for the Pydantic model description
+charity_category_choices_str = ", ".join([f"'{code}' ({label})" for code, label in Charity.CharityCategory.choices])
+
 class CharityInfo(BaseModel):
     name: Optional[str] = Field(None, description="The official name of the charity.")
-    summary: str = Field(..., description="A concise summary of the charity's main mission, goals, and activities.")
-    activities: Optional[List[str]] = Field(None, description="A list of key activities the charity engages in.")
-    keywords: Optional[List[str]] = Field(None, description="A list of keywords that best describe the charity's focus.")
+    summary: str = Field(..., description="A concise summary of the charity's main mission, goals, and activities. Should be 2-3 paragraphs.")
+    activities: Optional[List[str]] = Field(None, description="A list of key activities or programs the charity engages in.")
+    keywords: Optional[List[str]] = Field(None, description="A list of 5-7 relevant keywords that best describe the charity's focus and services.")
+    category: Optional[str] = Field(None, description=f"The most fitting category for the charity. Choose one code from: {charity_category_choices_str}. If none fit well, use 'OTH'.")
+    tagline: Optional[str] = Field(None, description="A short, catchy, and representative tagline for the charity (max 15 words). Example: 'Empowering youth through education.'")
 
 class EnhancedQuery(BaseModel):
     enhanced_query: str = Field(..., description="The user query, enhanced for better semantic search results.")
@@ -25,28 +33,22 @@ class EnhancedQuery(BaseModel):
 
 try:
     openai.api_key = os.getenv("OPENAI_API_KEY")
-    if not openai.api_key:
-        # Fallback for Django settings if OPENAI_API_KEY is not in environment
-        # Ensure OPENAI_API_KEY is defined in your Django settings.py
-        openai.api_key = settings.OPENAI_API_KEY 
+    if not openai.api_key and hasattr(settings, 'OPENAI_API_KEY'):
+        openai.api_key = settings.OPENAI_API_KEY
     
     if not openai.api_key:
         raise ValueError("OPENAI_API_KEY not found in environment variables or Django settings.")
     
     client = openai.OpenAI(api_key=openai.api_key)
 
-except AttributeError:
-    # If settings.OPENAI_API_KEY is not defined
-    raise ValueError("OPENAI_API_KEY not found in environment variables, and settings.OPENAI_API_KEY is not configured in Django settings.")
 except Exception as e:
     print(f"Error initializing OpenAI client: {e}")
     client = None
 
 
-# --- Core Functions ---
+# --- Core Functions (Synchronous) ---
 
 def get_embedding(text: str, model="text-embedding-ada-002") -> Optional[List[float]]:
-    """Generates an embedding for the given text using OpenAI."""
     if not client or not text:
         return None
     try:
@@ -54,201 +56,293 @@ def get_embedding(text: str, model="text-embedding-ada-002") -> Optional[List[fl
         response = client.embeddings.create(input=[text], model=model)
         return response.data[0].embedding
     except Exception as e:
-        print(f"Error getting embedding: {e}")
+        print(f"Error getting embedding for text '{text[:100]}...': {e}")
         return None
 
-async def process_charity_website(charity: Charity) -> None:
-    """
-    Fetches content from charity's website, processes it with OpenAI,
-    updates the charity's description and embedding.
-    Saves the raw extracted text.
-    """
+def process_charity_website(charity: Charity) -> None:
     if not client or not charity.website_url:
         print(f"Skipping processing for {charity.name}: OpenAI client not initialized or no website URL.")
+        if not charity.description: # Ensure description is not empty if processing fails early
+             charity.description = "Automated data extraction skipped: No website URL or OpenAI client issue."
+        # Ensure other AI-populated fields are also handled if they were meant to be blank
+        charity.tagline = charity.tagline or ""
+        charity.keywords = charity.keywords or []
+        charity.category = charity.category or Charity.CharityCategory.OTHER
+        charity.save()
         return
 
+    print(f"Processing website for {charity.name} ({charity.website_url})...")
     try:
-        response = requests.get(charity.website_url, timeout=10)
+        response = requests.get(charity.website_url, timeout=15) # Increased timeout
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        # Extract text - a more robust extraction might be needed for complex sites
         paragraphs = soup.find_all('p')
-        extracted_text = "\n".join([p.get_text() for p in paragraphs if p.get_text().strip()])
+        extracted_text = "\n".join([p.get_text(separator=' ', strip=True) for p in paragraphs if p.get_text(strip=True)])
         
         charity.extracted_text_data = extracted_text if extracted_text else "Could not extract text."
 
         if not extracted_text:
             print(f"No text extracted from {charity.website_url}")
-            charity.description = "Automated description generation failed: No text found on website."
+            charity.description = "Automated data extraction failed: No text found on website."
+            charity.tagline = ""
+            charity.keywords = []
+            charity.category = Charity.CharityCategory.OTHER
             charity.embedding = None
-            await charity.asave() # Use asave for async context if applicable
+            charity.save()
             return
 
-        # Summarize and extract info using OpenAI
-        prompt_text = f"Extract and summarize the key information about the charity from the following text. Focus on their mission, main activities, and what they aim to achieve. Limit the summary to 2-3 concise paragraphs.\n\nWebsite Text:\n{extracted_text[:4000]}" # Limit input size
+        charity_info_tool = {
+            "type": "function",
+            "function": {
+                "name": "extract_charity_information",
+                "description": "Extracts and structures information about a charity including summary, keywords, category, and tagline from website text.",
+                "parameters": CharityInfo.model_json_schema()
+            }
+        }
         
-        completion = await client.chat.completions.create(
-            model="gpt-4o", # Or your preferred model like gpt-3.5-turbo
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant designed to extract information about charities and structure it in JSON format according to the provided schema."},
-                {"role": "user", "content": prompt_text}
-            ],
-            response_model=CharityInfo, # For structured output
-            temperature=0.2,
+        prompt_text = (
+            f"From the following website text of a charity, please perform these actions:\n"
+            f"1. Write a concise summary (2-3 paragraphs) of its main mission, goals, and key activities.\n"
+            f"2. Generate a short, catchy tagline (max 15 words).\n"
+            f"3. Identify the most fitting category for the charity. Choose one code from: {charity_category_choices_str}. If none fit well, use 'OTH'.\n"
+            f"4. List 5-7 relevant keywords that best describe the charity.\n"
+            f"Ensure all information is based *only* on the provided text.\n\n"
+            f"Website Text:\n{extracted_text[:8000]}"
         )
         
-        # If using response_model with a compatible library version:
-        charity_info: CharityInfo = completion 
+        print(f"Sending text to OpenAI for structured extraction (length: {len(prompt_text)} chars)...")
+        completion = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are an expert assistant skilled in analyzing charity websites and extracting structured information according to the provided tool. Provide all requested fields: summary, tagline, category, and keywords."},
+                {"role": "user", "content": prompt_text}
+            ],
+            tools=[charity_info_tool],
+            tool_choice={"type": "function", "function": {"name": "extract_charity_information"}},
+            temperature=0.3, # Slightly increased for more creative tagline/summary if needed
+        )
         
-        if charity_info and charity_info.summary:
-            charity.description = charity_info.summary # Update charity's description
-            charity.embedding = get_embedding(charity.description)
+        tool_calls = completion.choices[0].message.tool_calls
+        if tool_calls and tool_calls[0].function.name == "extract_charity_information":
+            arguments_json = tool_calls[0].function.arguments
+            print(f"Received arguments from OpenAI: {arguments_json}")
+            try:
+                charity_info = CharityInfo.model_validate_json(arguments_json)
+                
+                charity.description = charity_info.summary if charity_info.summary else "Summary not generated."
+                charity.tagline = charity_info.tagline if charity_info.tagline else "Tagline not generated."
+                charity.keywords = charity_info.keywords if charity_info.keywords else []
+                
+                if charity_info.category and charity_info.category in [code for code, label in Charity.CharityCategory.choices]:
+                    charity.category = charity_info.category
+                else:
+                    print(f"Invalid or missing category from OpenAI ('{charity_info.category}'), defaulting to OTH for {charity.name}.")
+                    charity.category = Charity.CharityCategory.OTHER
+                
+                print(f"Extracted for {charity.name}: Summary - '{charity.description[:50]}...', Tagline - '{charity.tagline}', Category - '{charity.category}', Keywords - {charity.keywords}")
+                
+                if charity.description and charity.description != "Summary not generated.":
+                    charity.embedding = get_embedding(charity.description + " " + (charity.tagline or "") + " " + " ".join(charity.keywords or []))
+                    if charity.embedding:
+                        print(f"Generated embedding for {charity.name}")
+                    else:
+                        print(f"Failed to generate embedding for {charity.name}")
+                        charity.embedding = None # Ensure it's null if failed
+                else:
+                    charity.embedding = None
+
+            except ValidationError as e:
+                print(f"Pydantic validation error for {charity.name}: {e}. Raw args: {arguments_json}")
+                charity.description = charity.description or "Automated data extraction failed: OpenAI output validation error."
+                charity.tagline = charity.tagline or ""
+                charity.keywords = charity.keywords or []
+                charity.category = charity.category or Charity.CharityCategory.OTHER
+                charity.embedding = None
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error for {charity.name}: {e}. Raw args: {arguments_json}")
+                charity.description = charity.description or "Automated data extraction failed: OpenAI output JSON decode error."
+                charity.tagline = charity.tagline or ""
+                charity.keywords = charity.keywords or []
+                charity.category = charity.category or Charity.CharityCategory.OTHER
+                charity.embedding = None
         else:
-            charity.description = "Automated description generation failed."
+            print(f"OpenAI did not use the tool for {charity.name}. Populating with defaults.")
+            charity.description = charity.description or "Automated data extraction failed: No tool call from OpenAI."
+            charity.tagline = charity.tagline or ""
+            charity.keywords = charity.keywords or []
+            charity.category = charity.category or Charity.CharityCategory.OTHER
             charity.embedding = None
-            print(f"Failed to generate structured summary for {charity.name}")
             
-        await charity.asave() # Use asave for async context 
-        print(f"Successfully processed and updated {charity.name}")
+        charity.save()
+        print(f"Successfully processed and saved {charity.name}")
 
     except requests.RequestException as e:
         print(f"Error fetching website for {charity.name}: {e}")
-        charity.extracted_text_data = f"Failed to fetch website: {e}"
-        charity.description = "Automated description generation failed: Could not reach website."
+        charity.extracted_text_data = charity.extracted_text_data or f"Failed to fetch website: {e}"
+        charity.description = charity.description or "Automated data extraction failed: Could not reach website."
+        charity.tagline = charity.tagline or ""
+        charity.keywords = charity.keywords or []
+        charity.category = charity.category or Charity.CharityCategory.OTHER
         charity.embedding = None
-        await charity.asave()
+        charity.save()
+    except openai.APIError as e:
+        print(f"OpenAI API error processing charity {charity.name}: {e}")
+        charity.description = charity.description or f"Automated data extraction failed: OpenAI API Error - {type(e).__name__}."
+        charity.tagline = charity.tagline or ""
+        charity.keywords = charity.keywords or []
+        charity.category = charity.category or Charity.CharityCategory.OTHER
+        charity.embedding = None
+        charity.save()
     except Exception as e:
-        print(f"Error processing charity {charity.name}: {e}")
-        # Potentially save partial data or error state
-        charity.description = f"Automated description generation failed: {e}"
+        print(f"General error processing charity {charity.name}: {e} (Type: {type(e).__name__})")
+        charity.description = charity.description or f"Automated data extraction failed: An unexpected error occurred - {type(e).__name__}."
+        charity.tagline = charity.tagline or ""
+        charity.keywords = charity.keywords or []
+        charity.category = charity.category or Charity.CharityCategory.OTHER
         charity.embedding = None
-        await charity.asave()
+        charity.save()
 
 
-async def enhance_query_and_search(user_query: str, top_k: int = 5) -> List[Charity]:
-    """
-    Enhances the user query using an LLM, embeds it,
-    and performs semantic search against charities.
-    """
+def enhance_query_and_search(user_query: str, top_k: int = 5) -> List[Charity]:
     if not client:
         print("OpenAI client not initialized. Cannot perform search.")
         return []
 
     try:
-        # Enhance query using OpenAI
+        enhanced_query_tool = {
+            "type": "function",
+            "function": {
+                "name": "enhance_user_query",
+                "description": "Enhances a user query for better semantic search in a charity database.",
+                "parameters": EnhancedQuery.model_json_schema() # Pydantic v2 method
+            }
+        }
         prompt = f"Enhance the following user query to make it more effective for semantic search in a database of charities. Focus on keywords and the underlying intent. Return the enhanced query.\n\nUser Query: '{user_query}'"
         
-        enhanced_query_completion = await client.chat.completions.create(
-            model="gpt-4o", # Or your preferred model
+        enhanced_query_completion = client.chat.completions.create(
+            model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are an expert query enhancer. Your goal is to refine user queries for better semantic search against a charity database. Respond with the structured EnhancedQuery format."},
+                {"role": "system", "content": "You are an expert query enhancer. Your goal is to refine user queries for better semantic search against a charity database. Respond using the provided tool."},
                 {"role": "user", "content": prompt}
             ],
-            response_model=EnhancedQuery,
+            tools=[enhanced_query_tool],
+            tool_choice={"type": "function", "function": {"name": "enhance_user_query"}},
             temperature=0.1,
         )
         
-        # If using response_model with a compatible library version:
-        enhanced_query_data: EnhancedQuery = enhanced_query_completion
-        search_query_text = enhanced_query_data.enhanced_query
-        
-        print(f"Original query: '{user_query}', Enhanced query: '{search_query_text}'")
+        search_query_text = user_query # Default to original query
+        tool_calls = enhanced_query_completion.choices[0].message.tool_calls
+        if tool_calls and tool_calls[0].function.name == "enhance_user_query":
+            arguments_json = tool_calls[0].function.arguments
+            try:
+                enhanced_query_data = EnhancedQuery.model_validate_json(arguments_json) # Pydantic v2 method
+                search_query_text = enhanced_query_data.enhanced_query
+                print(f"Original query: '{user_query}', Enhanced query: '{search_query_text}'")
+            except ValidationError as e:
+                print(f"Pydantic validation error for enhanced query: {e}. Using original query.")
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error for enhanced query: {e}. Using original query.")
+        else:
+            print("OpenAI did not use the tool for query enhancement. Using original query.")
+
 
         query_embedding = get_embedding(search_query_text)
         if not query_embedding:
-            print("Failed to embed enhanced query.")
+            print(f"Failed to embed query: '{search_query_text}'")
             return []
 
-        # Fetch all charities with embeddings (consider batching for large datasets)
-        # Ensure charities are accessed in an async-friendly way if this function is async
-        charities_with_embeddings = []
-        async for charity in Charity.objects.filter(embedding__isnull=False):
-             charities_with_embeddings.append(charity)
+        charities_with_embeddings = Charity.objects.filter(embedding__isnull=False).exclude(embedding__exact=[]) # Exclude empty lists
         
-        if not charities_with_embeddings:
+        if not charities_with_embeddings.exists():
             print("No charities with embeddings found in the database.")
             return []
 
-        charity_embeddings = np.array([charity.embedding for charity in charities_with_embeddings])
+        # Filter out charities with invalid or missing embeddings before creating numpy array
+        valid_charities = []
+        all_charity_embeddings_list = []
+        for charity in charities_with_embeddings:
+            if charity.embedding and isinstance(charity.embedding, list) and len(charity.embedding) > 0:
+                 # Assuming embedding is a list of floats. Add further validation if needed.
+                is_valid_embedding = all(isinstance(val, (int, float)) for val in charity.embedding)
+                if is_valid_embedding:
+                    valid_charities.append(charity)
+                    all_charity_embeddings_list.append(charity.embedding)
+                else:
+                    print(f"Skipping charity {charity.name} due to invalid embedding content: {charity.embedding}")
+            else:
+                print(f"Skipping charity {charity.name} due to missing or invalid embedding: {charity.embedding}")
+        
+        if not valid_charities:
+            print("No charities with valid embeddings available for search.")
+            return []
+
+        charity_embeddings_np = np.array(all_charity_embeddings_list)
         query_embedding_np = np.array(query_embedding).reshape(1, -1)
 
-        # Calculate cosine similarities
-        similarities = cosine_similarity(query_embedding_np, charity_embeddings)[0]
+        similarities = cosine_similarity(query_embedding_np, charity_embeddings_np)[0]
         
-        # Get top K results
-        # Argsort returns indices from smallest to largest, so we take the last top_k and reverse
-        top_k_indices = np.argsort(similarities)[-top_k:][::-1] 
+        # Add similarity scores to charities for potential sorting/filtering
+        # charities_with_scores = []
+        # for i, charity in enumerate(valid_charities):
+        #     charities_with_scores.append({"charity": charity, "score": similarities[i]})
         
-        results = [charities_with_embeddings[i] for i in top_k_indices if similarities[i] > 0.75] # Optional: add a similarity threshold
-        
-        print(f"Found {len(results)} charities for query '{search_query_text}'.")
+        # Sort by score and get top K
+        # sorted_charities = sorted(charities_with_scores, key=lambda x: x["score"], reverse=True)
+        # top_k_results = [item["charity"] for item in sorted_charities[:top_k] if item["score"] > 0.75] # Optional threshold
+
+        # More direct way with argsort
+        # Ensure we only consider indices for valid_charities
+        num_valid_charities = len(valid_charities)
+        if num_valid_charities == 0 : return []
+
+        # Argsort returns indices from smallest to largest similarity
+        # We need to handle cases where top_k might be larger than num_valid_charities
+        actual_top_k = min(top_k, num_valid_charities)
+        top_k_indices = np.argsort(similarities)[-actual_top_k:][::-1]
+
+        results = []
+        similarity_threshold = 0.75 # Keep your threshold
+        for i in top_k_indices:
+            if i < len(valid_charities) and similarities[i] >= similarity_threshold: # Check index bounds and threshold
+                results.append(valid_charities[i])
+            # else: # Optional: log why a potential top-k was skipped
+                # print(f"Skipping charity {valid_charities[i].name if i < len(valid_charities) else 'N/A'} with similarity {similarities[i] if i < len(similarities) else 'N/A'}")
+
+        print(f"Found {len(results)} charities for query '{search_query_text}' (threshold: {similarity_threshold}).")
         return results
 
+    except openai.APIError as e:
+        print(f"OpenAI API error during semantic search for query '{user_query}': {e}")
+        return []
     except Exception as e:
-        print(f"Error during semantic search for query '{user_query}': {e}")
+        print(f"General error during semantic search for query '{user_query}': {e} (Type: {type(e).__name__})")
         return []
 
-# --- Django Signals or Model Save Override ---
-# This is where you'd hook `process_charity_website` into the Charity model's save lifecycle.
-# For example, using a post_save signal:
-
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-import asyncio
-
+# --- Django Signals ---
 @receiver(post_save, sender=Charity)
-def charity_post_save_receiver(sender, instance, created, **kwargs):
-    """
-    After a Charity is saved, if it's newly created or website_url changed,
-    process its website to extract data, update description, and generate embedding.
-    """
-    # Avoid recursion if process_charity_website itself saves the instance.
-    # A common way is to check for specific field changes if not 'created'.
-    # However, for simplicity, let's assume process_charity_website handles its save well.
-    # or check if it's a raw save (e.g. from loaddata)
-    if kwargs.get('raw', False):
+def charity_post_save_receiver(sender, instance: Charity, created: bool, **kwargs):
+    if kwargs.get('raw', False): # Skip for fixtures
         return
 
-    # We need to run the async function in a synchronous signal handler.
-    # Best practice is to offload this to a background task queue (e.g., Celery).
-    # For simplicity here, we'll use asyncio.run(), but be aware of potential blocking in a sync context.
-    
-    # Check if this is a new instance or if website_url has changed.
-    # This basic check might need refinement depending on how you want to trigger reprocessing.
-    # For example, if you want to reprocess only if 'website_url' has changed.
-    # One way to check for field changes is to compare current instance with one from DB before save.
-    # But post_save doesn't give old values easily.
-    
-    # Simplistic trigger: always run on create, or if website_url is present and perhaps embedding is missing.
     trigger_processing = False
-    if created:
+    if created and instance.website_url:
+        print(f"New charity '{instance.name}' created with website. Queuing for processing.")
         trigger_processing = True
-    else:
-        # Logic to determine if re-processing is needed on update.
-        # e.g., if embedding is None and website_url exists
-        if instance.website_url and not instance.embedding:
-            trigger_processing = True
-        # Add more conditions if needed, e.g., re-process if website_url changed.
-        # This requires comparing with the old value, often done by storing it temporarily
-        # or using a library like django-dirtyfields.
+    elif instance.website_url and not instance.extracted_text_data and not instance.description: # If website exists but no processing done
+        print(f"Charity '{instance.name}' updated with website and no prior processing. Queuing.")
+        trigger_processing = True
+    # Add other conditions if needed, e.g., reprocess if website_url changes and user requests re-sync.
+    # Be careful with signals that re-save the instance to avoid infinite loops.
+    # `process_charity_website` now saves the instance itself.
 
-    if instance.website_url and trigger_processing:
-        print(f"Signal triggered for Charity ID: {instance.id}. Processing website...")
-        # Running async code from sync signal handler
-        # In a production environment, use Celery or Django Q for background tasks.
+    if trigger_processing:
+        print(f"Signal triggered processing for Charity ID: {instance.id} ({instance.name}). Calling process_charity_website directly.")
         try:
-            # Create a new event loop if not running in an async context already
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(process_charity_website(instance))
-        except RuntimeError as e:
-            # Handle cases where an event loop is already running (e.g., in Jupyter/async server)
-            if "cannot be called when another loop is running" in str(e):
-                asyncio.ensure_future(process_charity_website(instance))
-            else:
-                raise e
-        print(f"Website processing initiated for {instance.name}")
-
+            process_charity_website(instance) # Direct synchronous call
+            print(f"Website processing finished for {instance.name}")
+        except Exception as e:
+            # This is a safeguard; process_charity_website should handle its own errors.
+            print(f"Error in signal calling process_charity_website for {instance.name}: {e}")
     elif not instance.website_url:
-        print(f"Skipping website processing for {instance.name} as no website URL is provided.")
+        print(f"Skipping website processing for '{instance.name}'; no website URL provided or trigger conditions not met.")

@@ -18,6 +18,7 @@ class Charity(models.Model):
 
     extracted_text_data = models.TextField(blank=True, null=True, help_text="Raw text extracted from the charity's website")
     embedding = models.JSONField(blank=True, null=True, help_text="Embedding of the charity description")
+    keywords = models.JSONField(blank=True, null=True, help_text="Keywords describing the charity's focus, extracted by AI")
 
     # New fields
     polkadot_wallet_address = models.CharField(_("Polkadot Wallet Address"), max_length=100, blank=True, null=True)
