@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useCallback} from 'react';
+import React, { useState, useContext, useEffect, useCallback } from 'react';
 import { 
     AppBar, 
     Toolbar, 
@@ -21,7 +21,10 @@ import {
     Menu,
     MenuItem,
     alpha,
-    useMediaQuery
+    useMediaQuery,
+    Stack,
+    Tooltip,
+    CircularProgress
 } from '@mui/material';
 import { Link, useLocation } from 'react-router-dom';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -33,9 +36,34 @@ import HomeIcon from '@mui/icons-material/Home';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import InfoIcon from '@mui/icons-material/Info';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import logo from '../assets/logo.jpg';
+import aptosLogo from '../assets/aptos.png';
+import polkadotLogo from '../assets/polkadot.png';
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { AppContext } from './AppProvider';
+
+// Try to import Polkadot extension - will handle if the package isn't installed
+let web3Accounts, web3Enable, web3FromSource;
+try {
+    // Import Polkadot.js extension API
+    const polkadotExtension = require('@polkadot/extension-dapp');
+    web3Accounts = polkadotExtension.web3Accounts;
+    web3Enable = polkadotExtension.web3Enable;
+    web3FromSource = polkadotExtension.web3FromSource;
+} catch (error) {
+    console.warn("Polkadot.js extension packages not found. Using mock implementation.");
+    // Mock implementations if packages aren't available
+    web3Accounts = async () => [];
+    web3Enable = async () => [];
+    web3FromSource = async () => null;
+}
+
+// Define chain constants
+const CHAINS = {
+    APTOS: 'aptos',
+    POLKADOT: 'polkadot'
+};
 
 // Helper function to convert Uint8Array to Hex String
 const toHexString = (byteArray) => {
@@ -100,6 +128,46 @@ const WalletButton = styled(Button)(({ theme, connected }) => ({
             : 'linear-gradient(90deg, #7209b7 20%, #3f37c9 100%)',
     },
 }));
+
+const ChainIndicator = styled(Box)(({ theme, activeChain }) => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: theme.spacing(0.5, 1.5),
+    borderRadius: '50px',
+    marginRight: theme.spacing(1),
+    backgroundColor: alpha(
+        activeChain === CHAINS.APTOS 
+            ? theme.palette.primary.main 
+            : theme.palette.secondary.main, 
+        0.1
+    ),
+    border: `1px solid ${
+        activeChain === CHAINS.APTOS 
+            ? theme.palette.primary.main 
+            : theme.palette.secondary.main
+    }`,
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    color: activeChain === CHAINS.APTOS 
+        ? theme.palette.primary.main 
+        : theme.palette.secondary.main,
+    cursor: 'pointer',
+    '&:hover': {
+        backgroundColor: alpha(
+            activeChain === CHAINS.APTOS 
+                ? theme.palette.primary.main 
+                : theme.palette.secondary.main, 
+            0.15
+        ),
+    }
+}));
+
+const ChainLogo = styled('img')({
+    width: 20,
+    height: 20,
+    marginRight: 6,
+    objectFit: 'contain',
+});
 
 // Create a custom theme
 const theme = createTheme({
@@ -197,10 +265,20 @@ const theme = createTheme({
 const Navbar = () => {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [accountMenuAnchor, setAccountMenuAnchor] = useState(null);
+    const [chainsMenuAnchor, setChainsMenuAnchor] = useState(null);
+    const [activeChain, setActiveChain] = useState(CHAINS.APTOS);
     const location = useLocation();
     const info = useContext(AppContext);
     const { connect, disconnect, account, connected, wallets } = useWallet();
     const [buttonLabel, setButtonLabel] = useState('Connect Wallet');
+    const [polkadotConnected, setPolkadotConnected] = useState(false);
+    const [polkadotAddress, setPolkadotAddress] = useState(null);
+
+    // Define chain logos mapping
+    const chainLogos = {
+        [CHAINS.APTOS]: aptosLogo,
+        [CHAINS.POLKADOT]: polkadotLogo
+    };
 
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
@@ -212,6 +290,27 @@ const Navbar = () => {
 
     const handleAccountMenuClose = () => {
         setAccountMenuAnchor(null);
+    };
+
+    const handleChainsMenuOpen = (event) => {
+        setChainsMenuAnchor(event.currentTarget);
+    };
+    
+    const handleChainsMenuClose = () => {
+        setChainsMenuAnchor(null);
+    };
+
+    const handleSwitchChain = (chain) => {
+        setActiveChain(chain);
+        handleChainsMenuClose();
+        // Reset connection state when switching chains
+        if (chain === CHAINS.POLKADOT && connected) {
+            disconnect().catch(console.error);
+        } else if (chain === CHAINS.APTOS && polkadotConnected) {
+            // Disconnect Polkadot if we had a connection
+            setPolkadotConnected(false);
+            setPolkadotAddress(null);
+        }
     };
 
     const getDisplayAddress = (acc) => {
@@ -237,7 +336,6 @@ const Navbar = () => {
         return null;
     };
 
-
     const fetchAddressWithRetry = useCallback(
         async (retries = 3, delay = 500) => {
         for (let i = 0; i < retries; i++) {
@@ -258,51 +356,123 @@ const Navbar = () => {
     );
 
     const handleConnectButton = async () => {
-        if (!connected) {
-        try {
-            const petraWallet = wallets.find((w) => w.name.toLowerCase().includes('petra'));
-            if (!petraWallet) {
-            alert('Petra wallet is not detected. Please install the Petra wallet extension.');
-            setButtonLabel('Connect');
-            info.setWalletAddress(null);
-            return;
+        if (activeChain === CHAINS.APTOS) {
+            if (!connected) {
+                try {
+                    const petraWallet = wallets.find((w) => w.name.toLowerCase().includes('petra'));
+                    if (!petraWallet) {
+                        alert('Petra wallet is not detected. Please install the Petra wallet extension.');
+                        setButtonLabel('Connect');
+                        info.setWalletAddress(null);
+                        return;
+                    }
+                    if (petraWallet.readyState !== 'Installed') {
+                        alert('Petra wallet is not ready. Please ensure it is installed and enabled.');
+                        setButtonLabel('Connect');
+                        info.setWalletAddress(null);
+                        return;
+                    }
+                    setButtonLabel('Connecting...');
+                    await connect(petraWallet.name);
+                } catch (e) {
+                    alert(`Error connecting wallet: ${e.message || 'Unknown error'}`);
+                    setButtonLabel('Connect');
+                    info.setWalletAddress(null);
+                }
+            } else {
+                handleAccountMenuOpen(window.event);
             }
-            if (petraWallet.readyState !== 'Installed') {
-            alert('Petra wallet is not ready. Please ensure it is installed and enabled.');
-            setButtonLabel('Connect');
-            info.setWalletAddress(null);
-            return;
+        } else if (activeChain === CHAINS.POLKADOT) {
+            if (!polkadotConnected) {
+                try {
+                    setButtonLabel('Connecting...');
+                    
+                    // Enable Polkadot.js extensions
+                    const extensions = await web3Enable('Eunoia Donation Platform');
+                    
+                    // Check if SubWallet is available
+                    const subWalletExtension = extensions.find(ext => 
+                        ext.name.toLowerCase().includes('subwallet') || 
+                        ext.name.toLowerCase().includes('sub wallet')
+                    );
+                    
+                    if (!subWalletExtension && extensions.length === 0) {
+                        alert('No Polkadot wallet extensions found. Please install SubWallet or another Polkadot.js compatible extension.');
+                        setButtonLabel('Connect');
+                        return;
+                    }
+                    
+                    if (!subWalletExtension && extensions.length > 0) {
+                        console.warn('SubWallet not found, but other Polkadot extensions are available. Using the first available extension.');
+                    }
+                    
+                    // Get accounts from extension
+                    const allAccounts = await web3Accounts();
+                    
+                    if (allAccounts.length === 0) {
+                        alert('No accounts found in your Polkadot wallet. Please create or import an account first.');
+                        setButtonLabel('Connect');
+                        return;
+                    }
+                    
+                    // Use the first account
+                    const account = allAccounts[0];
+                    const address = account.address;
+                    const shortAddress = `${address.substring(0, 4)}...${address.substring(address.length - 4)}`;
+                    
+                    setPolkadotConnected(true);
+                    setPolkadotAddress(address);
+                    setButtonLabel(shortAddress);
+                    info.setWalletAddress(address);
+                    console.log('Connected to Polkadot wallet with address:', address);
+                } catch (e) {
+                    console.error('Failed to connect to SubWallet:', e);
+                    alert(`Error connecting to Polkadot wallet: ${e.message || 'Unknown error'}`);
+                    setButtonLabel('Connect');
+                }
+            } else {
+                handleAccountMenuOpen(window.event);
             }
-            setButtonLabel('Connecting...');
-            await connect(petraWallet.name);
-        } catch (e) {
-            alert(`Error connecting wallet: ${e.message || 'Unknown error'}`);
-            setButtonLabel('Connect');
-            info.setWalletAddress(null);
-        }
-        } else {
-        try {
-            await disconnect();
-            setButtonLabel('Connect');
-            info.setWalletAddress(null);
-        } catch (e) {
-            alert(`Error disconnecting wallet: ${e.message || 'Unknown error'}`);
-        }
         }
     };
 
     const handleDisconnect = async () => {
         console.log("Disconnecting wallet...");
         try {
-            await disconnect();
-            setButtonLabel("Connect Wallet");
-            info.setWalletAddress(null);
+            if (activeChain === CHAINS.APTOS && connected) {
+                await disconnect();
+                setButtonLabel("Connect Wallet");
+                info.setWalletAddress(null);
+                console.log("Aptos wallet disconnected");
+            } else if (activeChain === CHAINS.POLKADOT && polkadotConnected) {
+                // For Polkadot, we just clear the state since there's no explicit disconnect method
+                setPolkadotConnected(false);
+                setPolkadotAddress(null);
+                setButtonLabel("Connect Wallet");
+                info.setWalletAddress(null);
+                console.log("Polkadot wallet disconnected");
+            }
             handleAccountMenuClose();
-            console.log("Wallet disconnected.");
         } catch (e) {
             console.error("Error disconnecting wallet:", e);
             alert(`Error disconnecting wallet: ${e.message || e}`);
         }
+    };
+
+    // Get the correct button label based on chain and connection status
+    const getButtonDisplayLabel = () => {
+        if (activeChain === CHAINS.APTOS) {
+            return connected ? buttonLabel : "Connect Wallet";
+        } else if (activeChain === CHAINS.POLKADOT) {
+            return polkadotConnected ? buttonLabel : "Connect Wallet";
+        }
+        return "Connect Wallet";
+    };
+
+    // Check if connected based on active chain
+    const isConnected = () => {
+        return (activeChain === CHAINS.APTOS && connected) || 
+               (activeChain === CHAINS.POLKADOT && polkadotConnected);
     };
 
     useEffect(() => {
@@ -316,14 +486,16 @@ const Navbar = () => {
             setButtonLabel(profile);
             info.setWalletAddress(displayAddr);
             console.log("Wallet state updated via useEffect. Connected with address:", displayAddr);
-        } else {
+        } else if (activeChain === CHAINS.APTOS) {
             setButtonLabel("Connect Wallet");
-            info.setWalletAddress(null);
+            if (!connected) {
+                info.setWalletAddress(null);
+            }
             if (connected && !displayAddr) {
                 console.warn("useEffect: Wallet connected but no valid display address found in account object.", account ? JSON.stringify(account, null, 2) : null);
             }
         }
-    }, [connected, account, info, setButtonLabel, wallets]);
+    }, [connected, account, info, setButtonLabel, wallets, activeChain]);
 
     const drawer = (
         <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center', p: 2 }}>
@@ -382,13 +554,42 @@ const Navbar = () => {
                 </ListItem>
             </List>
             <Divider sx={{ my: 2 }} />
+            <Box 
+                sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    p: 1,
+                    mb: 2,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 2
+                }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleChainsMenuOpen(e);
+                }}
+            >
+                <Stack direction="row" spacing={1} alignItems="center">
+                    <ChainLogo 
+                        src={chainLogos[activeChain]} 
+                        alt={activeChain === CHAINS.APTOS ? 'Aptos Logo' : 'Polkadot Logo'} 
+                        sx={{ width: 24, height: 24 }}
+                    />
+                    <Typography variant="body2" fontWeight="medium">
+                        {activeChain === CHAINS.APTOS ? 'Aptos' : 'Polkadot'}
+                    </Typography>
+                    <SwapHorizIcon fontSize="small" />
+                </Stack>
+            </Box>
             <WalletButton
                 fullWidth
                 startIcon={<AccountBalanceWalletIcon />}
                 onClick={handleConnectButton}
-                connected={connected}
+                connected={isConnected()}
             >
-                {buttonLabel}
+                {getButtonDisplayLabel()}
             </WalletButton>
         </Box>
     );
@@ -478,7 +679,28 @@ const Navbar = () => {
                         </Box>
 
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            {connected && (
+                            <Tooltip title="Switch blockchain">
+                                <ChainIndicator 
+                                    activeChain={activeChain}
+                                    onClick={handleChainsMenuOpen}
+                                >
+                                    {activeChain === CHAINS.APTOS && (
+                                        <>
+                                            <ChainLogo src={chainLogos[CHAINS.APTOS]} alt="Aptos" />
+                                            Aptos
+                                        </>
+                                    )}
+                                    {activeChain === CHAINS.POLKADOT && (
+                                        <>
+                                            <ChainLogo src={chainLogos[CHAINS.POLKADOT]} alt="Polkadot" />
+                                            Polkadot
+                                        </>
+                                    )}
+                                    <SwapHorizIcon sx={{ ml: 0.5, fontSize: '1rem' }} />
+                                </ChainIndicator>
+                            </Tooltip>
+                            
+                            {isConnected() && (
                                 <Chip 
                                     label="Connected" 
                                     size="small"
@@ -491,14 +713,14 @@ const Navbar = () => {
                             )}
                             
                             <WalletButton
-                                variant={connected ? "outlined" : "contained"}
+                                variant={isConnected() ? "outlined" : "contained"}
                                 startIcon={<AccountBalanceWalletIcon />}
-                                endIcon={connected ? <KeyboardArrowDownIcon /> : null}
-                                onClick={handleConnectButton}
-                                connected={connected}
+                                endIcon={isConnected() ? <KeyboardArrowDownIcon /> : null}
+                                onClick={isConnected() ? handleAccountMenuOpen : handleConnectButton}
+                                connected={isConnected()}
                                 sx={{ display: { xs: 'none', sm: 'flex' } }}
                             >
-                                {connected ? buttonLabel : "Connect Wallet"}
+                                {getButtonDisplayLabel()}
                             </WalletButton>
 
                             <IconButton
@@ -532,6 +754,48 @@ const Navbar = () => {
                 {drawer}
             </Drawer>
 
+            {/* Chain Selection Menu */}
+            <Menu
+                anchorEl={chainsMenuAnchor}
+                open={Boolean(chainsMenuAnchor)}
+                onClose={handleChainsMenuClose}
+                PaperProps={{
+                    elevation: 3,
+                    sx: { 
+                        mt: 1.5, 
+                        borderRadius: 2,
+                        boxShadow: '0 8px 16px rgba(0,0,0,0.1)' 
+                    }
+                }}
+            >
+                <MenuItem 
+                    onClick={() => handleSwitchChain(CHAINS.APTOS)}
+                    selected={activeChain === CHAINS.APTOS}
+                >
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <ChainLogo 
+                            src={chainLogos[CHAINS.APTOS]} 
+                            alt="Aptos Logo" 
+                            sx={{ width: 24, height: 24 }}
+                        />
+                        <Typography>Aptos</Typography>
+                    </Stack>
+                </MenuItem>
+                <MenuItem 
+                    onClick={() => handleSwitchChain(CHAINS.POLKADOT)}
+                    selected={activeChain === CHAINS.POLKADOT}
+                >
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <ChainLogo 
+                            src={chainLogos[CHAINS.POLKADOT]} 
+                            alt="Polkadot Logo" 
+                            sx={{ width: 24, height: 24 }}
+                        />
+                        <Typography>Polkadot</Typography>
+                    </Stack>
+                </MenuItem>
+            </Menu>
+
             {/* Account Menu */}
             <Menu
                 anchorEl={accountMenuAnchor}
@@ -553,7 +817,7 @@ const Navbar = () => {
                         <AccountBalanceWalletIcon fontSize="small" />
                     </ListItemIcon>
                     <ListItemText 
-                        primary="View Wallet" 
+                        primary={activeChain === CHAINS.APTOS ? "Aptos Wallet" : "Polkadot Wallet"} 
                         secondary={buttonLabel} 
                         primaryTypographyProps={{ variant: 'body2' }}
                         secondaryTypographyProps={{ variant: 'caption' }}
