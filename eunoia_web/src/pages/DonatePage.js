@@ -343,18 +343,10 @@ const DonatePage = () => {
       if (window.aptos && window.aptos.isConnected) {
         console.log("Constructed Entry Function Payload:", JSON.stringify(entryFunctionPayload, null, 2));
         
-        // The Petra deprecation warning: "Usage of `signAndSubmitTransaction(payload)` is going to be deprecated soon. Use `signAndSubmitTransaction({ payload })` instead"
-        // This implies the *entire* payload object might need to be wrapped if it's not already in the expected TransactionRequestInput format.
-        // However, `entryFunctionPayload` *is* the detailed payload. Let's pass it directly as per many examples, 
-        // but if it fails, wrapping it like `{data: entryFunctionPayload}` or `{payload: entryFunctionPayload}` is the next step.
-        // For now, let's assume `entryFunctionPayload` is what it wants, and Petra handles the internal wrapping if it needs to for its new API structure.
-        // The key is often ensuring the `type` field like "entry_function_payload" is correct.
-        
-        const pendingTransaction = await window.aptos.signAndSubmitTransaction(entryFunctionPayload); 
+        // Updated to use { payload } as per deprecation warning
+        const pendingTransaction = await window.aptos.signAndSubmitTransaction({ payload: entryFunctionPayload }); 
         // IF THE ABOVE STILL FAILS WITH TYPEERRORS or similar, TRY:
         // const pendingTransaction = await window.aptos.signAndSubmitTransaction({ data: entryFunctionPayload });
-        // OR based on the literal deprecation message:
-        // const pendingTransaction = await window.aptos.signAndSubmitTransaction({ payload: entryFunctionPayload });
 
         console.log("Transaction submitted:", pendingTransaction); 
         // pendingTransaction typically contains { hash: string, ... }

@@ -11,11 +11,13 @@ import {
   ListItemIcon,
   Paper,
   Alert,
-  Divider
+  Divider,
+  Stack
 } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AddToDriveIcon from '@mui/icons-material/AddToDrive'; // Placeholder for register icon
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'; // For initialize button
 import axios from 'axios';
 import { AppContext } from '../components/AppProvider';
 
@@ -23,14 +25,17 @@ const API_BASE_URL = 'http://localhost:8000/api';
 const MODULE_ADDRESS = "0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011";
 const MODULE_NAME = "eunoia_foundation";
 const ADD_CHARITY_FUNCTION_NAME = "add_charity";
+const INITIALIZE_FUNCTION_NAME = "initialize_module";
 
 const ManagementPage = () => {
   const { walletAddress } = useContext(AppContext) || {};
   const [charities, setCharities] = useState([]);
   const [loadingCharities, setLoadingCharities] = useState(false);
   const [loadingStates, setLoadingStates] = useState({}); // To track loading per charity
+  const [initializing, setInitializing] = useState(false);
   const [error, setError] = useState(null);
   const [successMessages, setSuccessMessages] = useState({});
+  const [initSuccess, setInitSuccess] = useState(null);
 
   const moduleOwnerAddress = MODULE_ADDRESS;
 
@@ -52,14 +57,49 @@ const ManagementPage = () => {
     fetchCharities();
   }, []);
 
-  const handleRegisterCharity = async (charity) => {
-    if (!walletAddress) {
-      setError("Please connect your wallet first.");
+  const handleInitializeModule = async () => {
+    if (!walletAddress || walletAddress.toLowerCase() !== moduleOwnerAddress.toLowerCase()) {
+      setError("Only the module owner can initialize the contract.");
       return;
     }
-    if (walletAddress.toLowerCase() !== moduleOwnerAddress.toLowerCase()) {
-        setError(`Only the module owner (${moduleOwnerAddress}) can register charities. Connected: ${walletAddress}`);
-        return;
+    setInitializing(true);
+    setError(null);
+    setInitSuccess(null);
+
+    const payload = {
+      type: "entry_function_payload",
+      function: `${MODULE_ADDRESS}::${MODULE_NAME}::${INITIALIZE_FUNCTION_NAME}`,
+      type_arguments: [],
+      arguments: [], // initialize_module takes the signer as implicit first arg, no explicit args
+    };
+
+    try {
+      console.log("Submitting initialize_module transaction with payload:", JSON.stringify(payload, null, 2));
+      const pendingTransaction = await window.aptos.signAndSubmitTransaction({ payload });
+      console.log("Initialize module transaction submitted:", pendingTransaction);
+      setInitSuccess(`Contract initialization submitted! TxHash: ${pendingTransaction.hash}. Please wait a few moments for it to be confirmed on-chain before adding charities.`);
+    } catch (err) {
+      console.error("Error initializing module:", err);
+      let detailedError = "An error occurred during initialization.";
+      if (typeof err === 'string') detailedError = err;
+      else if (err.message) detailedError = err.message;
+      
+      if (detailedError.includes("E_ALREADY_INITIALIZED") || (err.data?.vm_status && err.data.vm_status.includes("E_ALREADY_INITIALIZED"))) {
+        detailedError = "Contract module is already initialized.";
+        setInitSuccess(detailedError); // Treat as success for UI flow
+      } else if (detailedError.toLowerCase().includes("user rejected") || detailedError.toLowerCase().includes("declined") || (err.code && err.code === 4001)) {
+        detailedError = "Initialization transaction rejected by user in wallet.";
+      }
+      setError(`Failed to initialize contract module. ${detailedError}`);
+    } finally {
+      setInitializing(false);
+    }
+  };
+
+  const handleRegisterCharity = async (charity) => {
+    if (!walletAddress || walletAddress.toLowerCase() !== moduleOwnerAddress.toLowerCase()) {
+      setError("Please connect as the module owner to register charities.");
+      return;
     }
 
     setLoadingStates(prev => ({ ...prev, [charity.id]: true }));
@@ -83,7 +123,7 @@ const ManagementPage = () => {
     const payload = {
       type: "entry_function_payload",
       function: `${MODULE_ADDRESS}::${MODULE_NAME}::${ADD_CHARITY_FUNCTION_NAME}`,
-      type_arguments: [], // add_charity has no type_arguments
+      type_arguments: [],
       arguments: [
         charityName,        // charity_name: String
         charityWallet,      // charity_wallet_addr: address
@@ -92,25 +132,20 @@ const ManagementPage = () => {
 
     try {
       console.log("Submitting add_charity transaction with payload:", JSON.stringify(payload, null, 2));
-      const pendingTransaction = await window.aptos.signAndSubmitTransaction(payload);
-      // Wait for transaction confirmation (optional, but good for UI)
-      // const client = new AptosClient("https://fullnode.testnet.aptoslabs.com"); // Or your preferred node
-      // await client.waitForTransaction(pendingTransaction.hash);
-      
+      const pendingTransaction = await window.aptos.signAndSubmitTransaction({ payload });
       console.log("Add charity transaction submitted:", pendingTransaction);
       setSuccessMessages(prev => ({...prev, [charity.id]: `Charity '${charityName}' registration submitted! TxHash: ${pendingTransaction.hash}`}));
-      // Optionally, re-fetch charities or mark as registered locally
     } catch (err) {
       console.error(`Error registering charity '${charityName}':`, err);
       let detailedError = "An error occurred during the transaction.";
       if (typeof err === 'string') detailedError = err;
       else if (err.message) detailedError = err.message;
       
-      if (detailedError.includes("E_CHARITY_ALREADY_EXISTS") || (err.data?.vm_status && err.data.vm_status.includes("E_CHARITY_ALREADY_EXISTS"))) {
+      if (detailedError.includes("E_CHARITY_ALREADY_EXISTS")) {
         detailedError = `Charity '${charityName}' is already registered on the blockchain.`;
-      } else if (detailedError.includes("E_MODULE_NOT_INITIALIZED") || (err.data?.vm_status && err.data.vm_status.includes("E_MODULE_NOT_INITIALIZED"))){
-        detailedError = "The smart contract module has not been initialized. The module owner must call 'initialize_module' first.";
-      } else if (detailedError.toLowerCase().includes("user rejected") || detailedError.toLowerCase().includes("declined") || (err.code && err.code === 4001)) {
+      } else if (detailedError.includes("E_MODULE_NOT_INITIALIZED")) {
+        detailedError = "The smart contract module has not been initialized. The module owner must call 'initialize_module' first (see button above).";
+      } else if (detailedError.toLowerCase().includes("user rejected") || detailedError.toLowerCase().includes("declined")) {
         detailedError = "Transaction rejected by user in wallet.";
       }
       setError(`Failed to register charity '${charityName}'. ${detailedError}`);
@@ -130,32 +165,52 @@ const ManagementPage = () => {
         {!walletAddress ? (
           <Alert severity="warning" sx={{ mb: 2 }}>
             Please connect your Aptos wallet to manage charities. 
-            Only the module owner ({moduleOwnerAddress}) can register charities.
+            Only the module owner ({moduleOwnerAddress}) can perform management actions.
           </Alert>
         ) : (
           <Alert severity={walletAddress.toLowerCase() === moduleOwnerAddress.toLowerCase() ? "success" : "error"} sx={{ mb: 2 }}>
             Connected as: {walletAddress} <br />
             {walletAddress.toLowerCase() === moduleOwnerAddress.toLowerCase()
               ? "You are connected as the module owner."
-              : `Warning: You are NOT connected as the module owner (${moduleOwnerAddress}). You will not be able to register charities.`}
+              : `Warning: You are NOT connected as the module owner (${moduleOwnerAddress}). You will not be able to perform management actions.`}
           </Alert>
         )}
 
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <strong>Important:</strong>
-          <ul>
-            <li>Ensure the smart contract module has been initialized by the module owner (<code>{moduleOwnerAddress}</code>) by calling the <code>initialize_module</code> function once.</li>
-            <li>Registering a charity will submit a transaction to the Aptos blockchain and incur gas fees.</li>
-          </ul>
-        </Alert>
+        <Box sx={{ border: '1px solid', borderColor: 'primary.main', borderRadius: 2, p: 2, mb: 3 }}>
+          <Typography variant="h6" gutterBottom>Contract Initialization</Typography>
+          <Typography variant="body2" sx={{mb:1}}>
+            This must be done ONCE by the module owner (<code>{moduleOwnerAddress}</code>) after deploying the contract.
+            It sets up the necessary storage for the contract to operate.
+          </Typography>
+          <Button 
+            variant="contained" 
+            color="secondary" 
+            onClick={handleInitializeModule}
+            disabled={initializing || !walletAddress || walletAddress.toLowerCase() !== moduleOwnerAddress.toLowerCase()}
+            startIcon={initializing ? <CircularProgress size={20} color="inherit" /> : <RocketLaunchIcon />}
+          >
+            Initialize Contract Module
+          </Button>
+          {initSuccess && (
+            <Alert severity="success" sx={{mt: 2}}>{initSuccess}</Alert>
+          )}
+        </Box>
 
         {error && (
-          <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+          <Alert severity="error" onClose={() => {setError(null); /* Clear initSuccess if error is shown for other actions */ if (!error.toLowerCase().includes('initializ')) setInitSuccess(null);}} sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
 
-        <Typography variant="h6" gutterBottom>Charities from Database</Typography>
+        <Typography variant="h6" gutterBottom>Register Charities On-Chain</Typography>
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <strong>Important for Registering Charities:</strong>
+          <ul>
+            <li>Ensure the contract module is initialized (use the button above if needed).</li>
+            <li>Registering a charity will submit a transaction and incur gas fees.</li>
+          </ul>
+        </Alert>
+
         {loadingCharities ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
             <CircularProgress />
@@ -174,7 +229,7 @@ const ManagementPage = () => {
                       size="small"
                       startIcon={loadingStates[charity.id] ? <CircularProgress size={20} color="inherit" /> : <AddToDriveIcon />}
                       onClick={() => handleRegisterCharity(charity)}
-                      disabled={loadingStates[charity.id] || !walletAddress || walletAddress.toLowerCase() !== moduleOwnerAddress.toLowerCase()}
+                      disabled={loadingStates[charity.id] || initializing || !walletAddress || walletAddress.toLowerCase() !== moduleOwnerAddress.toLowerCase()}
                     >
                       Register On-Chain
                     </Button>
