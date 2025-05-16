@@ -96,8 +96,6 @@ Instead of slow, manual vetting, our smart AI agents — we call them **Compass*
 
 ---
 
----
-
 ## 📈 Go-To-Market Strategy
 
 > The Movement.
@@ -152,6 +150,16 @@ Instead of slow, manual vetting, our smart AI agents — we call them **Compass*
 ## 🌍 Backed by Builders
 
 We've been supported by communities like **EasyA**, **Aptos Foundation**, **Polkadot Foundation**, and founders across the Web3 space.
+
+---
+
+## 🎥 Loom Videos
+
+- 🔁 **Short Demo** – Compass Agent in action + Live Donation  
+  👉 [Watch now](https://www.loom.com/share/712dbee1166144769c994e3c1ca12746?sid=3d42edec-e899-4bf7-a237-efde4cfce395)
+
+- ⚙️ **Technical Walkthrough** – Full-stack breakdown in under 5 minutes  
+  👉 [Watch now](https://www.loom.com/share/6a5c03d5ec134dd7bb0f6da521d6591c?sid=b30a0158-bb90-4926-b120-550e37010fbc)
 
 ---
 
@@ -407,21 +415,24 @@ cargo contract build  # Produces .contract Wasm bundle
 
 ## 🖼️ Eunoia In Action – UI Walkthrough
 
+### 📊 Live Donation Tracking
+![image](eunoia_web/src/assets/screenshots/donation_tracking.png)
+
+Users can view all their past donations with real-time blockchain timestamps and transaction hashes. Every donation is:
+
+- Publicly verifiable via block explorers
+- Timestamped and linked to the recipient
+- Stored immutably across Aptos or Polkadot
+
+Transparency is not just promised — it's enforced by code.
+
+---
+
 ### ✍️ Define Your Impact
-![image](https://github.com/user-attachments/assets/d88681e2-0bcb-47ce-811f-141f3397fc0f)
+![image](https://github.com/user-attachments/assets/134f4ac2-9bf2-421a-a426-5095ab5d7b00)
 
 
 Let users describe what matters to them. Eunoia’s Compass agent will interpret their vision and begin matching relevant causes.
-
----
-
-### 💰 Set Your Donation
-![image](https://github.com/user-attachments/assets/2e396608-6722-4ff1-86ae-f3038e9de0d9)
-
-
-Users can choose how much they want to donate and in which cryptocurrency — currently supports Aptos (APT) and Polkadot.
-
----
 
 ### 🔗 Connect Your Socials (Optional)
 ![image](https://github.com/user-attachments/assets/331c3148-e2b8-4f18-94af-deb796e507eb)
@@ -448,9 +459,7 @@ Each suggested organization comes with a **match %**, **trust score**, and a **r
 ---
 
 ### 🌐 Multi-Chain Donation Support
-<p align="center">
-  <img src="eunoia_web/src/assets/screenshots/multichain_wallet_switcher.png" width="300" alt="Multi-chain Wallet Toggle"/>
-</p>
+![image](https://github.com/user-attachments/assets/2e396608-6722-4ff1-86ae-f3038e9de0d9)
 
 Users can switch between Aptos and Polkadot networks directly from the wallet interface.
 
@@ -463,6 +472,8 @@ Users can switch between Aptos and Polkadot networks directly from the wallet in
 Search by keyword or cause. All donations are 100% transparent, web3-native, and the 0.2% optional fee powers the platform’s growth engine.
 
 ---
+
+
 
 ## 📚 Appendix: Technical Extras
 
