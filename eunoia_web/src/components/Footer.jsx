@@ -69,7 +69,7 @@ const Footer = () => {
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: '300px' }}>
-              A decentralized giving platform with radical transparency. Track your donations from wallet to impact with 0.20% fees.
+              A decentralized giving platform with radical transparency. Track your donations from wallet to impact with 0.2% fees.
             </Typography>
             <Stack direction="row" spacing={1}>
               <IconButton 

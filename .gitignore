@@ -50,3 +50,7 @@ media/
 .cursor/rules/eunoia_web_src_layout.mdc
 .cursor/rules/backend_eunoia_backend_requirements_txt.mdc
 .cursor/rules/backend_eunoia_backend_manage_py.mdc
+
+# Ignore target directories for Polkadot contracts
+polkadot_contracts/target/
+polkadot_contracts/*/target/
