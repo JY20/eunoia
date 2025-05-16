@@ -1,254 +1,169 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::arithmetic_side_effects)]
-
-use ink::prelude::vec::Vec;
-use ink::prelude::string::String;
-use ink::prelude::collections::BTreeMap;
-use ink::storage::Mapping;
 
 #[ink::contract]
-mod eunoia2 {
-    use super::*;
-
-    /// Represents a single donation event
-    #[derive(Clone, Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
-    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
-    pub struct HistoryEntry {
-        charity_name: String,
-        coin_name: String,
-        amount_donated: u128,
-        donor_address: AccountId,
-        timestamp: u64,
-    }
-
-    /// Emitted when a new donation is made
-    #[ink(event)]
-    pub struct DonateEvent {
-        #[ink(topic)]
-        donor: AccountId,
-        charity_name: String,
-        coin_name: String,
-        amount: u128,
-        timestamp: u64,
-    }
-
-    /// Emitted when a new charity is registered
-    #[ink(event)]
-    pub struct CharityRegisteredEvent {
-        #[ink(topic)]
-        charity_name: String,
-        charity_wallet: AccountId,
-        admin: AccountId,
-    }
-
-    /// Main contract storage
+pub mod flipper {
     #[ink(storage)]
-    pub struct EunoiaFoundation {
-        /// Contract owner
-        owner: AccountId,
-        /// Maps donor address to their donation history
-        histories: Mapping<AccountId, Vec<HistoryEntry>>,
-        /// Maps charity name to its wallet address
-        charity_wallets: Mapping<String, AccountId>,
-        /// Maps charity name to (maps coin type name to total amount raised)
-        charity_raised_amounts: Mapping<String, BTreeMap<String, u128>>,
+    pub struct Flipper {
+        value: bool,
     }
 
-    /// Error types
-    #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
-    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
-    pub enum Error {
-        ModuleNotInitialized,
-        CharityAlreadyExists,
-        CharityNotFound,
-        InvalidDonationAmount,
-        NotModuleOwner,
-        InsufficientBalance,
-    }
-
-    /// Type alias for the contract's result type
-    pub type Result<T> = core::result::Result<T, Error>;
-
-    impl Default for EunoiaFoundation {
-        fn default() -> Self {
-            Self::new()
-        }
-    }
-
-    impl EunoiaFoundation {
-        /// Constructor to initialize the contract
+    impl Flipper {
+        /// Creates a new flipper smart contract initialized with the given value.
         #[ink(constructor)]
-        pub fn new() -> Self {
-            Self {
-                owner: Self::env().caller(),
-                histories: Mapping::default(),
-                charity_wallets: Mapping::default(),
-                charity_raised_amounts: Mapping::default(),
-            }
+        pub fn new(init_value: bool) -> Self {
+            Self { value: init_value }
         }
 
-        /// Register a new charity
+        /// Creates a new flipper smart contract initialized to `false`.
+        #[ink(constructor)]
+        pub fn new_default() -> Self {
+            Self::new(Default::default())
+        }
+
+        /// Flips the current value of the Flipper's boolean.
         #[ink(message)]
-        pub fn add_charity(&mut self, charity_name: String, charity_wallet: AccountId) -> Result<()> {
-            self.ensure_caller_is_owner()?;
-
-            // Check if charity already exists
-            if self.charity_wallets.contains(&charity_name) {
-                return Err(Error::CharityAlreadyExists);
-            }
-
-            // Register the charity
-            self.charity_wallets.insert(&charity_name, &charity_wallet);
-            
-            // Initialize raised amounts for the charity
-            let empty_map: BTreeMap<String, u128> = BTreeMap::new();
-            self.charity_raised_amounts.insert(&charity_name, &empty_map);
-
-            // Emit event
-            self.env().emit_event(CharityRegisteredEvent {
-                charity_name: charity_name.clone(),
-                charity_wallet,
-                admin: self.owner,
-            });
-
-            Ok(())
+        pub fn flip(&mut self) {
+            self.value = !self.value;
         }
 
-        /// Donate native tokens to a charity
-        #[ink(message, payable)]
-        pub fn donate(&mut self, charity_name: String, coin_name: String) -> Result<()> {
-            let donor = self.env().caller();
-            let amount = self.env().transferred_value();
-            let timestamp = self.env().block_timestamp();
-
-            // Validation
-            if amount == 0 {
-                return Err(Error::InvalidDonationAmount);
-            }
-
-            if !self.charity_wallets.contains(&charity_name) {
-                return Err(Error::CharityNotFound);
-            }
-
-            let charity_wallet = self.charity_wallets.get(&charity_name).unwrap();
-
-            // Transfer the tokens to the charity wallet
-            if self.env().transfer(charity_wallet, amount).is_err() {
-                return Err(Error::InsufficientBalance);
-            }
-
-            // Update charity raised amounts
-            let mut raised_amounts = self.charity_raised_amounts.get(&charity_name).unwrap_or_default();
-            let current_amount = *raised_amounts.get(&coin_name).unwrap_or(&0);
-            raised_amounts.insert(coin_name.clone(), current_amount + amount);
-            self.charity_raised_amounts.insert(&charity_name, &raised_amounts);
-
-            // Record donation history
-            let history_entry = HistoryEntry {
-                charity_name: charity_name.clone(),
-                coin_name: coin_name.clone(),
-                amount_donated: amount,
-                donor_address: donor,
-                timestamp,
-            };
-
-            let mut donor_history = self.histories.get(donor).unwrap_or_default();
-            donor_history.push(history_entry);
-            self.histories.insert(donor, &donor_history);
-
-            // Emit event
-            self.env().emit_event(DonateEvent {
-                donor,
-                charity_name,
-                coin_name,
-                amount,
-                timestamp,
-            });
-
-            Ok(())
-        }
-
-        /// Get the donation history for a donor
+        /// Returns the current value of the Flipper's boolean.
         #[ink(message)]
-        pub fn get_donation_history(&self, donor: AccountId) -> Vec<HistoryEntry> {
-            self.histories.get(donor).unwrap_or_default()
-        }
-
-        /// Get the total amount raised by a charity for a specific coin
-        #[ink(message)]
-        pub fn get_charity_raised_amount(&self, charity_name: String, coin_name: String) -> u128 {
-            if let Some(raised_amounts) = self.charity_raised_amounts.get(&charity_name) {
-                *raised_amounts.get(&coin_name).unwrap_or(&0)
-            } else {
-                0
-            }
-        }
-
-        /// Get the wallet address for a charity
-        #[ink(message)]
-        pub fn get_charity_wallet(&self, charity_name: String) -> Result<AccountId> {
-            self.charity_wallets.get(&charity_name).ok_or(Error::CharityNotFound)
-        }
-
-        /// Helper to check if caller is the contract owner
-        fn ensure_caller_is_owner(&self) -> Result<()> {
-            if self.env().caller() != self.owner {
-                return Err(Error::NotModuleOwner);
-            }
-            Ok(())
+        pub fn get(&self) -> bool {
+            self.value
         }
     }
 
     #[cfg(test)]
     mod tests {
         use super::*;
-        use ink::env::{test, DefaultEnvironment};
 
         #[ink::test]
-        fn initialization_works() {
-            let contract = EunoiaFoundation::new();
-            assert_eq!(contract.owner, test::default_accounts::<DefaultEnvironment>().alice);
+        fn default_works() {
+            let flipper = Flipper::new_default();
+            assert!(!flipper.get());
         }
 
         #[ink::test]
-        fn add_charity_works() {
-            let mut contract = EunoiaFoundation::new();
-            let charity_name = String::from("Test Charity");
-            let charity_wallet = test::default_accounts::<DefaultEnvironment>().bob;
-            
-            assert!(contract.add_charity(charity_name.clone(), charity_wallet).is_ok());
-            assert_eq!(contract.get_charity_wallet(charity_name).unwrap(), charity_wallet);
-        }
-
-        #[ink::test]
-        fn donation_works() {
-            // Setup
-            let mut contract = EunoiaFoundation::new();
-            let charity_name = String::from("Test Charity");
-            let coin_name = String::from("DOT");
-            let charity_wallet = test::default_accounts::<DefaultEnvironment>().bob;
-            
-            // Register charity
-            assert!(contract.add_charity(charity_name.clone(), charity_wallet).is_ok());
-            
-            // Set contract balance to allow for donations
-            test::set_account_balance::<DefaultEnvironment>(test::default_accounts::<DefaultEnvironment>().alice, 1000);
-            test::set_value_transferred::<DefaultEnvironment>(100);
-            
-            // Make donation
-            assert!(contract.donate(charity_name.clone(), coin_name.clone()).is_ok());
-            
-            // Check donation was recorded
-            let donor = test::default_accounts::<DefaultEnvironment>().alice;
-            let history = contract.get_donation_history(donor);
-            assert_eq!(history.len(), 1);
-            assert_eq!(history[0].charity_name, charity_name);
-            assert_eq!(history[0].coin_name, coin_name);
-            assert_eq!(history[0].amount_donated, 100);
-            
-            // Check raised amount was updated
-            assert_eq!(contract.get_charity_raised_amount(charity_name, coin_name), 100);
+        fn it_works() {
+            let mut flipper = Flipper::new(false);
+            assert!(!flipper.get());
+            flipper.flip();
+            assert!(flipper.get());
         }
     }
-} 
+
+    #[cfg(all(test, feature = "e2e-tests"))]
+    mod e2e_tests {
+        use super::*;
+        use ink_e2e::ContractsBackend;
+
+        type E2EResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+        #[ink_e2e::test]
+        async fn it_works<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
+            // given
+            let mut constructor = FlipperRef::new(false);
+            let contract = client
+                .instantiate("flipper", &ink_e2e::alice(), &mut constructor)
+                .submit()
+                .await
+                .expect("instantiate failed");
+            let mut call_builder = contract.call_builder::<Flipper>();
+
+            let get = call_builder.get();
+            let get_res = client.call(&ink_e2e::bob(), &get).dry_run().await?;
+            assert!(matches!(get_res.return_value(), false));
+
+            // when
+            let flip = call_builder.flip();
+            let _flip_res = client
+                .call(&ink_e2e::bob(), &flip)
+                .submit()
+                .await
+                .expect("flip failed");
+
+            // then
+            let get = call_builder.get();
+            let get_res = client.call(&ink_e2e::bob(), &get).dry_run().await?;
+            assert!(matches!(get_res.return_value(), true));
+
+            Ok(())
+        }
+
+        #[ink_e2e::test]
+        async fn default_works<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
+            // given
+            let mut constructor = FlipperRef::new_default();
+
+            // when
+            let contract = client
+                .instantiate("flipper", &ink_e2e::bob(), &mut constructor)
+                .submit()
+                .await
+                .expect("instantiate failed");
+            let call_builder = contract.call_builder::<Flipper>();
+
+            // then
+            let get = call_builder.get();
+            let get_res = client.call(&ink_e2e::bob(), &get).dry_run().await?;
+            assert!(matches!(get_res.return_value(), false));
+
+            Ok(())
+        }
+
+        /// This test illustrates how to test an existing on-chain contract.
+        ///
+        /// You can utilize this to e.g. create a snapshot of a production chain
+        /// and run the E2E tests against a deployed contract there.
+        /// This process is explained [here](https://use.ink/5.x/basics/contract-testing/chain-snapshot).
+        ///
+        /// Before executing the test:
+        ///   * Make sure you have a node running in the background,
+        ///   * Supply the environment variable `CONTRACT_HEX` that points to a deployed
+        ///     flipper contract. You can take the SS58 address which `cargo contract
+        ///     instantiate` gives you and convert it to hex using `subkey inspect
+        ///     <SS58>`.
+        ///
+        /// The test is then run like this:
+        ///
+        /// ```
+        /// # The env variable needs to be set, otherwise `ink_e2e` will spawn a new
+        /// # node process for each test.
+        /// $ export CONTRACTS_NODE_URL=ws://127.0.0.1:9944
+        ///
+        /// $ export CONTRACT_ADDR_HEX=0x2c75f0aa09dbfbfd49e6286a0f2edd3b4913f04a58b13391c79e96782f5713e3
+        /// $ cargo test --features e2e-tests e2e_test_deployed_contract -- --ignored
+        /// ```
+        ///
+        /// # Developer Note
+        ///
+        /// The test is marked as ignored, as it has the above pre-conditions to succeed.
+        #[ink_e2e::test]
+        #[ignore]
+        async fn e2e_test_deployed_contract<Client: E2EBackend>(
+            mut client: Client,
+        ) -> E2EResult<()> {
+            // given
+            let addr = std::env::var("CONTRACT_ADDR_HEX")
+                .unwrap()
+                .replace("0x", "");
+            let acc_id = hex::decode(addr).unwrap();
+            let acc_id = AccountId::try_from(&acc_id[..]).unwrap();
+
+            use std::str::FromStr;
+            let suri = ink_e2e::subxt_signer::SecretUri::from_str("//Alice").unwrap();
+            let caller = ink_e2e::Keypair::from_uri(&suri).unwrap();
+
+            // when
+            // Invoke `Flipper::get()` from `caller`'s account
+            let call_builder = ink_e2e::create_call_builder::<Flipper>(acc_id);
+            let get = call_builder.get();
+            let get_res = client.call(&caller, &get).dry_run().await?;
+
+            // then
+            assert_eq!(get_res.return_value(), true);
+
+            Ok(())
+        }
+    }
+}

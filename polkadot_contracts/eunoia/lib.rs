@@ -1,4 +1,4 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), no_std, no_main)]
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::arithmetic_side_effects)]
 
@@ -44,7 +44,7 @@ mod eunoia {
 
     /// Main contract storage
     #[ink(storage)]
-    pub struct EunoiaFoundation {
+    pub struct EunoiaNew {
         /// Contract owner
         owner: AccountId,
         /// Maps donor address to their donation history
@@ -70,13 +70,13 @@ mod eunoia {
     /// Type alias for the contract's result type
     pub type Result<T> = core::result::Result<T, Error>;
 
-    impl Default for EunoiaFoundation {
+    impl Default for EunoiaNew {
         fn default() -> Self {
             Self::new()
         }
     }
 
-    impl EunoiaFoundation {
+    impl EunoiaNew {
         /// Constructor to initialize the contract
         #[ink(constructor)]
         pub fn new() -> Self {
@@ -207,13 +207,13 @@ mod eunoia {
 
         #[ink::test]
         fn initialization_works() {
-            let contract = EunoiaFoundation::new();
+            let contract = EunoiaNew::new();
             assert_eq!(contract.owner, test::default_accounts::<DefaultEnvironment>().alice);
         }
 
         #[ink::test]
         fn add_charity_works() {
-            let mut contract = EunoiaFoundation::new();
+            let mut contract = EunoiaNew::new();
             let charity_name = String::from("Test Charity");
             let charity_wallet = test::default_accounts::<DefaultEnvironment>().bob;
             
@@ -224,7 +224,7 @@ mod eunoia {
         #[ink::test]
         fn donation_works() {
             // Setup
-            let mut contract = EunoiaFoundation::new();
+            let mut contract = EunoiaNew::new();
             let charity_name = String::from("Test Charity");
             let coin_name = String::from("DOT");
             let charity_wallet = test::default_accounts::<DefaultEnvironment>().bob;
@@ -251,4 +251,75 @@ mod eunoia {
             assert_eq!(contract.get_charity_raised_amount(charity_name, coin_name), 100);
         }
     }
-} 
+
+    /// This is how you'd write end-to-end (E2E) or integration tests for ink! contracts.
+    ///
+    /// When running these you need to make sure that you:
+    /// - Compile the tests with the `e2e-tests` feature flag enabled (`--features e2e-tests`)
+    /// - Are running a Substrate node which contains `pallet-contracts` in the background
+    #[cfg(all(test, feature = "e2e-tests"))]
+    mod e2e_tests {
+        /// Imports all the definitions from the outer scope so we can use them here.
+        use super::*;
+
+        /// A helper function used for calling contract messages.
+        use ink_e2e::ContractsBackend;
+
+        /// The End-to-End test `Result` type.
+        type E2EResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+        /// We test that we can upload and instantiate the contract using its default constructor.
+        #[ink_e2e::test]
+        async fn default_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            // Given
+            let mut constructor = EunoiaNewRef::default();
+
+            // When
+            let contract = client
+                .instantiate("eunoia", &ink_e2e::alice(), &mut constructor)
+                .submit()
+                .await
+                .expect("instantiate failed");
+            let call_builder = contract.call_builder::<EunoiaNew>();
+
+            // Then
+            let get = call_builder.get();
+            let get_result = client.call(&ink_e2e::alice(), &get).dry_run().await?;
+            assert!(matches!(get_result.return_value(), false));
+
+            Ok(())
+        }
+
+        /// We test that we can read and write a value from the on-chain contract.
+        #[ink_e2e::test]
+        async fn it_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            // Given
+            let mut constructor = EunoiaNewRef::new(false);
+            let contract = client
+                .instantiate("eunoia", &ink_e2e::bob(), &mut constructor)
+                .submit()
+                .await
+                .expect("instantiate failed");
+            let mut call_builder = contract.call_builder::<EunoiaNew>();
+
+            let get = call_builder.get();
+            let get_result = client.call(&ink_e2e::bob(), &get).dry_run().await?;
+            assert!(matches!(get_result.return_value(), false));
+
+            // When
+            let flip = call_builder.flip();
+            let _flip_result = client
+                .call(&ink_e2e::bob(), &flip)
+                .submit()
+                .await
+                .expect("flip failed");
+
+            // Then
+            let get = call_builder.get();
+            let get_result = client.call(&ink_e2e::bob(), &get).dry_run().await?;
+            assert!(matches!(get_result.return_value(), true));
+
+            Ok(())
+        }
+    }
+}
