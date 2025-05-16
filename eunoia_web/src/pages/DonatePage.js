@@ -72,7 +72,7 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'; // For Next button
 
-import { AppContext } from '../components/AppProvider';
+import { AppContext, CHAINS } from '../components/AppProvider';
 import { Connected } from '../components/Alert';
 import Loading from '../components/Loading';
 import { AppContract } from '../components/AppContract';
@@ -104,44 +104,7 @@ const TOKEN_TYPES = {
 };
 
 // Mock data until API integration
-const MOCK_CHARITIES_DATA = [
-  {
-    id: 1,
-    name: 'Hope Uganda Initiative',
-    description: "Empowering children in Uganda through education and healthcare.",
-    logo: 'https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?q=80&w=500&auto=format&fit=crop', // Placeholder
-    aptos_wallet_address: '0x123...abc',
-    category: 'Education & Health',
-    match_score_percent: 92,
-    trust_score_grade: 'A',
-    ai_explanation: "Strongly aligns with Christian values and focus on children in Africa, specifically Uganda.",
-    suggested_allocation_percent: 60,
-  },
-  {
-    id: 2,
-    name: "African Children's Fund",
-    description: "Providing essential needs and educational support across various African regions.",
-    logo: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?q=80&w=500&auto=format&fit=crop', // Placeholder
-    aptos_wallet_address: '0x456...def',
-    category: 'General Aid',
-    match_score_percent: 85,
-    trust_score_grade: 'B+',
-    ai_explanation: "Broadly supports children in Africa, aligning with stated interests.",
-    suggested_allocation_percent: 25,
-  },
-  {
-    id: 3,
-    name: 'Faithful Scholars Africa',
-    description: "Supporting faith-based educational programs for children in rural African communities.",
-    logo: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=500&auto=format&fit=crop', // Placeholder
-    aptos_wallet_address: '0x789...ghi',
-    category: 'Faith-Based Education',
-    match_score_percent: 78,
-    trust_score_grade: 'A-',
-    ai_explanation: "Directly supports faith-based education for children in Africa.",
-    suggested_allocation_percent: 15,
-  }
-];
+// const MOCK_CHARITIES_DATA = [ ... ];
 
 // Styled components
 const GlassCard = styled(Paper)(({ theme }) => ({
@@ -263,7 +226,9 @@ const CharityResultsView = ({
   calculatePlatformFee,
   totalDonationAmount,
   visionPrompt,
-  theme
+  theme,
+  semanticSearchLoading,
+  semanticSearchError
 }) => {
   console.log('CharityResultsView render, charities:', aiMatchedCharities);
 
@@ -295,12 +260,47 @@ const CharityResultsView = ({
         {/* Charity Results Feed - now a nested grid for 2 columns */}
         <Grid item xs={12} md={8}>
           <Grid container spacing={2}> {/* Nested grid for cards */}
-            {aiMatchedCharities.length === 0 && (
-              <Grid item xs={12}> {/* Ensure message spans full width if no charities */}
-                <Typography sx={{textAlign: 'center', mt: 3}}>No charities matched your criteria yet.</Typography>
+            {semanticSearchLoading && (
+              <Grid item xs={12} sx={{textAlign: 'center', my: 5}}>
+                <CircularProgress />
+                <Typography sx={{mt: 1}}>Finding your matches...</Typography>
               </Grid>
             )}
-            {aiMatchedCharities.map(charity => (
+            {!semanticSearchLoading && semanticSearchError && (
+              <Grid item xs={12} sx={{textAlign: 'center', my: 5}}>
+                <ReportProblemIcon color="error" sx={{fontSize: 40}}/>
+                <Typography color="error.main" sx={{mt: 1}}>{semanticSearchError}</Typography>
+                 <Button 
+                    variant="outlined" 
+                    onClick={() => setCurrentStage('visionPrompt')} 
+                    sx={{mt:2, borderRadius: '50px'}}
+                  >
+                    Try Adjusting Your Vision
+                  </Button>
+              </Grid>
+            )}
+            {!semanticSearchLoading && !semanticSearchError && aiMatchedCharities.length === 0 && (
+              <Grid item xs={12} sx={{textAlign: 'center', my: 5}}>
+                <Typography variant="h6" sx={{ mt: 3 }}>No charities matched your vision.</Typography>
+                <Typography color="text.secondary">Try adjusting your prompt or explore charities directly.</Typography>
+                 <Button 
+                    variant="outlined" 
+                    onClick={() => setCurrentStage('visionPrompt')} 
+                    sx={{mt:2, borderRadius: '50px', mr: 1}}
+                  >
+                    Edit My Compass
+                  </Button>
+                  <Button 
+                    component={Link} 
+                    to="/charities"
+                    variant="contained" 
+                    sx={{mt:2, borderRadius: '50px'}}
+                  >
+                    Explore All Charities
+                  </Button>
+              </Grid>
+            )}
+            {!semanticSearchLoading && !semanticSearchError && aiMatchedCharities.map(charity => (
               <Grid item xs={12} sm={6} key={charity.id}> {/* Each card takes half width on sm and up */}
                 <CharityResultCard 
                   charity={charity} 
@@ -699,6 +699,8 @@ const DonatePage = () => {
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [balanceError, setBalanceError] = useState(null);
   const [polkadotApi, setPolkadotApi] = useState(null);
+  const [semanticSearchLoading, setSemanticSearchLoading] = useState(false);
+  const [semanticSearchError, setSemanticSearchError] = useState(null);
   
   const steps = [
     'Find Charities',
@@ -710,7 +712,7 @@ const DonatePage = () => {
   // Initialize Polkadot API
   useEffect(() => {
     const setupPolkadotApi = async () => {
-      if (activeChain === 'polkadot') {
+      if (activeChain === CHAINS.POLKADOT) {
         try {
           const wsProvider = new WsProvider(POLKADOT_NODE_URL);
           const api = await ApiPromise.create({ provider: wsProvider });
@@ -731,7 +733,7 @@ const DonatePage = () => {
         polkadotApi.disconnect();
       }
     };
-  }, [activeChain]);
+  }, [activeChain, polkadotApi]);
 
   // Check wallet balance whenever wallet address or selected crypto changes
   useEffect(() => {
@@ -755,10 +757,9 @@ const DonatePage = () => {
     try {
       let balance = 0;
       
-      // Check if we're on Aptos or Polkadot
-      if (activeChain === 'aptos' || !activeChain) {
+      if (activeChain === CHAINS.APTOS || !activeChain) {
         balance = await getAptosBalance(walletAddress, selectedCrypto);
-      } else if (activeChain === 'polkadot') {
+      } else if (activeChain === CHAINS.POLKADOT) {
         balance = await getPolkadotBalance(walletAddress);
       } else {
         console.log(`Unknown chain: ${activeChain}, using default balance`);
@@ -783,13 +784,15 @@ const DonatePage = () => {
       const tokenType = TOKEN_TYPES[tokenSymbol];
       
       if (!tokenType) {
-        throw new Error(`Unsupported token type: ${tokenSymbol}`);
+        console.warn(`Token symbol ${tokenSymbol} not in TOKEN_TYPES, attempting direct use.`);
+        if (tokenSymbol !== 'APT') {
+            console.warn(`Only APT is supported for balance check currently. Querying for ${tokenSymbol} might fail or return 0.`);
+        }
       }
       
-      // Use view function to get balance
       const payload = {
         function: "0x1::coin::balance",
-        type_arguments: [tokenType],
+        type_arguments: [tokenType || `0x1::coin::CoinStore<${tokenSymbol}>`],
         arguments: [address]
       };
       
@@ -818,11 +821,12 @@ const DonatePage = () => {
         throw new Error("Polkadot API not initialized");
       }
       
-      const { data: balance } = await polkadotApi.query.system.account(address);
-      const free = balance.free.toBigInt();
+      const { data: balanceData } = await polkadotApi.query.system.account(address);
+      const free = balanceData.free.toBigInt();
       
-      // Convert from Planck to DOT (10 decimal places)
-      const balanceNumber = Number(free) / Math.pow(10, 10);
+      // Convert from Planck to DOT (10 decimal places for Polkadot, KSM has 12)
+      const decimals = polkadotApi.registry.chainDecimals[0] || 10;
+      const balanceNumber = Number(free) / Math.pow(10, decimals);
       return balanceNumber;
     } catch (error) {
       console.error("Error fetching Polkadot balance:", error);
@@ -947,6 +951,10 @@ const DonatePage = () => {
       setTransactionError("Charity to donate to is not defined.");
       return;
     }
+    if (!charityToDonate.name) {
+      setTransactionError("Selected charity is missing a name, which is required for donation.");
+      return;
+    }
 
     if (!amountToDonate || amountToDonate <= 0) {
       setTransactionError(`Invalid amount for ${charityToDonate.name}.`);
@@ -958,13 +966,11 @@ const DonatePage = () => {
     setDonationComplete(false);
 
     try {
-      console.log(`Preparing donation on ${activeChain || 'aptos'} blockchain`);
+      console.log(`Preparing donation on ${activeChain || CHAINS.APTOS} blockchain`);
       
-      // Switch based on active blockchain
-      if (activeChain === 'polkadot') {
+      if (activeChain === CHAINS.POLKADOT) {
         await handlePolkadotDonation(charityToDonate, amountToDonate);
       } else {
-        // Default to Aptos if no chain specified or if chain is explicitly 'aptos'
         await handleAptosDonation(charityToDonate, amountToDonate);
       }
       
@@ -994,9 +1000,18 @@ const DonatePage = () => {
   
   // Handle Aptos donation
   const handleAptosDonation = async (charity, amount) => {
-    const amountInOcta = Math.round(amount * Math.pow(10, 8)); 
-    const coinIdentifier = '0x1::aptos_coin::AptosCoin';
-    
+    const numericAmount = Number(amount);
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      throw new Error(`Invalid donation amount: ${amount}`);
+    }
+
+    const amountInOcta = Math.round(numericAmount * Math.pow(10, 8)); 
+    const coinIdentifier = TOKEN_TYPES[selectedCrypto] || TOKEN_TYPES.APT;
+
+    if (!charity.name) {
+        throw new Error("Charity name is missing, cannot proceed with Aptos donation.");
+    }
+
     const entryFunctionPayload = {
       type: "entry_function_payload",
       function: `${MODULE_ADDRESS}::${MODULE_NAME}::${DONATE_FUNCTION_NAME}`,
@@ -1025,8 +1040,13 @@ const DonatePage = () => {
         throw new Error("Polkadot API not initialized. Please try again.");
       }
       
-      // Convert from DOT to Planck (10 decimal places)
-      const amountInPlanck = BigInt(Math.round(amount * Math.pow(10, 10)));
+      const numericAmount = Number(amount);
+      if (isNaN(numericAmount) || numericAmount <= 0) {
+        throw new Error(`Invalid donation amount: ${amount}`);
+      }
+      // Use chain's specific decimals
+      const decimals = polkadotApi.registry.chainDecimals[0] || 10;
+      const amountInPlanck = BigInt(Math.round(numericAmount * Math.pow(10, decimals)));
       
       // Get the web3 extension injector
       const { web3FromAddress } = await import('@polkadot/extension-dapp');
@@ -1128,66 +1148,134 @@ const DonatePage = () => {
 
   const AiProcessingView = () => { 
     console.log('AiProcessingView render');
+    
     useEffect(() => {
-      const timer = setTimeout(() => {
-        const mockResults = MOCK_CHARITIES_DATA.slice(0, 3);
-        setAiMatchedCharities(mockResults);
-        
-        const allocations = {};
-        let currentTotalAllocation = 0;
-        mockResults.forEach((charity, index) => {
-            const suggestedPercent = Number(charity.suggested_allocation_percent);
-            if (isNaN(suggestedPercent)) {
-                console.error("Invalid suggested_allocation_percent for charity:", charity.name);
-                allocations[charity.id] = 0;
-                return;
-            }
-            let allocatedAmount;
-            if (index === mockResults.length - 1) {
-                // Ensure the last allocation makes the total correct, prevent over/under allocation
-                allocatedAmount = totalDonationAmount - currentTotalAllocation;
-            } else {
-                allocatedAmount = totalDonationAmount * (suggestedPercent / 100);
-            }
-            allocatedAmount = Math.max(0, parseFloat(allocatedAmount.toFixed(2))); // Ensure non-negative and 2 decimal places
-            allocations[charity.id] = allocatedAmount;
-            currentTotalAllocation += allocatedAmount;
-        });
-
-        // Final adjustment to ensure total matches totalDonationAmount due to rounding
-        const sumOfAllocations = Object.values(allocations).reduce((sum, val) => sum + val, 0);
-        if (sumOfAllocations !== totalDonationAmount && mockResults.length > 0) {
-            const lastCharityId = mockResults[mockResults.length -1].id;
-            const diff = totalDonationAmount - sumOfAllocations;
-            allocations[lastCharityId] = parseFloat((allocations[lastCharityId] + diff).toFixed(2));
-            // Ensure last allocation isn't negative after adjustment
-            if (allocations[lastCharityId] < 0) allocations[lastCharityId] = 0; 
+      const performSemanticSearch = async () => {
+        if (!visionPrompt.trim()) {
+          setSemanticSearchError("Please enter your vision before searching.");
+          setCurrentStage('visionPrompt');
+          return;
         }
 
-        setAiSuggestedAllocations(allocations);
-        setCurrentStage('charityResults');
-      }, 5000);
-      return () => clearTimeout(timer);
-    }, [totalDonationAmount]); // Removed setters from dependencies as they don't change
+        setSemanticSearchLoading(true);
+        setSemanticSearchError(null);
+        setAiMatchedCharities([]);
+        setAiSuggestedAllocations({});
+
+        try {
+          console.log(`Performing semantic search for: "${visionPrompt}"`);
+          const response = await axios.get(`${API_BASE_URL}/charity-semantic-search/`, {
+            params: { query: visionPrompt }
+          });
+
+          console.log("Semantic search response from backend:", response.data);
+
+          if (response.data && response.data.length > 0) {
+            const charities = response.data.map(charity => ({
+              ...charity,
+              id: charity.id || Date.now() + Math.random(),
+              name: charity.name || "Unnamed Charity",
+              description: charity.description || "No description available.",
+              logo: charity.logo_url || charity.logo || 'https://via.placeholder.com/300x200.png?text=No+Logo',
+              aptos_wallet_address: charity.aptos_wallet_address || "N/A",
+              category: charity.category_display || charity.category || "Other",
+              match_score_percent: charity.similarity_score ? Math.round(charity.similarity_score * 100) : (95 - (response.data.indexOf(charity) * 5)),
+              trust_score_grade: 'A',
+              ai_explanation: `Matches your interest in "${visionPrompt.substring(0,30)}..." due to its focus on ${charity.category_display || charity.category || 'relevant areas'}.`,
+            }));
+
+            setAiMatchedCharities(charities);
+
+            const totalScore = charities.reduce((sum, charity) => sum + (charity.match_score_percent || 0), 0);
+            const allocations = {};
+            let cumulativeAllocation = 0;
+
+            if (totalScore > 0) {
+              charities.forEach((charity, index) => {
+                let rawAllocation;
+                if (index === charities.length - 1) {
+                    rawAllocation = totalDonationAmount - cumulativeAllocation;
+                } else {
+                    rawAllocation = ( (charity.match_score_percent || 0) / totalScore) * totalDonationAmount;
+                }
+                const finalAllocation = Math.max(0, parseFloat(rawAllocation.toFixed(2)));
+                allocations[charity.id] = finalAllocation;
+                cumulativeAllocation += finalAllocation;
+              });
+              
+              const sumOfAllocations = Object.values(allocations).reduce((sum, val) => sum + val, 0);
+              if (sumOfAllocations !== totalDonationAmount && charities.length > 0) {
+                  const lastCharityId = charities[charities.length -1].id;
+                  const diff = totalDonationAmount - sumOfAllocations;
+                  allocations[lastCharityId] = Math.max(0, parseFloat((allocations[lastCharityId] + diff).toFixed(2)));
+              }
+
+            } else if (charities.length > 0) {
+              const equalShare = parseFloat((totalDonationAmount / charities.length).toFixed(2));
+              charities.forEach(charity => {
+                allocations[charity.id] = equalShare;
+              });
+              
+              const sumOfAllocations = Object.values(allocations).reduce((sum, val) => sum + val, 0);
+                if (sumOfAllocations !== totalDonationAmount && charities.length > 0) {
+                    const lastCharityId = charities[charities.length -1].id;
+                    const diff = totalDonationAmount - sumOfAllocations;
+                    allocations[lastCharityId] = Math.max(0, parseFloat((allocations[lastCharityId] + diff).toFixed(2)));
+                }
+            }
+            setAiSuggestedAllocations(allocations);
+            setCurrentStage('charityResults');
+          } else {
+            setSemanticSearchError("No charities found matching your vision. Try rephrasing or broadening your search.");
+            setCurrentStage('charityResults'); 
+          }
+        } catch (error) {
+          console.error('Error during semantic search:', error);
+          let detailedError = "Failed to fetch charity recommendations. Please try again later.";
+          if (error.response) {
+            detailedError += ` (Server responded with ${error.response.status})`;
+            console.error("Error response data:", error.response.data);
+          } else if (error.request) {
+            detailedError += " (No response from server)";
+          }
+          setSemanticSearchError(detailedError);
+          setCurrentStage('charityResults');
+        } finally {
+          setSemanticSearchLoading(false);
+        }
+      };
+
+      performSemanticSearch();
+    }, [visionPrompt, totalDonationAmount]);
 
     const keywords = visionPrompt.split(' ').filter(k => k.length > 3);
     if(keywords.length === 0) keywords.push(...['Impact', 'Faith', 'Children', 'Education', 'Africa']);
 
+    if (semanticSearchLoading) {
+        return (
+            <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+                <Box sx={{ mb: 4 }}> 
+                    <CompassAnimation />
+                </Box>
+                <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
+                    Finding the causes that truly fit you…
+                </Typography>
+                <Box sx={{my:3, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 1}}>
+                    {keywords.slice(0,5).map(kw => <Chip key={kw} label={kw} variant="outlined" />)}
+                </Box>
+                <LinearProgress sx={{my:2, maxWidth: 300, mx:'auto'}}/> 
+                <Typography variant="body2" color="text.secondary">
+                    <i>Consulting the Eunoia Compass...</i>
+                </Typography>
+            </StepContent>
+        );
+    }
+    
     return (
       <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-        <Box sx={{ mb: 4 }}> 
-          <CompassAnimation />
-                          </Box>
-        <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
-          Finding the causes that truly fit you…
-                          </Typography>
-        <Box sx={{my:3, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 1}}>
-          {keywords.slice(0,5).map(kw => <Chip key={kw} label={kw} variant="outlined" />)}
-        </Box>
-        <LinearProgress sx={{my:2, maxWidth: 300, mx:'auto'}}/> 
-                              <Typography variant="body2" color="text.secondary">
-          <i>This may take a few moments...</i>
-                              </Typography>
+        <CircularProgress sx={{mb:2}} />
+        <Typography variant="h6" fontWeight="medium">Processing your vision...</Typography>
+        {semanticSearchError && <Typography color="error" sx={{mt:1}}>{semanticSearchError}</Typography>}
       </StepContent>
     );
   };
@@ -1356,6 +1444,8 @@ const DonatePage = () => {
           totalDonationAmount={totalDonationAmount}
           visionPrompt={visionPrompt}
           theme={theme}
+          semanticSearchLoading={semanticSearchLoading}
+          semanticSearchError={semanticSearchError}
         />;
       case 'donationConfirmation':
         return <DonationConfirmationView />;
