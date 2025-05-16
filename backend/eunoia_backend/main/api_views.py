@@ -1,12 +1,13 @@
 from rest_framework import viewsets, views, status
 from rest_framework.response import Response
-from .models import Charity, Impact, MarketingCampaign, SocialPost
+from .models import Charity, Impact, MarketingCampaign, SocialPost, DonationTransaction
 from .serializers import (
     CharitySerializer, 
     ImpactSerializer, 
     MarketingCampaignSerializer, 
     SocialPostSerializer,
-    DonationTransactionPayloadRequestSerializer
+    DonationTransactionPayloadRequestSerializer,
+    DonationTransactionSerializer
 )
 from aptos_sdk.account_address import AccountAddress
 from aptos_sdk.transactions import (EntryFunction, TransactionPayload)
@@ -80,7 +81,7 @@ class PrepareDonationTransactionView(views.APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
-from .utils import enhance_query_and_search # Import the (now synchronous) function
+from .utils import enhance_query_and_search, generate_combined_mission_statement # Import new function
 # import asyncio # No longer needed for this view
 
 class CharitySemanticSearchView(views.APIView):
@@ -92,14 +93,47 @@ class CharitySemanticSearchView(views.APIView):
             return Response({"error": "Query parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            results = enhance_query_and_search(query) # Direct synchronous call
+            matched_charities_qs = enhance_query_and_search(query) 
             
-            if not results:
-                return Response({"message": "No matching charities found.", "results": []}, status=status.HTTP_200_OK)
+            resonating_statement = "Explore these charities that align with your vision."
+            # contributing_charity_names = [] # This variable was defined but not used
+
+            if matched_charities_qs:
+                charities_data_for_prompt = [
+                    {
+                        "name": charity.name,
+                        "description": charity.description or "",
+                    }
+                    for charity in matched_charities_qs[:3]
+                ]
+                
+                if charities_data_for_prompt:
+                    combined_mission_result = generate_combined_mission_statement(query, charities_data_for_prompt)
+                    if combined_mission_result and combined_mission_result.resonating_statement:
+                        resonating_statement = combined_mission_result.resonating_statement
             
-            serializer = CharitySerializer(results, many=True, context={'request': request})
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            charity_serializer = CharitySerializer(matched_charities_qs, many=True, context={'request': request})
+            
+            response_data = {
+                "matched_charities": charity_serializer.data,
+                "combined_mission": resonating_statement,
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
         
         except Exception as e:
-            print(f"Error in CharitySemanticSearchView: {e}") # Added print for server log
-            return Response({"error": f"An error occurred during search: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+            print(f"Error in CharitySemanticSearchView: {e}") 
+            return Response({"error": f"An error occurred during search: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# New ViewSet for DonationTransaction
+class DonationTransactionViewSet(viewsets.ModelViewSet):
+    queryset = DonationTransaction.objects.all().order_by('-timestamp')
+    serializer_class = DonationTransactionSerializer
+    permission_classes = [] # Allow any for now, adjust as needed for production
+
+# Ensure your serializers.py has DonationTransactionSerializer
+# Example (add this to your main/serializers.py):
+# from .models import DonationTransaction
+# class DonationTransactionSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = DonationTransaction
+#         fields = '__all__' 

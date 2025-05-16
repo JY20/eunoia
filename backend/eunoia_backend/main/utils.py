@@ -29,6 +29,11 @@ class EnhancedQuery(BaseModel):
     enhanced_query: str = Field(..., description="The user query, enhanced for better semantic search results.")
     keywords: Optional[List[str]] = Field(None, description="Keywords extracted or inferred from the query to aid search.")
 
+# New Pydantic model for the combined mission statement
+class CombinedCharityMission(BaseModel):
+    resonating_statement: str = Field(..., description="A single, concise statement (1-2 sentences) summarizing the common themes, missions, or goals of the provided charities, especially in relation to the user's query.")
+    # contributing_charity_names: Optional[List[str]] = Field(None, description="Names of the charities that most contributed to this combined statement.")
+
 # --- OpenAI Client Initialization ---
 
 try:
@@ -203,6 +208,67 @@ def process_charity_website(charity: Charity) -> None:
         charity.embedding = None
         charity.save()
 
+def generate_combined_mission_statement(user_query: str, charities_data: List[dict]) -> Optional[CombinedCharityMission]:
+    if not client or not charities_data:
+        print("OpenAI client not initialized or no charities data provided for combined mission.")
+        return None
+
+    charity_details_prompt_segment = "\n\nProvided Charities Information:\n"
+    for i, charity_data in enumerate(charities_data[:3]): # Limit to top 3-5 for brevity in prompt
+        charity_details_prompt_segment += f"{i+1}. Name: {charity_data.get('name', 'N/A')}\n   Description: {charity_data.get('description', 'N/A')[:200]}...\n"
+
+    prompt_text = (
+        f"Given the user's interest expressed as: '{user_query}', "
+        f"and considering the following charities that were matched: {charity_details_prompt_segment}"
+        f"Please generate a single, concise, and inspiring statement (1-2 sentences, max 40 words) that reflects the shared mission, common goals, or the collective impact these charities represent in addressing the user's interest. "
+        f"This statement should resonate with the user's desire to make a difference in the identified area."
+    )
+
+    combined_mission_tool = {
+        "type": "function",
+        "function": {
+            "name": "extract_combined_charity_mission",
+            "description": "Extracts a combined, resonating mission statement for a list of charities based on user query.",
+            "parameters": CombinedCharityMission.model_json_schema()
+        }
+    }
+
+    try:
+        print(f"Sending prompt to OpenAI for combined mission statement (query: '{user_query}', num_charities: {len(charities_data)})...")
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini", # Or your preferred model, gpt-3.5-turbo might also work for this
+            messages=[
+                {"role": "system", "content": "You are an expert assistant skilled in synthesizing information about multiple charities and a user query into a single, impactful mission statement. Respond using the provided tool."},
+                {"role": "user", "content": prompt_text}
+            ],
+            tools=[combined_mission_tool],
+            tool_choice={"type": "function", "function": {"name": "extract_combined_charity_mission"}},
+            temperature=0.5, # Allow for some creativity
+        )
+
+        tool_calls = completion.choices[0].message.tool_calls
+        if tool_calls and tool_calls[0].function.name == "extract_combined_charity_mission":
+            arguments_json = tool_calls[0].function.arguments
+            print(f"Received combined mission arguments from OpenAI: {arguments_json}")
+            try:
+                combined_mission_info = CombinedCharityMission.model_validate_json(arguments_json)
+                return combined_mission_info
+            except ValidationError as e:
+                print(f"Pydantic validation error for combined mission: {e}. Raw args: {arguments_json}")
+                return CombinedCharityMission(resonating_statement="Our AI is analyzing the collective impact of these charities for you.") # Fallback
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error for combined mission: {e}. Raw args: {arguments_json}")
+                return CombinedCharityMission(resonating_statement="Our AI is analyzing the collective impact of these charities for you.") # Fallback
+        else:
+            print("OpenAI did not use the tool for combined mission statement.")
+            return CombinedCharityMission(resonating_statement="These charities align with your vision for change.") # Generic fallback
+
+    except openai.APIError as e:
+        print(f"OpenAI API error generating combined mission statement: {e}")
+        return None
+    except Exception as e:
+        print(f"General error generating combined mission statement: {e} (Type: {type(e).__name__})")
+        return None
 
 def enhance_query_and_search(user_query: str, top_k: int = 5) -> List[Charity]:
     if not client:

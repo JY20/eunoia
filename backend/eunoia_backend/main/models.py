@@ -124,3 +124,33 @@ class SocialPost(models.Model):
         verbose_name = _("Social Media Post")
         verbose_name_plural = _("Social Media Posts")
         ordering = ['campaign', '-post_date']
+
+class DonationTransaction(models.Model):
+    class BlockchainChoices(models.TextChoices):
+        APTOS = 'APT', _('Aptos')
+        POLKADOT = 'POL', _('Polkadot')
+        # Add other chains if needed
+
+    transaction_hash = models.CharField(_("Transaction Hash"), max_length=255)
+    donor_address = models.CharField(_("Donor Address"), max_length=255)
+    charity_name = models.CharField(_("Charity Name"), max_length=255) # Consider a ForeignKey to Charity if robust linking is needed
+    charity_wallet_address = models.CharField(_("Charity Wallet Address"), max_length=255)
+    amount = models.DecimalField(_("Amount"), max_digits=20, decimal_places=8) # Adjust precision as needed
+    currency = models.CharField(_("Currency"), max_length=10) # e.g., APT, USDC, DOT
+    blockchain = models.CharField(
+        _("Blockchain"),
+        max_length=3,
+        choices=BlockchainChoices.choices,
+        default=BlockchainChoices.APTOS
+    )
+    timestamp = models.DateTimeField(_("Timestamp"), auto_now_add=True)
+    status = models.CharField(_("Status"), max_length=20, default='success') # e.g., success, pending, failed
+
+    def __str__(self):
+        return f"Donation {self.amount} {self.currency} to {self.charity_name} by {self.donor_address[:10]}... ({self.blockchain})"
+
+    class Meta:
+        verbose_name = _("Donation Transaction")
+        verbose_name_plural = _("Donation Transactions")
+        ordering = ['-timestamp']
+        unique_together = ('transaction_hash', 'blockchain') # A hash should be unique per blockchain

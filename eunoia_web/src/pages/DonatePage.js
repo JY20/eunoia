@@ -232,7 +232,8 @@ const CharityResultsView = ({
   selectedCharityIds,
   handleToggleCharitySelection,
   individualDonationAmounts,
-  handleIndividualAmountChange
+  handleIndividualAmountChange,
+  combinedMissionStatement
 }) => {
   console.log('CharityResultsView render, charities:', aiMatchedCharities);
   console.log('Selected IDs:', selectedCharityIds);
@@ -250,6 +251,9 @@ const CharityResultsView = ({
     };
   };
   const userInputs = extractUserInputs();
+
+  console.log('Individual Amounts:', aiSuggestedAllocations); // This was an old log, might be individualDonationAmounts now
+  console.log('CharityResultsView - received combinedMissionStatement prop:', combinedMissionStatement);
 
   return (
     <StepContent sx={{maxWidth: '1200px', mx: 'auto', py: {xs: 2, sm: 3}}}>
@@ -336,15 +340,25 @@ const CharityResultsView = ({
                 <ListItemIcon sx={{minWidth: '30px'}}><Typography variant="body2" fontWeight="bold">💖</Typography></ListItemIcon>
                 <ListItemText primaryTypographyProps={{variant: 'body2', fontWeight: 'medium'}} secondaryTypographyProps={{variant: 'caption'}} primary="Values:" secondary={userInputs.values} />
               </ListItem>
-              <ListItem>
+              {/* <ListItem>
                 <ListItemIcon sx={{minWidth: '30px'}}><Typography variant="body2" fontWeight="bold">🌍</Typography></ListItemIcon>
                 <ListItemText primaryTypographyProps={{variant: 'body2', fontWeight: 'medium'}} secondaryTypographyProps={{variant: 'caption'}} primary="Region:" secondary={userInputs.region} />
               </ListItem>
               <ListItem>
                 <ListItemIcon sx={{minWidth: '30px'}}><Typography variant="body2" fontWeight="bold">💸</Typography></ListItemIcon>
                 <ListItemText primaryTypographyProps={{variant: 'body2', fontWeight: 'medium'}} secondaryTypographyProps={{variant: 'caption'}} primary="Giving Style:" secondary={userInputs.givingStyle} />
-              </ListItem>
+              </ListItem> */}
             </List>
+
+            {/* Display Combined Mission Statement HERE */}
+            {combinedMissionStatement && (
+              <Box sx={{ my: 2, p: 1.5, backgroundColor: alpha(theme.palette.primary.main, 0.05), borderRadius: '8px', borderLeft: `4px solid ${theme.palette.primary.main}` }}>
+                <Typography variant="subtitle1" color="primary.dark" sx={{ fontStyle: 'italic', fontWeight: 'medium' }}>
+                  AI Summary: <Typography component="span" variant="subtitle1" sx={{ fontStyle: 'italic', fontWeight: 'normal', color: 'text.primary'}}>{combinedMissionStatement}</Typography>
+                </Typography>
+              </Box>
+            )}
+            
             <Divider sx={{my: 2}} />
             
             {/* Impact Map Section */}
@@ -677,7 +691,8 @@ const AiProcessingView = ({
   setSemanticSearchLoading,
   setSemanticSearchError,
   semanticSearchLoading,
-  semanticSearchError
+  semanticSearchError,
+  setCombinedMissionStatement // New prop for setting combined mission
 }) => { 
   console.log('AiProcessingView render');
   
@@ -705,8 +720,9 @@ const AiProcessingView = ({
 
         console.log("Semantic search response from backend:", response.data);
 
-        if (response.data && response.data.length > 0) {
-          const charities = response.data.map(charity => ({
+        // Backend now returns an object: { matched_charities: [], combined_mission: "..." }
+        if (response.data && response.data.matched_charities && response.data.matched_charities.length > 0) {
+          const charities = response.data.matched_charities.map(charity => ({
             ...charity,
             id: charity.id || Date.now() + Math.random(),
             name: charity.name || "Unnamed Charity",
@@ -714,7 +730,10 @@ const AiProcessingView = ({
             logo: charity.logo_url || charity.logo || 'https://via.placeholder.com/300x200.png?text=No+Logo',
             aptos_wallet_address: charity.aptos_wallet_address || "N/A",
             category: charity.category_display || charity.category || "Other",
-            match_score_percent: charity.similarity_score ? Math.round(charity.similarity_score * 100) : (95 - (response.data.indexOf(charity) * 5)),
+            // Corrected: use response.data.matched_charities for indexOf
+            match_score_percent: charity.similarity_score 
+                ? Math.round(charity.similarity_score * 100) 
+                : (95 - (response.data.matched_charities.indexOf(charity) * 5)),
             trust_score_grade: 'A',
             ai_explanation: `Matches your interest in "${visionPrompt.substring(0,30)}..." due to its focus on ${charity.category_display || charity.category || 'relevant areas'}.`,
           }));
@@ -759,9 +778,13 @@ const AiProcessingView = ({
               }
           }
           setAiSuggestedAllocations(allocations);
+          
+          // Set the combined mission statement from the API response
+          setCombinedMissionStatement(response.data.combined_mission || "Explore these charities that align with your vision.");
           setCurrentStage('charityResults');
         } else {
           setSemanticSearchError("No charities found matching your vision. Try rephrasing or broadening your search.");
+          setCombinedMissionStatement(""); // Clear combined mission if no charities
           setCurrentStage('charityResults'); 
         }
       } catch (error) {
@@ -774,6 +797,7 @@ const AiProcessingView = ({
           detailedError += " (No response from server)";
         }
         setSemanticSearchError(detailedError);
+        setCombinedMissionStatement(""); // Clear combined mission on error
         setCurrentStage('charityResults');
       } finally {
         setSemanticSearchLoading(false);
@@ -781,7 +805,7 @@ const AiProcessingView = ({
     };
 
     performSemanticSearch();
-  }, [visionPrompt, totalDonationAmount, setCurrentStage, setAiMatchedCharities, setAiSuggestedAllocations, setSemanticSearchLoading, setSemanticSearchError]);
+  }, [visionPrompt, totalDonationAmount, setCurrentStage, setAiMatchedCharities, setAiSuggestedAllocations, setSemanticSearchLoading, setSemanticSearchError, setCombinedMissionStatement]);
 
   const keywords = visionPrompt.split(' ').filter(k => k.length > 3);
   if(keywords.length === 0) keywords.push(...['Impact', 'Faith', 'Children', 'Education', 'Africa']);
@@ -1122,6 +1146,7 @@ const DonatePage = () => {
   const [semanticSearchLoading, setSemanticSearchLoading] = useState(false);
   const [semanticSearchError, setSemanticSearchError] = useState(null);
   const [currentProcessingCharityIndex, setCurrentProcessingCharityIndex] = useState(0); // New state for sequential donations
+  const [combinedMissionStatement, setCombinedMissionStatement] = useState(''); // New state
   
   // New state for selectable charities and individual amounts
   const [selectedCharityIds, setSelectedCharityIds] = useState(new Set());
@@ -1364,15 +1389,26 @@ const DonatePage = () => {
   // Initialize/update selectedCharityIds and individualDonationAmounts when AI results are processed
   useEffect(() => {
     if (currentStage === 'charityResults' && aiMatchedCharities.length > 0) {
-      const initialSelectedIds = new Set();
+      // const initialSelectedIds = new Set(); // No longer select all by default
+      // const initialAmounts = {};
+      // // By default, select all matched charities and use AI suggested allocations
+      // aiMatchedCharities.forEach(charity => {
+      //   initialSelectedIds.add(charity.id);
+      //   initialAmounts[charity.id] = aiSuggestedAllocations[charity.id] || 10; // Default to 10 if no suggestion
+      // });
+      // setSelectedCharityIds(initialSelectedIds);
+      // setIndividualDonationAmounts(initialAmounts);
+
+      // Instead, initialize with no charities selected, 
+      // but still prepare individual amounts based on AI suggestions if they exist, 
+      // so if a user *does* select a charity, its amount input is pre-filled reasonably.
       const initialAmounts = {};
-      // By default, select all matched charities and use AI suggested allocations
       aiMatchedCharities.forEach(charity => {
-        initialSelectedIds.add(charity.id);
-        initialAmounts[charity.id] = aiSuggestedAllocations[charity.id] || 10; // Default to 10 if no suggestion
+        initialAmounts[charity.id] = aiSuggestedAllocations[charity.id] || 10; 
       });
-      setSelectedCharityIds(initialSelectedIds);
       setIndividualDonationAmounts(initialAmounts);
+      setSelectedCharityIds(new Set()); // Start with an empty set of selected IDs
+
     } else if (currentStage !== 'charityResults') {
         // Clear selections if we navigate away from results page, 
         // or if there are no charities (handled in performSemanticSearch as well)
@@ -1458,13 +1494,50 @@ const DonatePage = () => {
       console.log(`Preparing donation on ${activeChain || CHAINS.APTOS} blockchain for ${charityToDonate.name}`);
       
       let txResult;
+      let txHashForBackend;
+      let blockchainForBackend;
+
       if (activeChain === CHAINS.POLKADOT) {
         txResult = await handlePolkadotDonation(charityToDonate, amountToDonate);
+        txHashForBackend = txResult ? txResult.toHex() : null;
+        blockchainForBackend = 'POL'; // Matches model choice
       } else {
         txResult = await handleAptosDonation(charityToDonate, amountToDonate);
+        // Aptos SDK v2+ returns an object with a `hash` property for pendingTransaction
+        // For older SDK that returns just the hash string, it would be `txResult` directly
+        txHashForBackend = txResult ? (txResult.hash || txResult) : null; 
+        blockchainForBackend = 'APT'; // Matches model choice
       }
       
-      console.log(`Donation to ${charityToDonate.name} successful. Tx: ${txResult?.hash || txResult}`);
+      console.log(`Donation to ${charityToDonate.name} successful. Tx: ${txHashForBackend}`);
+
+      // ---- SAVE TRANSACTION TO BACKEND ----
+      if (txHashForBackend) {
+        const donationDataForBackend = {
+          transaction_hash: txHashForBackend,
+          donor_address: walletAddress,
+          charity_name: charityToDonate.name,
+          charity_wallet_address: activeChain === CHAINS.POLKADOT 
+            ? POLKADOT_CONTRACT_ADDRESS // Central Polkadot contract
+            : charityToDonate.aptos_wallet_address, // Specific Aptos address
+          amount: amountToDonate.toString(), // Send as string, backend has DecimalField
+          currency: selectedCrypto,
+          blockchain: blockchainForBackend,
+          status: 'success',
+        };
+
+        try {
+          console.log("Sending donation data to backend:", donationDataForBackend);
+          // API_BASE_URL is 'http://localhost:8000/api'
+          const response = await axios.post(`${API_BASE_URL}/donation-transactions/`, donationDataForBackend);
+          console.log("Backend response for saving transaction:", response.data);
+        } catch (backendError) {
+          console.error("Error saving transaction to backend:", backendError.response ? backendError.response.data : backendError.message);
+          // Non-critical error, don't block user flow
+        }
+      }
+      // ---- END SAVE TRANSACTION TO BACKEND ----
+
       // Logic for advancing to the next charity or completing the process
       if (currentProcessingCharityIndex < charitiesToProcess.length - 1) {
         // More charities to process
@@ -1537,6 +1610,12 @@ const DonatePage = () => {
       console.log("Constructed Aptos Entry Function Payload:", JSON.stringify(entryFunctionPayload, null, 2));
       const pendingTransaction = await window.aptos.signAndSubmitTransaction({ payload: entryFunctionPayload }); 
       console.log("Aptos transaction submitted:", pendingTransaction);
+      // The pendingTransaction for Aptos SDK v2+ is an object like { hash: "0x..." }
+      // If using an older SDK version that directly returns the hash string, this would be fine.
+      // For now, we expect an object with a hash property.
+      if (!pendingTransaction || typeof pendingTransaction.hash !== 'string') {
+        throw new Error("Aptos transaction submission did not return a valid hash object.");
+      }
       return pendingTransaction; 
     } else {
       throw new Error("Aptos wallet not connected or not available. Please connect your wallet.");
@@ -1601,18 +1680,11 @@ const DonatePage = () => {
     setAiMatchedCharities([]);
     setAiSuggestedAllocations({});
     setSocialHandles({ twitter: '', instagram: '', linkedin: '' });
+    setSelectedCharityIds(new Set()); // Add this line
+    setIndividualDonationAmounts({}); // Add this line
     setSearchValue('');
     setNeedsDescription('');
     setSearchMode('direct');
-    setMatchedCharities([]);
-    setSelectedCharitiesState([]);
-    setDonationAmounts({});
-    setDonationComplete(false);
-    setTransactionError(null);
-    setTransactionPending(false);
-    setImpactActivities([]);
-    setShowSocialSharePreview(false);
-    setCurrentProcessingCharityIndex(0); // Reset index on full reset
   };
 
   const renderCurrentStage = () => {
@@ -1650,6 +1722,7 @@ const DonatePage = () => {
           setSemanticSearchError={setSemanticSearchError}
           semanticSearchLoading={semanticSearchLoading}
           semanticSearchError={semanticSearchError}
+          setCombinedMissionStatement={setCombinedMissionStatement} // Pass setter to AiProcessingView
         />;
       case 'charityResults':
         return <CharityResultsView 
@@ -1669,6 +1742,7 @@ const DonatePage = () => {
           handleToggleCharitySelection={handleToggleCharitySelection}
           individualDonationAmounts={individualDonationAmounts}
           handleIndividualAmountChange={handleIndividualAmountChange}
+          combinedMissionStatement={combinedMissionStatement} // Pass statement to CharityResultsView
         />;
       case 'donationConfirmation':
         return <DonationConfirmationView 
@@ -1717,6 +1791,9 @@ const DonatePage = () => {
     }
   };
   
+  // Debug: Log on every render
+  console.log('DonatePage render, currentStage:', currentStage, 'Selected IDs:', selectedCharityIds);
+
   return (
     <Box sx={{ py: {xs:3, sm:6}, background: 'linear-gradient(135deg, #f0f4f8 0%, #e0eafc 100%)', minHeight: '100vh' }}>
       <Container maxWidth="lg">

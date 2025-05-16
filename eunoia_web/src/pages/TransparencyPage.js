@@ -27,6 +27,7 @@ import { styled } from '@mui/material/styles';
 import { useWallet } from '@aptos-labs/wallet-adapter-react';
 import { AptosClient, TxnBuilderTypes, HexString } from 'aptos';
 import { ApiPromise, WsProvider } from '@polkadot/api';
+import axios from 'axios'; // Ensure axios is imported
 
 // Context
 import { AppContext, CHAINS } from '../components/AppProvider';
@@ -64,6 +65,8 @@ const EXPLORERS = {
   APTOS: 'https://explorer.aptoslabs.com/txn',
   POLKADOT: 'https://polkadot.subscan.io/extrinsic'
 };
+
+const API_BASE_URL_TRANSPARENCY = 'http://localhost:8000/api'; // Define for this page if not globally available
 
 // Styled Components
 const PageHeader = styled(Box)(({ theme }) => ({
@@ -320,302 +323,97 @@ const TransparencyPage = () => {
   const { activeChain } = useContext(AppContext);
   const [polkadotApi, setPolkadotApi] = useState(null);
   
-  // Initialize Polkadot API for later use
-  useEffect(() => {
-    const setupPolkadotApi = async () => {
-      if (activeChain === CHAINS.POLKADOT) {
-        try {
-          const wsProvider = new WsProvider('wss://rpc.polkadot.io');
-          const api = await ApiPromise.create({ provider: wsProvider });
-          setPolkadotApi(api);
-          console.log('Polkadot API initialized');
-        } catch (error) {
-          console.error('Failed to initialize Polkadot API:', error);
-        }
-      }
-    };
+  // REMOVE Polkadot API initialization if not used for other purposes on this page
+  // useEffect(() => {
+  //   const setupPolkadotApi = async () => {
+  //     if (activeChain === CHAINS.POLKADOT) { // And if polkadotApi is actually needed elsewhere
+  //       try {
+  //         const wsProvider = new WsProvider('wss://rpc.polkadot.io');
+  //         const api = await ApiPromise.create({ provider: wsProvider });
+  //         setPolkadotApi(api);
+  //         console.log('Polkadot API initialized');
+  //       } catch (error) {
+  //         console.error('Failed to initialize Polkadot API:', error);
+  //       }
+  //     }
+  //   };
     
-    setupPolkadotApi();
+  //   setupPolkadotApi();
     
-    return () => {
-      // Clean up Polkadot API connection on unmount
-      if (polkadotApi) {
-        polkadotApi.disconnect();
-      }
-    };
-  }, [activeChain]);
+  //   return () => {
+  //     if (polkadotApi) {
+  //       polkadotApi.disconnect();
+  //     }
+  //   };
+  // }, [activeChain, polkadotApi]); // Dependency on polkadotApi itself can cause loop if not careful
 
   useEffect(() => {
     console.log(`Transparency Page active chain: ${activeChain}`);
     fetchDonations();
-  }, [account, activeChain]); // Refetch when account or chain changes
+  }, [activeChain]); // Refetch when chain changes if you want to show chain-specific elements, but main data is global now
   
-  // Call smart contract's get_donation_history function based on active chain
-  const getDonationHistory = async () => {
-    try {
-      if (activeChain === CHAINS.APTOS) {
-        return await getAptosHistory();
-      } else if (activeChain === CHAINS.POLKADOT) {
-        return await getPolkadotHistory();
-      }
-      
-      console.log("No recognized chain selected");
-      return [];
-    } catch (error) {
-      console.error(`Error calling get_donation_history for ${activeChain}:`, error);
-      return [];
-    }
-  };
-
-  // Get donation history from Aptos
-  const getAptosHistory = async () => {
-    if (!account || !account.address) {
-      console.log("No Aptos wallet connected, cannot fetch donation history");
-      return [];
-    }
-
-    console.log(`Calling Aptos get_donation_history for address: ${account.address}`);
-    
-    try {
-      // Create payload for calling the get_donation_history function
-      const payload = {
-        function: `${CONTRACTS.APTOS.ADDRESS}::${CONTRACTS.APTOS.MODULE}::get_donation_history`,
-        type_arguments: [],
-        arguments: [account.address] // Pass the donor address
-      };
-      
-      // Call the view function
-      const response = await aptosClient.view(payload);
-      console.log("Aptos get_donation_history response:", response);
-      
-      if (response && Array.isArray(response[0])) {
-        const historyData = response[0];
-        
-        // Transform the data to match our donations format
-        const transformedData = historyData.map(item => ({
-          to: item.charity_name,
-          amount: `${item.amount} ${item.coin_name || 'USDC'}`,
-          txHash: item.transaction_id,
-          timestamp: new Date(parseInt(item.timestamp, 10) * 1000).toLocaleString(),
-          donor: account.address, // Use connected wallet address
-          rawAmount: parseInt(item.amount, 10),
-          chain: 'aptos'
-        }));
-        
-        return transformedData;
-      }
-      
-      return [];
-    } catch (error) {
-      console.error("Error calling Aptos get_donation_history:", error);
-      return [];
-    }
-  };
-
-  // Get donation history from Polkadot
-  const getPolkadotHistory = async () => {
-    // Placeholder for Polkadot wallet address check
-    // In a real implementation, this would get the address from the Polkadot wallet
-    const polkadotAddress = localStorage.getItem('polkadotAddress'); // Example way to get address
-    
-    if (!polkadotAddress) {
-      console.log("No Polkadot wallet connected, cannot fetch donation history");
-      return [];
-    }
-
-    console.log(`Calling Polkadot get_donation_history for address: ${polkadotAddress}`);
-    
-    try {
-      if (!polkadotApi) {
-        console.error("Polkadot API not initialized");
-        return [];
-      }
-      
-      // This is a placeholder for how you might call a contract on Polkadot
-      // The actual implementation will depend on your contract design
-      const result = await polkadotApi.query[CONTRACTS.POLKADOT.MODULE].getDonationHistory(polkadotAddress);
-      console.log("Polkadot get_donation_history response:", result);
-      
-      // Placeholder format conversion
-      // Adjust this based on your actual Polkadot contract return format
-      if (result && result.length > 0) {
-        const historyData = JSON.parse(result.toString());
-        
-        // Transform the data to match our donations format
-        const transformedData = historyData.map(item => ({
-          to: item.charity_name,
-          amount: `${item.amount} ${item.coin_name || 'DOT'}`,
-          txHash: item.transaction_id,
-          timestamp: new Date(parseInt(item.timestamp, 10) * 1000).toLocaleString(),
-          donor: polkadotAddress,
-          rawAmount: parseInt(item.amount, 10),
-          chain: 'polkadot'
-        }));
-        
-        return transformedData;
-      }
-      
-      return [];
-    } catch (error) {
-      console.error("Error calling Polkadot get_donation_history:", error);
-      return [];
-    }
-  };
+  // REMOVE: getDonationHistory, getAptosHistory, getPolkadotHistory, fetchAptosEvents
+  // These are replaced by a direct backend call in fetchDonations
 
   const fetchDonations = async () => {
     try {
       setLoading(true);
-      
-      // Get donation history based on the active chain
-      const donationHistory = await getDonationHistory();
-      
-      if (donationHistory.length > 0) {
-        console.log(`Found ${donationHistory.length} donations from ${activeChain} get_donation_history`);
+      console.log("Fetching all donations from backend...");
+      const response = await axios.get(`${API_BASE_URL_TRANSPARENCY}/donation-transactions/`);
+      const backendDonations = response.data; // Assuming backend returns array of transactions
+
+      if (backendDonations && backendDonations.length > 0) {
+        console.log(`Found ${backendDonations.length} donations from backend.`);
         
-        // Calculate stats
-        const uniqueCharities = new Set(donationHistory.map(d => d.to)).size;
-        const totalAmount = donationHistory.reduce((sum, d) => sum + (d.rawAmount || 0), 0);
+        const transformedData = backendDonations.map(d => ({
+          to: d.charity_name,
+          amount: `${parseFloat(d.amount).toFixed(4)} ${d.currency}`, // Format amount
+          txHash: d.transaction_hash,
+          timestamp: new Date(d.timestamp).toLocaleString(),
+          donor: d.donor_address,
+          rawAmount: parseFloat(d.amount),
+          chain: d.blockchain === 'APT' ? CHAINS.APTOS : d.blockchain === 'POL' ? CHAINS.POLKADOT : d.blockchain.toLowerCase(),
+          status: d.status,
+          charityWallet: d.charity_wallet_address
+        }));      
+
+        // Calculate stats from backend data
+        const successfulDonations = transformedData.filter(d => d.status === 'success');
+        const uniqueCharities = new Set(successfulDonations.map(d => d.to)).size;
+        // Sum amounts based on currency for display - this is a simplification.
+        // For true multi-currency total, you'd need conversion rates or separate totals.
+        // Here, we just sum the raw amounts; the label will be generic or based on activeChain for simplicity.
+        const totalAmount = successfulDonations.reduce((sum, d) => sum + d.rawAmount, 0);
         
         setStats({
-          totalDonations: donationHistory.length,
-          totalAmount,
+          totalDonations: successfulDonations.length,
+          totalAmount: parseFloat(totalAmount.toFixed(4)), // Format total amount
           uniqueCharities
         });
 
-        // Sort by timestamp (newest first)
-        setDonations(donationHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+        setDonations(successfulDonations.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
         setLastUpdated(new Date());
-        setLoading(false);
-        return;
-      }
-      
-      // Handle chain-specific wallet check
-      let walletConnected = false;
-      
-      if (activeChain === CHAINS.APTOS) {
-        walletConnected = account && account.address;
-      } else if (activeChain === CHAINS.POLKADOT) {
-        walletConnected = !!localStorage.getItem('polkadotAddress'); // Example way to check
-      }
-      
-      // If no wallet is connected or no donation history, show a message
-      if (!walletConnected) {
-        console.log(`No ${activeChain} wallet connected - showing empty state`);
-        setDonations([]);
-        setStats({
-          totalDonations: 0,
-          totalAmount: 0,
-          uniqueCharities: 0
-        });
-        setLoading(false);
-        return;
-      }
-      
-      // Fallback to event fetching (Aptos only for now)
-      if (activeChain === CHAINS.APTOS) {
-        console.log("No data from Aptos get_donation_history, falling back to event fetching");
-        await fetchAptosEvents();
       } else {
-        // For other chains, just show empty state for now
+        console.log("No donations found from backend.");
         setDonations([]);
-        setLoading(false);
+        setStats({ totalDonations: 0, totalAmount: 0, uniqueCharities: 0 });
       }
     } catch (error) {
-      console.error('Error in fetchDonations:', error);
+      console.error('Error fetching donations from backend:', error.response ? error.response.data : error.message);
       setDonations([]);
-      setLoading(false);
-    }
-  };
-  
-  // Fetch Aptos events as a fallback method
-  const fetchAptosEvents = async () => {
-    try {
-      const donateEventStructFQN = `${CONTRACTS.APTOS.ADDRESS}::${CONTRACTS.APTOS.MODULE}::DonateEvent`;
-      const NODE_URL = 'https://fullnode.testnet.aptoslabs.com/v1';
-
-      const mapEventToDonation = event => ({
-        to: event.data.charity_name,
-        amount: `${event.data.amount} ${event.data.coin_name}`,
-        txHash: event.transaction_version,
-        timestamp: new Date(parseInt(event.data.timestamp, 10) * 1000).toLocaleString(),
-        donor: event.data.donor_address,
-        rawAmount: parseInt(event.data.amount, 10),
-        chain: 'aptos'
-      });
-
-      let foundDonations = [];
-
-      const fetchEventsForCreationNumber = async (creationNumStr) => {
-        const url = `${NODE_URL}/accounts/${CONTRACTS.APTOS.ADDRESS}/events/${creationNumStr}?limit=100`;
-        console.log(`Fetching events directly from API: ${url}`);
-        const response = await fetch(url);
-        if (!response.ok) {
-          const errorBody = await response.text();
-          console.error(`Error fetching events for creation number ${creationNumStr}: ${response.status} ${response.statusText}`, errorBody);
-          throw new Error(`Failed to fetch events for creation ${creationNumStr}: ${errorBody}`);
-        }
-        const events = await response.json();
-        console.log(`Received ${events.length} events from API for creation_number ${creationNumStr}.`);
-        
-        // Filter events by the connected wallet address if available
-        return events
-          .filter(event => event.type === donateEventStructFQN)
-          .filter(event => !account || !account.address || event.data.donor_address === account.address)
-          .map(mapEventToDonation);
-      };
-
-      // Try creation_number "0"
-      try {
-        const donationsFrom0 = await fetchEventsForCreationNumber("0");
-        foundDonations.push(...donationsFrom0);
-        if (donationsFrom0.length > 0) {
-            console.log(`Found ${donationsFrom0.length} DonateEvents with creation_number 0 from API.`);
-        }
-      } catch (error) {
-        console.warn("Failed to fetch or process events from creation_number 0 (API)", error);
-      }
-      
-      // Try creation_number "1" regardless of success/failure of "0"
-      try {
-        const donationsFrom1 = await fetchEventsForCreationNumber("1");
-        foundDonations.push(...donationsFrom1);
-        if (donationsFrom1.length > 0) {
-            console.log(`Found ${donationsFrom1.length} DonateEvents with creation_number 1 from API.`);
-        }
-      } catch (error) {
-        console.warn("Failed to fetch or process events from creation_number 1 (API)", error);
-      }
-
-      if (foundDonations.length > 0) {
-        // Calculate stats
-        const uniqueCharities = new Set(foundDonations.map(d => d.to)).size;
-        const totalAmount = foundDonations.reduce((sum, d) => sum + (d.rawAmount || 0), 0);
-        
-        setStats({
-          totalDonations: foundDonations.length,
-          totalAmount,
-          uniqueCharities
-        });
-
-        // Sort by timestamp (newest first)
-        setDonations(foundDonations.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
-        setLastUpdated(new Date());
-      } else {
-        console.warn("No DonateEvents found for this module on creation_numbers 0 or 1 using direct API call.");
-        setDonations([]);
-      }
-    } catch (error) {
-      console.error('Error in fetchAptosEvents:', error);
-      setDonations([]); 
+      setStats({ totalDonations: 0, totalAmount: 0, uniqueCharities: 0 });
     } finally {
       setLoading(false);
     }
   };
 
   const handleViewTransaction = (txHash, chain) => {
-    // Use the appropriate explorer URL based on the chain
-    const explorerUrl = chain === CHAINS.POLKADOT ? EXPLORERS.POLKADOT : EXPLORERS.APTOS;
-    window.open(`${explorerUrl}/${txHash}`, '_blank');
+    const explorerBaseUrl = chain === CHAINS.POLKADOT 
+        ? EXPLORERS.POLKADOT 
+        : chain === CHAINS.APTOS 
+            ? EXPLORERS.APTOS 
+            : EXPLORERS.APTOS; // Default to Aptos explorer if chain is unknown
+    window.open(`${explorerBaseUrl}/${txHash}`, '_blank');
   };
 
   const handleRefresh = () => {
@@ -638,6 +436,9 @@ const TransparencyPage = () => {
     }
     return "Connect your wallet to view your donation history";
   };
+  
+  // Determine the primary currency for display in the stats, or use a general term
+  const primaryCurrencyForStats = activeChain === CHAINS.POLKADOT ? 'DOT' : 'APT/USDC'; 
 
   return (
     <Box sx={{ minHeight: '100vh', pb: 8, bgcolor: 'background.default' }}>
@@ -710,7 +511,7 @@ const TransparencyPage = () => {
                     {stats.totalAmount || 0}
                   </Typography>
                   <Typography variant="subtitle1" fontWeight="medium" color="white">
-                    Total Value {activeChain === CHAINS.POLKADOT ? '(DOT)' : '(USDC)'}
+                    Total Value ({primaryCurrencyForStats})
                   </Typography>
                 </Box>
               </StatCard>
@@ -774,18 +575,6 @@ const TransparencyPage = () => {
               <CircularProgress size={60} thickness={4} />
               <Typography color="text.secondary">Loading donation history...</Typography>
             </Box>
-          ) : ((!account || !account.address) && activeChain === CHAINS.APTOS) || 
-              (!localStorage.getItem('polkadotAddress') && activeChain === CHAINS.POLKADOT) ? (
-            <GlassCard>
-              <Box sx={{ textAlign: 'center', py: 6 }}>
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  Please connect your wallet
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {getWalletMessage()}
-                </Typography>
-              </Box>
-            </GlassCard>
           ) : donations.length === 0 ? (
             <GlassCard>
               <Box sx={{ textAlign: 'center', py: 6 }}>
@@ -846,7 +635,7 @@ const TransparencyPage = () => {
                       variant="contained"
                       color="primary"
                           size="small"
-                          onClick={() => handleViewTransaction(donation.txHash, donation.chain || activeChain)}
+                          onClick={() => handleViewTransaction(donation.txHash, donation.chain)}
                           endIcon={<OpenInNewIcon />}
                     >
                           View on Explorer

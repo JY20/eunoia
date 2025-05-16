@@ -12,6 +12,7 @@ router.register(r'charities', api_views.CharityViewSet, basename='charity')
 router.register(r'impacts', api_views.ImpactViewSet, basename='impact')
 router.register(r'marketing-campaigns', api_views.MarketingCampaignViewSet, basename='marketingcampaign')
 router.register(r'social-posts', api_views.SocialPostViewSet, basename='socialpost')
+router.register(r'donation-transactions', api_views.DonationTransactionViewSet, basename='donationtransaction')
 
 urlpatterns = [
     path('', HomeView.as_view(), name='home'),
