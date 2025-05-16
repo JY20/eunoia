@@ -90,7 +90,7 @@ Instead of slow, manual vetting, our smart AI agents — we call them **Compass*
 
 - ✅ Launch on Mainnet and send to initiative in Middle East
 - ✅ Customer interviews with philanthropists, CEOs, developers
-- ✅ Multi-chain integration
+- ✅ Multi-chain integration with PolkaDot's Testnet
 - 🔜 Onboard first 5 verified charities  
 - 🔜 Run $1,000+ in real donations, tracked end-to-end  
 - 🔜 Expand to 10+ underfunded causes in East Africa & SE Asia  
