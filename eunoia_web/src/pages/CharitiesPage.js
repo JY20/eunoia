@@ -24,8 +24,8 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import CharitySearch from '../components/CharitySearch';
-import CharityFilter from '../components/CharityFilter';
-import CharityCard from '../components/CharityCard';
+// import CharityFilter from '../components/CharityFilter'; // Removed as file not found and component unused
+import CharityResultCard from '../components/CharityResultCard'; // Assuming this was the intended component
 
 // Constants
 const API_BASE_URL = '/api';
@@ -64,19 +64,6 @@ const SearchCard = styled(Box)(({ theme }) => ({
   maxWidth: '800px',
   margin: 'auto',
   transform: 'translateY(50px)',
-}));
-
-const CharityCard = styled(Card)(({ theme }) => ({
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-  borderRadius: theme.shape.borderRadius * 2,
-  overflow: 'hidden',
-  '&:hover': {
-    transform: 'translateY(-8px)',
-    boxShadow: '0 12px 20px rgba(0, 0, 0, 0.15)',
-  },
 }));
 
 const DonateButton = styled(Button)(({ theme }) => ({
@@ -241,7 +228,7 @@ const CharitiesPage = () => {
             <Grid container spacing={4}>
               {paginatedCharities.map((charity) => (
                 <Grid item xs={12} sm={6} md={4} key={charity.id}>
-                  <CharityCard>
+                  <CharityResultCard>
                     <CardMedia
                       component="img"
                       height="200"
@@ -300,7 +287,7 @@ const CharitiesPage = () => {
                         Donate
                       </DonateButton>
                     </CardActions>
-                  </CharityCard>
+                  </CharityResultCard>
                 </Grid>
               ))}
             </Grid>
