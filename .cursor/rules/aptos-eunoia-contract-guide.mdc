@@ -1,0 +1,87 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Aptos Eunoia Charity Smart Contract Guide
+
+This document provides a guide to the Eunoia charity donation smart contract deployed on the Aptos blockchain.
+
+## Overview
+
+The `eunoia_foundation` module, part of the `eunoia_charity_generic` package, facilitates a donation platform. Users can donate various `CoinType` assets to registered charities. The contract tracks donations, manages charity wallets, and records amounts raised.
+
+## Key Information
+
+*   **Module Name**: `eunoia_foundation`
+*   **Package Name**: `eunoia_charity_generic`
+*   **Deployed Address (Module Owner)**: `0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011` (aliased as `eunoia` in `Move.toml`)
+*   **Fully Qualified Name**: `0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011::eunoia_foundation`
+*   **Network**: Testnet
+
+## Important Files
+
+*   **Main Contract Logic**: Contains the Move source code for the `eunoia_foundation` module.
+    *   [`contract/sources/eunoia.move`](mdc:contract/sources/eunoia.move)
+*   **Package Manifest**: Defines the package, its dependencies, and named addresses.
+    *   [`contract/Move.toml`](mdc:contract/Move.toml)
+*   **Aptos CLI Configuration**: Contains profile information, including private keys, public keys, account addresses, and network REST URLs.
+    *   [`contract/.aptos/config.yaml`](mdc:contract/.aptos/config.yaml)
+*   **Build Information**: Contains details about the compiled package, including address aliases and build flags.
+    *   [`contract/build/eunoia_charity_generic/BuildInfo.yaml`](mdc:contract/build/eunoia_charity_generic/BuildInfo.yaml)
+
+## Core Functionality
+
+1.  **Initialization**: Sets up initial contract state by the module owner.
+2.  **Charity Management**: Allows the module owner to add charities and their wallet addresses. Tracks funds raised per charity per coin.
+3.  **Donations**: Enables users to donate `CoinType` assets to registered charities. Requires charity name and a string identifier for the coin.
+4.  **View Functions**: Publicly accessible functions to retrieve donation history, total raised amounts by a charity for a specific coin, and charity wallet addresses.
+5.  **Events**: Emits `DonateEvent` and `CharityRegisteredEvent`.
+
+For detailed function signatures and logic, refer to the main contract file: [`contract/sources/eunoia.move`](mdc:contract/sources/eunoia.move).
+
+## Module Functions
+
+Below is a summary of the public and entry functions available in the `eunoia::eunoia_foundation` module. For full implementation details, see [`contract/sources/eunoia.move`](mdc:contract/sources/eunoia.move).
+
+### Entry Functions (Callable by transactions)
+
+*   `initialize_module(deployer: &signer)`
+    *   **Description**: Initializes the smart contract, setting up the necessary `ContractData` resource under the deployer's account. This must be called once by the module owner before other functions can operate.
+    *   **Permissions**: Only callable by the account that deployed the module.
+    *   **Aborts if**: Module is already initialized.
+
+*   `add_charity(module_owner: &signer, charity_name: String, charity_wallet_addr: address)`
+    *   **Description**: Registers a new charity with the platform. Stores the charity's name and wallet address, and initializes its record for raised amounts.
+    *   **Permissions**: Only callable by the module owner.
+    *   **Acquires**: `ContractData`.
+    *   **Aborts if**: Caller is not the module owner, or if a charity with the given name already exists.
+    *   **Emits**: `CharityRegisteredEvent`.
+
+*   `donate<CoinType>(donor: &signer, charity_name: String, coin_identifier_string: String, amount: u64)`
+    *   **Description**: Allows a user to donate a specified `amount` of a generic `CoinType` to a registered `charity_name`. The `coin_identifier_string` is crucial for tracking donations of different coin types (e.g., "0x1::aptos_coin::AptosCoin").
+    *   **Permissions**: Callable by any signer.
+    *   **Acquires**: `ContractData`.
+    *   **Aborts if**: Donation amount is zero, donor has insufficient balance, charity is not found, or the charity's wallet is not registered to receive the specified `CoinType`.
+    *   **Emits**: `DonateEvent`.
+
+### View Functions (Read-only, callable off-chain)
+
+*   `get_donation_history(donor_addr: address): vector<HistoryEntry>`
+    *   **Description**: Retrieves the complete donation history for a given `donor_addr`.
+    *   **Acquires**: `ContractData`.
+    *   **Returns**: A vector of `HistoryEntry` structs. Returns an empty vector if the donor has no history or is not found.
+
+*   `get_charity_raised_amount(charity_name: String, coin_name: String): u64`
+    *   **Description**: Returns the total amount of a specific `coin_name` (e.g., "0x1::aptos_coin::AptosCoin") raised by the specified `charity_name`.
+    *   **Acquires**: `ContractData`.
+    *   **Returns**: `u64` representing the total amount. Returns `0` if the charity is not found, or if no donations of that coin type have been made to it.
+
+*   `get_charity_wallet(charity_name: String): address`
+    *   **Description**: Retrieves the registered wallet address for a given `charity_name`.
+    *   **Acquires**: `ContractData`.
+    *   **Returns**: The `address` of the charity's wallet.
+    *   **Aborts if**: Charity is not found.
+
+
+
