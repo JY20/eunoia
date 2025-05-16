@@ -24,7 +24,6 @@ import {
   Tooltip
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { useWallet } from '@aptos-labs/wallet-adapter-react';
 import { AptosClient, TxnBuilderTypes, HexString } from 'aptos';
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import axios from 'axios'; // Ensure axios is imported
@@ -62,7 +61,7 @@ const CONTRACTS = {
 
 // Chain explorer URLs
 const EXPLORERS = {
-  APTOS: 'https://explorer.aptoslabs.com/txn',
+  APTOS: 'https://explorer.aptoslabs.com/txn', // Base URL for Aptos explorer
   POLKADOT: 'https://polkadot.subscan.io/extrinsic'
 };
 
@@ -316,7 +315,6 @@ const TransparencyPage = () => {
     totalAmount: 0,
     uniqueCharities: 0
   });
-  const { account } = useWallet(); // Aptos wallet account
   const theme = useTheme();
   
   // Get the active chain from the app context
@@ -360,41 +358,38 @@ const TransparencyPage = () => {
       setLoading(true);
       console.log("Fetching all donations from backend...");
       const response = await axios.get(`${API_BASE_URL_TRANSPARENCY}/donation-transactions/`);
-      const backendDonations = response.data; // Assuming backend returns array of transactions
+      // Correctly access the 'results' array from the response
+      const backendDonationsResults = response.data && response.data.results ? response.data.results : [];
 
-      if (backendDonations && backendDonations.length > 0) {
-        console.log(`Found ${backendDonations.length} donations from backend.`);
+      if (backendDonationsResults.length > 0) {
+        console.log(`Found ${backendDonationsResults.length} donations from backend.`);
         
-        const transformedData = backendDonations.map(d => ({
+        const transformedData = backendDonationsResults.map(d => ({
           to: d.charity_name,
           amount: `${parseFloat(d.amount).toFixed(4)} ${d.currency}`, // Format amount
           txHash: d.transaction_hash,
           timestamp: new Date(d.timestamp).toLocaleString(),
           donor: d.donor_address,
           rawAmount: parseFloat(d.amount),
+          // Keep chain for potential future use, though explorer link is now fixed
           chain: d.blockchain === 'APT' ? CHAINS.APTOS : d.blockchain === 'POL' ? CHAINS.POLKADOT : d.blockchain.toLowerCase(),
           status: d.status,
           charityWallet: d.charity_wallet_address
         }));      
 
-        // Calculate stats from backend data
         const successfulDonations = transformedData.filter(d => d.status === 'success');
         const uniqueCharities = new Set(successfulDonations.map(d => d.to)).size;
-        // Sum amounts based on currency for display - this is a simplification.
-        // For true multi-currency total, you'd need conversion rates or separate totals.
-        // Here, we just sum the raw amounts; the label will be generic or based on activeChain for simplicity.
         const totalAmount = successfulDonations.reduce((sum, d) => sum + d.rawAmount, 0);
         
         setStats({
           totalDonations: successfulDonations.length,
-          totalAmount: parseFloat(totalAmount.toFixed(4)), // Format total amount
+          totalAmount: parseFloat(totalAmount.toFixed(4)),
           uniqueCharities
         });
 
         setDonations(successfulDonations.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
-        setLastUpdated(new Date());
       } else {
-        console.log("No donations found from backend.");
+        console.log("No donations found from backend or 'results' field is missing/empty.");
         setDonations([]);
         setStats({ totalDonations: 0, totalAmount: 0, uniqueCharities: 0 });
       }
@@ -404,16 +399,13 @@ const TransparencyPage = () => {
       setStats({ totalDonations: 0, totalAmount: 0, uniqueCharities: 0 });
     } finally {
       setLoading(false);
+      setLastUpdated(new Date()); // Update last updated time regardless of outcome
     }
   };
 
-  const handleViewTransaction = (txHash, chain) => {
-    const explorerBaseUrl = chain === CHAINS.POLKADOT 
-        ? EXPLORERS.POLKADOT 
-        : chain === CHAINS.APTOS 
-            ? EXPLORERS.APTOS 
-            : EXPLORERS.APTOS; // Default to Aptos explorer if chain is unknown
-    window.open(`${explorerBaseUrl}/${txHash}`, '_blank');
+  const handleViewTransaction = (txHash) => {
+    // Always use Aptos testnet explorer
+    window.open(`${EXPLORERS.APTOS}/${txHash}?network=testnet`, '_blank');
   };
 
   const handleRefresh = () => {
@@ -428,14 +420,14 @@ const TransparencyPage = () => {
   };
 
   // Chain-specific messaging for UI
-  const getWalletMessage = () => {
-    if (activeChain === CHAINS.APTOS) {
-      return "Connect your Aptos wallet to view your donation history";
-    } else if (activeChain === CHAINS.POLKADOT) {
-      return "Connect your Polkadot wallet to view your donation history";
-    }
-    return "Connect your wallet to view your donation history";
-  };
+  // const getWalletMessage = () => {
+  //   if (activeChain === CHAINS.APTOS) {
+  //     return "Connect your Aptos wallet to view your donation history";
+  //   } else if (activeChain === CHAINS.POLKADOT) {
+  //     return "Connect your Polkadot wallet to view your donation history";
+  //   }
+  //   return "Connect your wallet to view your donation history";
+  // };
   
   // Determine the primary currency for display in the stats, or use a general term
   const primaryCurrencyForStats = activeChain === CHAINS.POLKADOT ? 'DOT' : 'APT/USDC'; 
@@ -526,7 +518,7 @@ const TransparencyPage = () => {
         <Box sx={{ mb: 8 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mb: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
-              Your Donation History
+              All Donation History
               <Chip 
                 label={activeChain === CHAINS.POLKADOT ? 'Polkadot' : 'Aptos'} 
                 color={activeChain === CHAINS.POLKADOT ? 'secondary' : 'primary'}
@@ -582,7 +574,7 @@ const TransparencyPage = () => {
                   No donation history found
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  You haven't made any donations yet with this wallet on {activeChain === CHAINS.POLKADOT ? 'Polkadot' : 'Aptos'}
+                  There are currently no recorded donations on the platform.
                 </Typography>
         </Box>
             </GlassCard>
@@ -635,7 +627,7 @@ const TransparencyPage = () => {
                       variant="contained"
                       color="primary"
                           size="small"
-                          onClick={() => handleViewTransaction(donation.txHash, donation.chain)}
+                          onClick={() => handleViewTransaction(donation.txHash)}
                           endIcon={<OpenInNewIcon />}
                     >
                           View on Explorer
