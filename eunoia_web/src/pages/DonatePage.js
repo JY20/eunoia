@@ -1162,6 +1162,9 @@ const DonatePage = () => {
         setAiMatchedCharities([]);
         setAiSuggestedAllocations({});
 
+        // Artificial delay for testing animation visibility
+        await new Promise(resolve => setTimeout(resolve, 5000)); // 5-second delay
+
         try {
           console.log(`Performing semantic search for: "${visionPrompt}"`);
           const response = await axios.get(`${API_BASE_URL}/charity-semantic-search/`, {
