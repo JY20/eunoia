@@ -86,6 +86,16 @@ Instead of slow, manual vetting, our smart AI agents — we call them **Compass*
 
 ---
 
+## 🔗 We're onboarding users! Follow us & Connect for more
+
+- 🌍 [Website](https://www.eunoia.work)
+- 📱 [Telegram](https://t.me/+aDt6-_BdrTtjODMx)
+- 💻 [GitHub](https://github.com/JY20/eunoia)
+- 🎮 [Discord](https://discord.com/invite/CWYXFqyQe6)
+- 𝕏 [Twitter/X](https://x.com/eunoia_give)
+
+---
+
 ## 🛣️ What's Done and What's Next
 
 - ✅ Launch on Mainnet and send to initiative in Middle East
@@ -401,16 +411,6 @@ git push origin feature/your-feature-name
 # Then open a Pull Request
 ```
 
----
 
-## 🔗 Connect With Us
-
-- 🌍 [Website](https://www.eunoia.work)
-- 📱 [Telegram](https://t.me/+aDt6-_BdrTtjODMx)
-- 💻 [GitHub](https://github.com/JY20/eunoia)
-- 🎮 [Discord](https://discord.com/invite/CWYXFqyQe6)
-- 𝕏 [Twitter/X](https://x.com/eunoia_give)
-
----
 
 > *Let's fix giving. With agents, not middlemen.*
