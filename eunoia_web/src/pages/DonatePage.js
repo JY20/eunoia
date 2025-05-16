@@ -228,9 +228,15 @@ const CharityResultsView = ({
   visionPrompt,
   theme,
   semanticSearchLoading,
-  semanticSearchError
+  semanticSearchError,
+  selectedCharityIds,
+  handleToggleCharitySelection,
+  individualDonationAmounts,
+  handleIndividualAmountChange
 }) => {
   console.log('CharityResultsView render, charities:', aiMatchedCharities);
+  console.log('Selected IDs:', selectedCharityIds);
+  console.log('Individual Amounts:', individualDonationAmounts);
 
   const extractUserInputs = () => {
     const missionKeywords = visionPrompt.toLowerCase().match(/\b(empower|support|education|girls|africa|children|communities|health|environment|innovation|faith|art)\b/g) || [];
@@ -304,7 +310,11 @@ const CharityResultsView = ({
               <Grid item xs={12} sm={6} key={charity.id}> {/* Each card takes half width on sm and up */}
                 <CharityResultCard 
                   charity={charity} 
-                  suggestedAllocation={aiSuggestedAllocations[charity.id]}
+                  // suggestedAllocation={aiSuggestedAllocations[charity.id]} // Keeping for now, but individual amount will be primary
+                  currentAmount={individualDonationAmounts[charity.id] || 0}
+                  onAmountChange={(newAmount) => handleIndividualAmountChange(charity.id, newAmount)}
+                  isSelected={selectedCharityIds.has(charity.id)}
+                  onToggleSelect={() => handleToggleCharitySelection(charity.id)}
                   selectedCrypto={selectedCrypto}
                   theme={theme} // Pass theme if CharityResultCard uses it directly for styling
                 />
@@ -397,7 +407,7 @@ const CharityResultsView = ({
         <Button onClick={() => setCurrentStage('visionPrompt')} sx={{color: theme.palette.text.secondary, textTransform: 'none'}}>Adjust Vision</Button>
         <GlowButton 
           onClick={() => setCurrentStage('donationConfirmation')}
-          disabled={aiMatchedCharities.length === 0}
+          disabled={selectedCharityIds.size === 0} // Disable if no charities are selected
           size="large"
           sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}
         >
@@ -657,6 +667,416 @@ const VisionPromptView = ({
   );
 };
 
+// AiProcessingView is now defined globally
+const AiProcessingView = ({
+  visionPrompt,
+  totalDonationAmount,
+  setCurrentStage,
+  setAiMatchedCharities,
+  setAiSuggestedAllocations,
+  setSemanticSearchLoading,
+  setSemanticSearchError,
+  semanticSearchLoading,
+  semanticSearchError
+}) => { 
+  console.log('AiProcessingView render');
+  
+  useEffect(() => {
+    const performSemanticSearch = async () => {
+      if (!visionPrompt.trim()) {
+        setSemanticSearchError("Please enter your vision before searching.");
+        setCurrentStage('visionPrompt');
+        return;
+      }
+
+      setSemanticSearchLoading(true);
+      setSemanticSearchError(null);
+      setAiMatchedCharities([]);
+      setAiSuggestedAllocations({});
+
+      // Artificial delay for testing animation visibility
+      await new Promise(resolve => setTimeout(resolve, 5000)); // 5-second delay
+
+      try {
+        console.log(`Performing semantic search for: "${visionPrompt}"`);
+        const response = await axios.get(`${API_BASE_URL}/charity-semantic-search/`, {
+          params: { query: visionPrompt }
+        });
+
+        console.log("Semantic search response from backend:", response.data);
+
+        if (response.data && response.data.length > 0) {
+          const charities = response.data.map(charity => ({
+            ...charity,
+            id: charity.id || Date.now() + Math.random(),
+            name: charity.name || "Unnamed Charity",
+            description: charity.description || "No description available.",
+            logo: charity.logo_url || charity.logo || 'https://via.placeholder.com/300x200.png?text=No+Logo',
+            aptos_wallet_address: charity.aptos_wallet_address || "N/A",
+            category: charity.category_display || charity.category || "Other",
+            match_score_percent: charity.similarity_score ? Math.round(charity.similarity_score * 100) : (95 - (response.data.indexOf(charity) * 5)),
+            trust_score_grade: 'A',
+            ai_explanation: `Matches your interest in "${visionPrompt.substring(0,30)}..." due to its focus on ${charity.category_display || charity.category || 'relevant areas'}.`,
+          }));
+
+          setAiMatchedCharities(charities);
+
+          const totalScore = charities.reduce((sum, charity) => sum + (charity.match_score_percent || 0), 0);
+          const allocations = {};
+          let cumulativeAllocation = 0;
+
+          if (totalScore > 0) {
+            charities.forEach((charity, index) => {
+              let rawAllocation;
+              if (index === charities.length - 1) {
+                  rawAllocation = totalDonationAmount - cumulativeAllocation;
+              } else {
+                  rawAllocation = ( (charity.match_score_percent || 0) / totalScore) * totalDonationAmount;
+              }
+              const finalAllocation = Math.max(0, parseFloat(rawAllocation.toFixed(2)));
+              allocations[charity.id] = finalAllocation;
+              cumulativeAllocation += finalAllocation;
+            });
+            
+            const sumOfAllocations = Object.values(allocations).reduce((sum, val) => sum + val, 0);
+            if (sumOfAllocations !== totalDonationAmount && charities.length > 0) {
+                const lastCharityId = charities[charities.length -1].id;
+                const diff = totalDonationAmount - sumOfAllocations;
+                allocations[lastCharityId] = Math.max(0, parseFloat((allocations[lastCharityId] + diff).toFixed(2)));
+            }
+
+          } else if (charities.length > 0) {
+            const equalShare = parseFloat((totalDonationAmount / charities.length).toFixed(2));
+            charities.forEach(charity => {
+              allocations[charity.id] = equalShare;
+            });
+            
+            const sumOfAllocations = Object.values(allocations).reduce((sum, val) => sum + val, 0);
+              if (sumOfAllocations !== totalDonationAmount && charities.length > 0) {
+                  const lastCharityId = charities[charities.length -1].id;
+                  const diff = totalDonationAmount - sumOfAllocations;
+                  allocations[lastCharityId] = Math.max(0, parseFloat((allocations[lastCharityId] + diff).toFixed(2)));
+              }
+          }
+          setAiSuggestedAllocations(allocations);
+          setCurrentStage('charityResults');
+        } else {
+          setSemanticSearchError("No charities found matching your vision. Try rephrasing or broadening your search.");
+          setCurrentStage('charityResults'); 
+        }
+      } catch (error) {
+        console.error('Error during semantic search:', error);
+        let detailedError = "Failed to fetch charity recommendations. Please try again later.";
+        if (error.response) {
+          detailedError += ` (Server responded with ${error.response.status})`;
+          console.error("Error response data:", error.response.data);
+        } else if (error.request) {
+          detailedError += " (No response from server)";
+        }
+        setSemanticSearchError(detailedError);
+        setCurrentStage('charityResults');
+      } finally {
+        setSemanticSearchLoading(false);
+      }
+    };
+
+    performSemanticSearch();
+  }, [visionPrompt, totalDonationAmount, setCurrentStage, setAiMatchedCharities, setAiSuggestedAllocations, setSemanticSearchLoading, setSemanticSearchError]);
+
+  const keywords = visionPrompt.split(' ').filter(k => k.length > 3);
+  if(keywords.length === 0) keywords.push(...['Impact', 'Faith', 'Children', 'Education', 'Africa']);
+
+  if (semanticSearchLoading) {
+      return (
+          <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+              <Box sx={{ mb: 4 }}> 
+                  <CompassAnimation />
+              </Box>
+              <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
+                  Finding the causes that truly fit you…
+              </Typography>
+              <Box sx={{my:3, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 1}}>
+                  {keywords.slice(0,5).map(kw => <Chip key={kw} label={kw} variant="outlined" />)}
+              </Box>
+              <LinearProgress sx={{my:2, maxWidth: 300, mx:'auto'}}/> 
+              <Typography variant="body2" color="text.secondary">
+                  <i>Consulting the Eunoia Compass...</i>
+              </Typography>
+          </StepContent>
+      );
+  }
+  
+  return (
+    <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+      <CircularProgress sx={{mb:2}} />
+      <Typography variant="h6" fontWeight="medium">Processing your vision...</Typography>
+      {semanticSearchError && <Typography color="error" sx={{mt:1}}>{semanticSearchError}</Typography>}
+    </StepContent>
+  );
+};
+
+// AllocationWelcomeView is now defined globally
+const AllocationWelcomeView = ({ setCurrentStage }) => { 
+  console.log('AllocationWelcomeView render');
+      return (
+    <StepContent sx={{ textAlign: 'center', py: {xs: 4, sm: 6} }}>
+      <Box mb={4}>
+        <ExploreIcon sx={{ fontSize: 90, color: 'primary.main', mb:1 }} />
+      </Box>
+      <Typography variant="h3" fontWeight="bold" gutterBottom sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
+        Find Your Compass.
+          </Typography>
+      <Typography variant="h6" color="text.secondary" paragraph sx={{ mb: 5, maxWidth: '600px', mx: 'auto' }}>
+        Giving guided by your values.
+          </Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" alignItems="center">
+        <GlowButton 
+          onClick={() => setCurrentStage('visionPrompt')} 
+          size="large" 
+          sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}
+          startIcon={<AutoAwesomeIcon />}
+        >
+          Use Eunoia Compass
+        </GlowButton>
+            <Button 
+          variant="outlined" 
+          color="primary"
+          component={Link} 
+          to="/charities"
+          size="large" 
+          sx={{py: 1.5, px: 5, fontSize: '1.1rem', borderRadius: '50px'}}
+              startIcon={<SearchIcon />}
+            >
+          Donate Directly
+            </Button>
+      </Stack>
+      <Typography variant="body1" sx={{ mt: 6, fontStyle: 'italic', color: 'text.secondary' }}>
+        Unchained Giving. Borderless Impact.
+      </Typography>
+    </StepContent>
+  );
+};
+
+// DonationConfirmationView is now defined globally
+const DonationConfirmationView = ({
+  currentStage,
+  transactionPending,
+  donationComplete,
+  transactionError,
+  walletAddress,
+  handleDonate,
+  setCurrentStage,
+  handleReset,
+  setTransactionError,
+  currentProcessingCharityIndex,
+  aiMatchedCharities,
+  aiSuggestedAllocations,
+  selectedCrypto,
+  selectedCharityIds,
+  handleToggleCharitySelection,
+  individualDonationAmounts,
+  handleIndividualAmountChange
+}) => { 
+  console.log('DonationConfirmationView render, index:', currentProcessingCharityIndex);
+  
+  // Get the current charity and amount for display
+  const charityToDisplay = aiMatchedCharities && aiMatchedCharities[currentProcessingCharityIndex];
+  const amountToDisplay = charityToDisplay && aiSuggestedAllocations && aiSuggestedAllocations[charityToDisplay.id];
+
+  useEffect(() => {
+      // Ensure charityToDisplay is valid before attempting to donate
+      if (currentStage === 'donationConfirmation' && charityToDisplay && !transactionPending && !donationComplete && !transactionError) {
+          if (!walletAddress) {
+                setTransactionError("Wallet not connected. Please connect your wallet first.");
+                return;
+          }
+          // Check if we are ready to process this specific charity (e.g. not already completed/failed *for this specific one*)
+          // This check might be redundant if handleDonate correctly manages global state per step.
+          console.log(`DonationConfirmationView useEffect: Triggering handleDonate for ${charityToDisplay.name}`);
+          handleDonate(); 
+      }
+  // Added currentProcessingCharityIndex to ensure effect re-runs for new charity.
+  // Also added charityToDisplay to re-evaluate if it changes (e.g. aiMatchedCharities updates).
+  }, [currentStage, transactionPending, donationComplete, transactionError, walletAddress, handleDonate, setTransactionError, setCurrentStage, currentProcessingCharityIndex, charityToDisplay]);
+
+  if (!charityToDisplay) {
+    // This case might occur if the index is out of bounds or charities array is empty.
+    // It could indicate all donations are processed or an error in logic.
+    // Parent (DonatePage) should ideally handle stage transition before this view renders without a valid charity.
+    return (
+        <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+            <Typography variant="h6">Preparing next donation or finalizing...</Typography>
+            <CircularProgress sx={{my: 2}}/>
+        </StepContent>
+    );
+  }
+
+  // Display information for the current charity being confirmed
+  const displayCharityName = charityToDisplay.name || "Selected Charity";
+  const displayAmount = amountToDisplay || "N/A";
+
+  if (transactionPending) {
+      return (
+          <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+              <CircularProgress sx={{ mb: 3, width: '60px !important', height: '60px !important' }}/>
+              <Typography variant="h5" fontWeight="bold" gutterBottom>Processing Your Donation</Typography>
+              <Typography variant="body1" color="text.secondary">To: {displayCharityName}</Typography>
+              <Typography variant="body1" color="text.secondary">Amount: {displayAmount} {selectedCrypto /* prop needed */}</Typography>
+              <Typography variant="body1" color="text.secondary" sx={{mt:1}}>Please confirm the transaction in your wallet.</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{mt:1}}><i>(This may take a moment)</i></Typography>
+          </StepContent>
+      );
+  }
+  if (transactionError) {
+      return (
+          <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+              <ReportProblemIcon color="error" sx={{ fontSize: 60, mb: 2 }} />
+              <Typography variant="h5" color="error" fontWeight="bold" gutterBottom>Donation Failed</Typography>
+              <Typography color="error" paragraph>{transactionError}</Typography>
+              <GlowButton variant="outlined" onClick={() => setCurrentStage('charityResults')} sx={{background: 'transparent', color: 'primary.main', mr:1}}>Try Again</GlowButton>
+              <Button variant="text" onClick={handleReset}>Start Over</Button>
+          </StepContent>
+      );
+  }
+          
+  if (donationComplete) {
+      return (
+          <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+              <CheckCircleIcon sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
+              <Typography variant="h4" gutterBottom fontWeight="bold" color="success.main" sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
+                Donation Successful!
+              </Typography>
+              <Typography variant="h6" color="text.secondary" sx={{mb:3}}>
+                  Thank you for your generosity and trust in Eunoia.
+              </Typography>
+              <GlowButton onClick={() => setCurrentStage('impactTracker')} size="large" sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}>
+                Track Your Impact
+              </GlowButton>
+              <Button sx={{ml: 2, textTransform:'none'}} variant="text" onClick={handleReset}>Make Another Donation</Button>
+        </StepContent>
+      );
+  }
+    
+      return (
+    <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+      <Typography variant="h5" fontWeight="bold">Preparing your donation...</Typography>
+      <CircularProgress sx={{my: 3, width: '50px !important', height: '50px !important'}} />
+    </StepContent>
+  );
+};
+
+// ImpactTrackerView is now defined globally
+const ImpactTrackerView = ({ 
+  aiSuggestedAllocations, 
+  aiMatchedCharities, 
+  selectedCrypto, 
+  setImpactActivities,
+  impactActivities,
+  setCurrentStage,
+  platformFeeActive,
+  setPlatformFeeActive,
+  calculatePlatformFee,
+  totalDonationAmount,
+  visionPrompt,
+  theme,
+  semanticSearchLoading,
+  semanticSearchError,
+  selectedCharityIds,
+  handleToggleCharitySelection,
+  individualDonationAmounts,
+  handleIndividualAmountChange,
+  handleReset
+}) => { 
+  console.log('ImpactTrackerView render');
+  useEffect(() => {
+      const baseDonationAmount = aiMatchedCharities[0] && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? aiSuggestedAllocations[aiMatchedCharities[0]?.id] : 0;
+      const charityName = aiMatchedCharities[0]?.name || 'the selected cause';
+
+      const initialActivities = [
+          { id: 1, text: `✅ ${(baseDonationAmount).toFixed(2)} ${selectedCrypto} sent to ${charityName} Wallet`, time: "Just now", type: "transfer" },
+      ];
+      
+      setImpactActivities(initialActivities);
+
+      let currentDelay = 0;
+      const activityTimeouts = [];
+
+      const scheduleActivity = (text, time, type, delay) => {
+          currentDelay += delay;
+          const timeoutId = setTimeout(() => {
+              setImpactActivities(prev => [...prev, {id: prev.length + Date.now(), text, time, type}])
+          }, currentDelay);
+          activityTimeouts.push(timeoutId);
+      }
+
+      if (baseDonationAmount > 0) {
+          scheduleActivity(`📬 Confirmation received from ${charityName}`, "Moments ago", "confirmation", 1500);
+
+          const books = Math.floor(baseDonationAmount / 5); 
+          if (books > 0) {
+              scheduleActivity(`📘 ${books} book${books > 1 ? 's' : ''} being prepared for distribution`, "Updates soon", "action", 2000);
+          }
+          const meals = Math.floor(baseDonationAmount / 2);
+          if (meals > 0) {
+              scheduleActivity(`🍲 ${meals} meal${meals > 1 ? 's' : ''} funding allocated to kitchen partners`, "Updates soon", "action", 2500);
+          }
+            if (baseDonationAmount > 10) {
+              scheduleActivity(`🤝 Community outreach program benefiting from your support`, "In progress", "action", 3000);
+          }
+      }
+      return () => {
+        activityTimeouts.forEach(clearTimeout);
+      };
+
+  }, [aiSuggestedAllocations, aiMatchedCharities, selectedCrypto, setImpactActivities]);
+
+  const totalImpactStats = {
+      mealsFunded: aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? Math.floor(aiSuggestedAllocations[aiMatchedCharities[0].id] / 2) : 0,
+      booksProvided: aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? Math.floor(aiSuggestedAllocations[aiMatchedCharities[0].id] / 5) : 0,
+      childrenHelped: aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? Math.floor(aiSuggestedAllocations[aiMatchedCharities[0].id] / 1.5) : 0, 
+  };
+
+  const getSocialPostText = () => { 
+    const charityName = aiMatchedCharities[0]?.name || 'a great cause';
+    let impactHighlights = [];
+    if (totalImpactStats.childrenHelped > 0) impactHighlights.push(`${totalImpactStats.childrenHelped} children helped`);
+    if (totalImpactStats.mealsFunded > 0) impactHighlights.push(`${totalImpactStats.mealsFunded} meals funded`);
+    if (totalImpactStats.booksProvided > 0) impactHighlights.push(`${totalImpactStats.booksProvided} books provided`);
+    
+    if (impactHighlights.length === 0 && aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] > 0) {
+        return `Supported ${charityName} with a donation of ${(aiSuggestedAllocations[aiMatchedCharities[0]?.id]).toFixed(2)} ${selectedCrypto}.`
+    }
+    return impactHighlights.join(', ') || `Made a contribution to ${charityName}.`;
+  };
+
+  return (
+    <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+      <Typography variant="h5" fontWeight="bold">Your Impact</Typography>
+      <Typography variant="body1" color="text.secondary" sx={{ mt: 2, mb: 3 }}>
+        {getSocialPostText()}
+      </Typography>
+       <Typography variant="subtitle1" sx={{mb:1, fontWeight:'medium'}}>Transaction Journey:</Typography>
+        <List dense sx={{maxWidth: 400, margin: 'auto', textAlign: 'left'}}>
+            {impactActivities.map((activity) => (
+                <ListItem key={activity.id}>
+                    <ListItemIcon sx={{minWidth: '30px'}}>
+                        {activity.type === 'transfer' && <CheckCircleIcon fontSize="small" color="success"/>}
+                        {activity.type === 'confirmation' && <TextsmsIcon fontSize="small" color="info"/>}
+                        {activity.type === 'action' && <InsightsIcon fontSize="small" color="secondary"/>}
+                    </ListItemIcon>
+                    <ListItemText primary={activity.text} secondary={activity.time} />
+                </ListItem>
+            ))}
+        </List>
+        {/* <Button component={Link} to="/profile" variant="contained" sx={{mt:3, mr:1, borderRadius: '50px'}}>View My Profile</Button> */}
+        <Button onClick={handleReset} variant="outlined" sx={{mt:3, borderRadius: '50px'}}>
+          Make Another Donation
+        </Button>
+
+    </StepContent>
+  );
+};
+
 const DonatePage = () => {
   const theme = useTheme();
   const location = useLocation();
@@ -701,6 +1121,11 @@ const DonatePage = () => {
   const [polkadotApi, setPolkadotApi] = useState(null);
   const [semanticSearchLoading, setSemanticSearchLoading] = useState(false);
   const [semanticSearchError, setSemanticSearchError] = useState(null);
+  const [currentProcessingCharityIndex, setCurrentProcessingCharityIndex] = useState(0); // New state for sequential donations
+  
+  // New state for selectable charities and individual amounts
+  const [selectedCharityIds, setSelectedCharityIds] = useState(new Set());
+  const [individualDonationAmounts, setIndividualDonationAmounts] = useState({});
   
   const steps = [
     'Find Charities',
@@ -936,47 +1361,128 @@ const DonatePage = () => {
     return totalDonationAmount * 0.002;
   };
 
+  // Initialize/update selectedCharityIds and individualDonationAmounts when AI results are processed
+  useEffect(() => {
+    if (currentStage === 'charityResults' && aiMatchedCharities.length > 0) {
+      const initialSelectedIds = new Set();
+      const initialAmounts = {};
+      // By default, select all matched charities and use AI suggested allocations
+      aiMatchedCharities.forEach(charity => {
+        initialSelectedIds.add(charity.id);
+        initialAmounts[charity.id] = aiSuggestedAllocations[charity.id] || 10; // Default to 10 if no suggestion
+      });
+      setSelectedCharityIds(initialSelectedIds);
+      setIndividualDonationAmounts(initialAmounts);
+    } else if (currentStage !== 'charityResults') {
+        // Clear selections if we navigate away from results page, 
+        // or if there are no charities (handled in performSemanticSearch as well)
+        // setSelectedCharityIds(new Set()); 
+        // setIndividualDonationAmounts({});
+    }
+  }, [aiMatchedCharities, aiSuggestedAllocations, currentStage]);
+
+  const handleToggleCharitySelection = (charityId) => {
+    setSelectedCharityIds(prevSelectedIds => {
+      const newSelectedIds = new Set(prevSelectedIds);
+      if (newSelectedIds.has(charityId)) {
+        newSelectedIds.delete(charityId);
+      } else {
+        newSelectedIds.add(charityId);
+        // Optionally set a default amount if a charity is selected and doesn't have one
+        if (!individualDonationAmounts[charityId]) {
+          setIndividualDonationAmounts(prevAmounts => ({
+            ...prevAmounts,
+            [charityId]: aiSuggestedAllocations[charityId] || 10 // Default amount
+          }));
+        }
+      }
+      return newSelectedIds;
+    });
+  };
+
+  const handleIndividualAmountChange = (charityId, newAmount) => {
+    const amount = Math.max(1, Number(newAmount)); // Ensure amount is at least 1 (or your minimum)
+    setIndividualDonationAmounts(prevAmounts => ({
+      ...prevAmounts,
+      [charityId]: amount,
+    }));
+  };
+
+  // Calculate the actual totalDonationAmount based on selected charities and their individual amounts
+  const actualTotalDonation = Array.from(selectedCharityIds).reduce((sum, id) => {
+    return sum + (individualDonationAmounts[id] || 0);
+  }, 0);
+
   // Add the handleDonate function with multi-chain support
   const handleDonate = async () => {
-    if (aiMatchedCharities.length === 0 && currentStage === 'donationConfirmation') {
-      setTransactionError("No AI matched charity selected for donation.");
+    const charitiesToProcess = aiMatchedCharities.filter(c => selectedCharityIds.has(c.id));
+
+    // Ensure we are in the correct stage and have charities to process
+    if (currentStage !== 'donationConfirmation' || charitiesToProcess.length === 0) {
+      setTransactionError("No selected charities to process or incorrect stage.");
+      setTransactionPending(false);
       return;
     }
 
-    // Adapting for AI flow - assumes donation is for the first matched charity
-    const charityToDonate = aiMatchedCharities[0]; // Example: donate to the first matched
-    const amountToDonate = aiSuggestedAllocations[charityToDonate?.id] || totalDonationAmount;
-
+    const charityToDonate = charitiesToProcess[currentProcessingCharityIndex];
     if (!charityToDonate) {
-      setTransactionError("Charity to donate to is not defined.");
+      setTransactionError("No more selected charities to process or invalid index.");
+      setTransactionPending(false); 
+      if (currentProcessingCharityIndex >= charitiesToProcess.length && charitiesToProcess.length > 0) {
+        console.log("All selected donations processed.");
+        setCurrentStage('impactTracker'); 
+      }
       return;
     }
+
+    // Use individual amount for the current charity
+    const amountToDonate = individualDonationAmounts[charityToDonate.id];
+
     if (!charityToDonate.name) {
-      setTransactionError("Selected charity is missing a name, which is required for donation.");
+      setTransactionError(`Selected charity (index ${currentProcessingCharityIndex}) is missing a name.`);
+      setTransactionPending(false);
       return;
     }
 
     if (!amountToDonate || amountToDonate <= 0) {
       setTransactionError(`Invalid amount for ${charityToDonate.name}.`);
+      setTransactionPending(false);
       return;
     }
 
     setTransactionPending(true);
     setTransactionError(null);
-    setDonationComplete(false);
+    // setDonationComplete(false); // This is set on success/failure or for next step
 
     try {
-      console.log(`Preparing donation on ${activeChain || CHAINS.APTOS} blockchain`);
+      console.log(`Preparing donation on ${activeChain || CHAINS.APTOS} blockchain for ${charityToDonate.name}`);
       
+      let txResult;
       if (activeChain === CHAINS.POLKADOT) {
-        await handlePolkadotDonation(charityToDonate, amountToDonate);
+        txResult = await handlePolkadotDonation(charityToDonate, amountToDonate);
       } else {
-        await handleAptosDonation(charityToDonate, amountToDonate);
+        txResult = await handleAptosDonation(charityToDonate, amountToDonate);
       }
       
-      setDonationComplete(true);
+      console.log(`Donation to ${charityToDonate.name} successful. Tx: ${txResult?.hash || txResult}`);
+      // Logic for advancing to the next charity or completing the process
+      if (currentProcessingCharityIndex < charitiesToProcess.length - 1) {
+        // More charities to process
+        setTransactionPending(false); 
+        setDonationComplete(false);   
+        setTransactionError(null);
+        setCurrentProcessingCharityIndex(prevIndex => prevIndex + 1);
+        // The DonationConfirmationView's useEffect should pick this up and call handleDonate again.
+      } else {
+        // This was the last charity
+        setDonationComplete(true); // All donations in sequence are now complete
+        setTransactionPending(false);
+        setCurrentStage('impactTracker'); // Or a new summary/final success page
+        setCurrentProcessingCharityIndex(0); // Reset for a potential new batch later
+      }
+
     } catch (err) {
-      console.error('Donation failed:', err);
+      console.error(`Donation to ${charityToDonate.name} failed:`, err);
       let errorMessage = "Donation failed. Please try again.";
       if (typeof err === 'string') {
         errorMessage = err;
@@ -993,8 +1499,9 @@ const DonatePage = () => {
       }
       setTransactionError(errorMessage);
       setDonationComplete(false);
-    } finally {
       setTransactionPending(false);
+      // Do not advance index on error, user might want to retry this specific one.
+      // The UI in DonationConfirmationView will show the error.
     }
   };
   
@@ -1011,6 +1518,9 @@ const DonatePage = () => {
     if (!charity.name) {
         throw new Error("Charity name is missing, cannot proceed with Aptos donation.");
     }
+
+    // Log the charity name being sent to the contract for debugging E_CHARITY_NOT_FOUND
+    console.log(`[Aptos Contract Call] Using charity_name: "${charity.name}" for donation to ${charity.aptos_wallet_address}`);
 
     const entryFunctionPayload = {
       type: "entry_function_payload",
@@ -1102,317 +1612,13 @@ const DonatePage = () => {
     setTransactionPending(false);
     setImpactActivities([]);
     setShowSocialSharePreview(false);
-  };
-
-  // Define all view components before renderCurrentStage
-  const AllocationWelcomeView = () => { 
-    console.log('AllocationWelcomeView render');
-        return (
-      <StepContent sx={{ textAlign: 'center', py: {xs: 4, sm: 6} }}>
-        <Box mb={4}>
-          <ExploreIcon sx={{ fontSize: 90, color: 'primary.main', mb:1 }} />
-        </Box>
-        <Typography variant="h3" fontWeight="bold" gutterBottom sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
-          Find Your Compass.
-            </Typography>
-        <Typography variant="h6" color="text.secondary" paragraph sx={{ mb: 5, maxWidth: '600px', mx: 'auto' }}>
-          Giving guided by your values.
-            </Typography>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" alignItems="center">
-          <GlowButton 
-            onClick={() => setCurrentStage('visionPrompt')} 
-            size="large" 
-            sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}
-            startIcon={<AutoAwesomeIcon />}
-          >
-            Use Eunoia Compass
-          </GlowButton>
-              <Button 
-            variant="outlined" 
-            color="primary"
-            component={Link} 
-            to="/charities"
-            size="large" 
-            sx={{py: 1.5, px: 5, fontSize: '1.1rem', borderRadius: '50px'}}
-                startIcon={<SearchIcon />}
-              >
-            Donate Directly
-              </Button>
-        </Stack>
-        <Typography variant="body1" sx={{ mt: 6, fontStyle: 'italic', color: 'text.secondary' }}>
-          Unchained Giving. Borderless Impact.
-        </Typography>
-      </StepContent>
-    );
-  };
-
-  const AiProcessingView = () => { 
-    console.log('AiProcessingView render');
-    
-    useEffect(() => {
-      const performSemanticSearch = async () => {
-        if (!visionPrompt.trim()) {
-          setSemanticSearchError("Please enter your vision before searching.");
-          setCurrentStage('visionPrompt');
-          return;
-        }
-
-        setSemanticSearchLoading(true);
-        setSemanticSearchError(null);
-        setAiMatchedCharities([]);
-        setAiSuggestedAllocations({});
-
-        // Artificial delay for testing animation visibility
-        await new Promise(resolve => setTimeout(resolve, 5000)); // 5-second delay
-
-        try {
-          console.log(`Performing semantic search for: "${visionPrompt}"`);
-          const response = await axios.get(`${API_BASE_URL}/charity-semantic-search/`, {
-            params: { query: visionPrompt }
-          });
-
-          console.log("Semantic search response from backend:", response.data);
-
-          if (response.data && response.data.length > 0) {
-            const charities = response.data.map(charity => ({
-              ...charity,
-              id: charity.id || Date.now() + Math.random(),
-              name: charity.name || "Unnamed Charity",
-              description: charity.description || "No description available.",
-              logo: charity.logo_url || charity.logo || 'https://via.placeholder.com/300x200.png?text=No+Logo',
-              aptos_wallet_address: charity.aptos_wallet_address || "N/A",
-              category: charity.category_display || charity.category || "Other",
-              match_score_percent: charity.similarity_score ? Math.round(charity.similarity_score * 100) : (95 - (response.data.indexOf(charity) * 5)),
-              trust_score_grade: 'A',
-              ai_explanation: `Matches your interest in "${visionPrompt.substring(0,30)}..." due to its focus on ${charity.category_display || charity.category || 'relevant areas'}.`,
-            }));
-
-            setAiMatchedCharities(charities);
-
-            const totalScore = charities.reduce((sum, charity) => sum + (charity.match_score_percent || 0), 0);
-            const allocations = {};
-            let cumulativeAllocation = 0;
-
-            if (totalScore > 0) {
-              charities.forEach((charity, index) => {
-                let rawAllocation;
-                if (index === charities.length - 1) {
-                    rawAllocation = totalDonationAmount - cumulativeAllocation;
-                } else {
-                    rawAllocation = ( (charity.match_score_percent || 0) / totalScore) * totalDonationAmount;
-                }
-                const finalAllocation = Math.max(0, parseFloat(rawAllocation.toFixed(2)));
-                allocations[charity.id] = finalAllocation;
-                cumulativeAllocation += finalAllocation;
-              });
-              
-              const sumOfAllocations = Object.values(allocations).reduce((sum, val) => sum + val, 0);
-              if (sumOfAllocations !== totalDonationAmount && charities.length > 0) {
-                  const lastCharityId = charities[charities.length -1].id;
-                  const diff = totalDonationAmount - sumOfAllocations;
-                  allocations[lastCharityId] = Math.max(0, parseFloat((allocations[lastCharityId] + diff).toFixed(2)));
-              }
-
-            } else if (charities.length > 0) {
-              const equalShare = parseFloat((totalDonationAmount / charities.length).toFixed(2));
-              charities.forEach(charity => {
-                allocations[charity.id] = equalShare;
-              });
-              
-              const sumOfAllocations = Object.values(allocations).reduce((sum, val) => sum + val, 0);
-                if (sumOfAllocations !== totalDonationAmount && charities.length > 0) {
-                    const lastCharityId = charities[charities.length -1].id;
-                    const diff = totalDonationAmount - sumOfAllocations;
-                    allocations[lastCharityId] = Math.max(0, parseFloat((allocations[lastCharityId] + diff).toFixed(2)));
-                }
-            }
-            setAiSuggestedAllocations(allocations);
-            setCurrentStage('charityResults');
-          } else {
-            setSemanticSearchError("No charities found matching your vision. Try rephrasing or broadening your search.");
-            setCurrentStage('charityResults'); 
-          }
-        } catch (error) {
-          console.error('Error during semantic search:', error);
-          let detailedError = "Failed to fetch charity recommendations. Please try again later.";
-          if (error.response) {
-            detailedError += ` (Server responded with ${error.response.status})`;
-            console.error("Error response data:", error.response.data);
-          } else if (error.request) {
-            detailedError += " (No response from server)";
-          }
-          setSemanticSearchError(detailedError);
-          setCurrentStage('charityResults');
-        } finally {
-          setSemanticSearchLoading(false);
-        }
-      };
-
-      performSemanticSearch();
-    }, [visionPrompt, totalDonationAmount]);
-
-    const keywords = visionPrompt.split(' ').filter(k => k.length > 3);
-    if(keywords.length === 0) keywords.push(...['Impact', 'Faith', 'Children', 'Education', 'Africa']);
-
-    if (semanticSearchLoading) {
-        return (
-            <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-                <Box sx={{ mb: 4 }}> 
-                    <CompassAnimation />
-                </Box>
-                <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
-                    Finding the causes that truly fit you…
-                </Typography>
-                <Box sx={{my:3, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 1}}>
-                    {keywords.slice(0,5).map(kw => <Chip key={kw} label={kw} variant="outlined" />)}
-                </Box>
-                <LinearProgress sx={{my:2, maxWidth: 300, mx:'auto'}}/> 
-                <Typography variant="body2" color="text.secondary">
-                    <i>Consulting the Eunoia Compass...</i>
-                </Typography>
-            </StepContent>
-        );
-    }
-    
-    return (
-      <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-        <CircularProgress sx={{mb:2}} />
-        <Typography variant="h6" fontWeight="medium">Processing your vision...</Typography>
-        {semanticSearchError && <Typography color="error" sx={{mt:1}}>{semanticSearchError}</Typography>}
-      </StepContent>
-    );
-  };
-
-  const DonationConfirmationView = () => { 
-    console.log('DonationConfirmationView render');
-    useEffect(() => {
-        if (currentStage === 'donationConfirmation' && !transactionPending && !donationComplete && !transactionError) {
-            if (!walletAddress) {
-                 setTransactionError("Wallet not connected. Please connect your wallet first.");
-                 return;
-            }
-            handleDonate();
-        }
-    }, [currentStage, transactionPending, donationComplete, transactionError, walletAddress]);
-
-    if (transactionPending) {
-        return (
-            <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-                <CircularProgress sx={{ mb: 3, width: '60px !important', height: '60px !important' }}/>
-                <Typography variant="h5" fontWeight="bold" gutterBottom>Processing Your Donation...</Typography>
-                <Typography variant="body1" color="text.secondary">Please confirm the transaction in your wallet.</Typography>
-                <Typography variant="body2" color="text.secondary" sx={{mt:1}}><i>(This may take a moment)</i></Typography>
-            </StepContent>
-        );
-    }
-    if (transactionError) {
-        return (
-            <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-                <ReportProblemIcon color="error" sx={{ fontSize: 60, mb: 2 }} />
-                <Typography variant="h5" color="error" fontWeight="bold" gutterBottom>Donation Failed</Typography>
-                <Typography color="error" paragraph>{transactionError}</Typography>
-                <GlowButton variant="outlined" onClick={() => setCurrentStage('charityResults')} sx={{background: 'transparent', color: 'primary.main', mr:1}}>Try Again</GlowButton>
-                <Button variant="text" onClick={handleReset}>Start Over</Button>
-            </StepContent>
-        );
-    }
-            
-    if (donationComplete) {
-        return (
-            <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-                <CheckCircleIcon sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
-                <Typography variant="h4" gutterBottom fontWeight="bold" color="success.main" sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
-                  Donation Successful!
-                </Typography>
-                <Typography variant="h6" color="text.secondary" sx={{mb:3}}>
-                    Thank you for your generosity and trust in Eunoia.
-                </Typography>
-                <GlowButton onClick={() => setCurrentStage('impactTracker')} size="large" sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}>
-                  Track Your Impact
-                </GlowButton>
-                <Button sx={{ml: 2, textTransform:'none'}} variant="text" onClick={handleReset}>Make Another Donation</Button>
-          </StepContent>
-        );
-    }
-      
-        return (
-      <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-        <Typography variant="h5" fontWeight="bold">Preparing your donation...</Typography>
-        <CircularProgress sx={{my: 3, width: '50px !important', height: '50px !important'}} />
-      </StepContent>
-    );
-  };
-
-  const ImpactTrackerView = () => { 
-    console.log('ImpactTrackerView render');
-    useEffect(() => {
-        setImpactActivities([]); 
-        const baseDonationAmount = aiSuggestedAllocations[aiMatchedCharities[0]?.id] || 0;
-        const charityName = aiMatchedCharities[0]?.name || 'the selected cause';
-
-        const activities = [
-            { id: 1, text: `✅ ${(baseDonationAmount).toFixed(2)} ${selectedCrypto} sent to ${charityName} Wallet`, time: "Just now", type: "transfer" },
-        ];
-        
-        let currentDelay = 0;
-        const scheduleActivity = (text, time, type, delay) => {
-            currentDelay += delay;
-            setTimeout(() => {
-                setImpactActivities(prev => [...prev, {id: prev.length + 2, text, time, type}])
-            }, currentDelay);
-        }
-
-        if (baseDonationAmount > 0) {
-            scheduleActivity(`📬 Confirmation received from ${charityName}`, "Moments ago", "confirmation", 1500);
-
-            const books = Math.floor(baseDonationAmount / 5); 
-            if (books > 0) {
-                scheduleActivity(`📘 ${books} book${books > 1 ? 's' : ''} being prepared for distribution`, "Updates soon", "action", 2000);
-            }
-            const meals = Math.floor(baseDonationAmount / 2);
-            if (meals > 0) {
-                scheduleActivity(`🍲 ${meals} meal${meals > 1 ? 's' : ''} funding allocated to kitchen partners`, "Updates soon", "action", 2500);
-            }
-             if (baseDonationAmount > 10) {
-                scheduleActivity(`🤝 Community outreach program benefiting from your support`, "In progress", "action", 3000);
-            }
-        }
-        setImpactActivities(activities); // Initial activities
-
-    }, [aiSuggestedAllocations, aiMatchedCharities, selectedCrypto]);
-
-    const totalImpactStats = {
-        mealsFunded: aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? Math.floor(aiSuggestedAllocations[aiMatchedCharities[0].id] / 2) : 0,
-        booksProvided: aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? Math.floor(aiSuggestedAllocations[aiMatchedCharities[0].id] / 5) : 0,
-        childrenHelped: aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? Math.floor(aiSuggestedAllocations[aiMatchedCharities[0].id] / 1.5) : 0, 
-    };
-
-    const getSocialPostText = () => { 
-      const charityName = aiMatchedCharities[0]?.name || 'a great cause';
-      let impactHighlights = [];
-      if (totalImpactStats.childrenHelped > 0) impactHighlights.push(`${totalImpactStats.childrenHelped} children helped`);
-      if (totalImpactStats.mealsFunded > 0) impactHighlights.push(`${totalImpactStats.mealsFunded} meals funded`);
-      if (totalImpactStats.booksProvided > 0) impactHighlights.push(`${totalImpactStats.booksProvided} books provided`);
-      return impactHighlights.join(', ');
-    };
-
-    return (
-      <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-        <Typography variant="h5" fontWeight="bold">Your Impact</Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mt: 2, mb: 3 }}>
-          {getSocialPostText()}
-        </Typography>
-        <GlowButton onClick={() => setCurrentStage('impactTracker')} size="large" sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}>
-          Track Your Impact
-        </GlowButton>
-      </StepContent>
-    );
+    setCurrentProcessingCharityIndex(0); // Reset index on full reset
   };
 
   const renderCurrentStage = () => {
     switch (currentStage) {
       case 'welcomeAI':
-        return <AllocationWelcomeView />;
+        return <AllocationWelcomeView setCurrentStage={setCurrentStage} />;
       case 'visionPrompt':
         return <VisionPromptView 
           visionPrompt={visionPrompt}
@@ -1434,7 +1640,17 @@ const DonatePage = () => {
           setMaxDonationAmount={setMaxDonationAmount}
         />;
       case 'aiProcessing':
-        return <AiProcessingView />;
+        return <AiProcessingView 
+          visionPrompt={visionPrompt}
+          totalDonationAmount={totalDonationAmount}
+          setCurrentStage={setCurrentStage}
+          setAiMatchedCharities={setAiMatchedCharities}
+          setAiSuggestedAllocations={setAiSuggestedAllocations}
+          setSemanticSearchLoading={setSemanticSearchLoading}
+          setSemanticSearchError={setSemanticSearchError}
+          semanticSearchLoading={semanticSearchLoading}
+          semanticSearchError={semanticSearchError}
+        />;
       case 'charityResults':
         return <CharityResultsView 
           aiMatchedCharities={aiMatchedCharities}
@@ -1449,13 +1665,55 @@ const DonatePage = () => {
           theme={theme}
           semanticSearchLoading={semanticSearchLoading}
           semanticSearchError={semanticSearchError}
+          selectedCharityIds={selectedCharityIds}
+          handleToggleCharitySelection={handleToggleCharitySelection}
+          individualDonationAmounts={individualDonationAmounts}
+          handleIndividualAmountChange={handleIndividualAmountChange}
         />;
       case 'donationConfirmation':
-        return <DonationConfirmationView />;
+        return <DonationConfirmationView 
+          currentStage={currentStage}
+          transactionPending={transactionPending}
+          donationComplete={donationComplete}
+          transactionError={transactionError}
+          walletAddress={walletAddress}
+          handleDonate={handleDonate}
+          setCurrentStage={setCurrentStage}
+          handleReset={handleReset}
+          setTransactionError={setTransactionError}
+          currentProcessingCharityIndex={currentProcessingCharityIndex}
+          aiMatchedCharities={aiMatchedCharities}
+          aiSuggestedAllocations={aiSuggestedAllocations}
+          selectedCrypto={selectedCrypto}
+          selectedCharityIds={selectedCharityIds}
+          handleToggleCharitySelection={handleToggleCharitySelection}
+          individualDonationAmounts={individualDonationAmounts}
+          handleIndividualAmountChange={handleIndividualAmountChange}
+        />;
       case 'impactTracker':
-        return <ImpactTrackerView />;
+        return <ImpactTrackerView 
+          aiSuggestedAllocations={aiSuggestedAllocations}
+          aiMatchedCharities={aiMatchedCharities}
+          selectedCrypto={selectedCrypto}
+          setImpactActivities={setImpactActivities}
+          impactActivities={impactActivities}
+          setCurrentStage={setCurrentStage}
+          platformFeeActive={platformFeeActive}
+          setPlatformFeeActive={setPlatformFeeActive}
+          calculatePlatformFee={calculatePlatformFee} // This will now use actualTotalDonation
+          totalDonationAmount={actualTotalDonation} // Pass the dynamically calculated total
+          visionPrompt={visionPrompt}
+          theme={theme}
+          semanticSearchLoading={semanticSearchLoading}
+          semanticSearchError={semanticSearchError}
+          selectedCharityIds={selectedCharityIds}
+          handleToggleCharitySelection={handleToggleCharitySelection}
+          individualDonationAmounts={individualDonationAmounts}
+          handleIndividualAmountChange={handleIndividualAmountChange}
+          handleReset={handleReset} // Pass handleReset for the button
+        />;
       default:
-        return <AllocationWelcomeView />;
+        return <AllocationWelcomeView setCurrentStage={setCurrentStage} />;
     }
   };
   
