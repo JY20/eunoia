@@ -331,7 +331,7 @@ const CharityResultsView = ({
         <Grid item xs={12} md={4}>
           <SidebarPaper>
             <Typography variant="h6" fontWeight="bold" gutterBottom>How Compass found your matches:</Typography>
-            <List dense>
+            {/* <List dense>
               <ListItem>
                 <ListItemIcon sx={{minWidth: '30px'}}><Typography variant="body2" fontWeight="bold">🎯</Typography></ListItemIcon>
                 <ListItemText primaryTypographyProps={{variant: 'body2', fontWeight: 'medium'}} secondaryTypographyProps={{variant: 'caption'}} primary="Mission:" secondary={userInputs.mission} />
@@ -339,7 +339,7 @@ const CharityResultsView = ({
               <ListItem>
                 <ListItemIcon sx={{minWidth: '30px'}}><Typography variant="body2" fontWeight="bold">💖</Typography></ListItemIcon>
                 <ListItemText primaryTypographyProps={{variant: 'body2', fontWeight: 'medium'}} secondaryTypographyProps={{variant: 'caption'}} primary="Values:" secondary={userInputs.values} />
-              </ListItem>
+              </ListItem> */}
               {/* <ListItem>
                 <ListItemIcon sx={{minWidth: '30px'}}><Typography variant="body2" fontWeight="bold">🌍</Typography></ListItemIcon>
                 <ListItemText primaryTypographyProps={{variant: 'body2', fontWeight: 'medium'}} secondaryTypographyProps={{variant: 'caption'}} primary="Region:" secondary={userInputs.region} />
@@ -348,13 +348,13 @@ const CharityResultsView = ({
                 <ListItemIcon sx={{minWidth: '30px'}}><Typography variant="body2" fontWeight="bold">💸</Typography></ListItemIcon>
                 <ListItemText primaryTypographyProps={{variant: 'body2', fontWeight: 'medium'}} secondaryTypographyProps={{variant: 'caption'}} primary="Giving Style:" secondary={userInputs.givingStyle} />
               </ListItem> */}
-            </List>
+            {/* </List> */}
 
             {/* Display Combined Mission Statement HERE */}
             {combinedMissionStatement && (
               <Box sx={{ my: 2, p: 1.5, backgroundColor: alpha(theme.palette.primary.main, 0.05), borderRadius: '8px', borderLeft: `4px solid ${theme.palette.primary.main}` }}>
                 <Typography variant="subtitle1" color="primary.dark" sx={{ fontStyle: 'italic', fontWeight: 'medium' }}>
-                  AI Summary: <Typography component="span" variant="subtitle1" sx={{ fontStyle: 'italic', fontWeight: 'normal', color: 'text.primary'}}>{combinedMissionStatement}</Typography>
+                  Mission 🎯: <Typography component="span" variant="subtitle1" sx={{ fontStyle: 'italic', fontWeight: 'normal', color: 'text.primary'}}>{combinedMissionStatement}</Typography>
                 </Typography>
               </Box>
             )}
