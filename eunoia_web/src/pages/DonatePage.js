@@ -80,9 +80,9 @@ import CompassAnimation from '../components/CompassAnimation'; // Import the new
 import CharityResultCard from '../components/CharityResultCard'; // Import the new card component
 import ImpactMap from '../components/ImpactMap'; // Import the new map component
 
-const API_BASE_URL = 'http://localhost:8000/api';
-
-// Aptos Contract Constants (Re-added for all-frontend approach)
+// Mock data, replace with API calls
+// Constants for API and Wallet
+const API_BASE_URL = '/api'; // Backend API base URL
 const MODULE_ADDRESS = "0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011";
 const MODULE_NAME = "eunoia_foundation";
 const DONATE_FUNCTION_NAME = "donate";

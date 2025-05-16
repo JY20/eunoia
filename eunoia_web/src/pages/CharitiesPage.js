@@ -24,9 +24,11 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import CharitySearch from '../components/CharitySearch';
+import CharityFilter from '../components/CharityFilter';
+import CharityCard from '../components/CharityCard';
 
 // Constants
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = '/api';
 
 const PageHeader = styled(Box)(({ theme }) => ({
   background: 'linear-gradient(135deg, #7E57C2 0%, #B39DDB 100%)',

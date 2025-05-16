@@ -34,7 +34,7 @@ import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArro
 
 // Constants
 // const API_URL = 'http://localhost:8000/api'; // Commented out as API call is mocked
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = '/api';
 
 // Styled Components
 const HeroSection = styled(Box)(({ theme }) => ({
