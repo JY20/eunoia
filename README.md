@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  <img src="eunoia_web/src/assets/eunoia_hero_banner.jpg" alt="Eunoia Banner" width="80%" style="border-radius: 16px;"/>
+  <img src="eunoia_web/src/assets/eunoia_hero_banner.jpg" alt="Eunoia Banner" width="100%%" style="border-radius: 16px;"/>
 </p>
 
 <p align="center">
