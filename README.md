@@ -403,6 +403,67 @@ cargo contract build  # Produces .contract Wasm bundle
 
 ---
 
+---
+
+## 🖼️ Eunoia In Action – UI Walkthrough
+
+### ✍️ Define Your Impact
+![image](https://github.com/user-attachments/assets/d88681e2-0bcb-47ce-811f-141f3397fc0f)
+
+
+Let users describe what matters to them. Eunoia’s Compass agent will interpret their vision and begin matching relevant causes.
+
+---
+
+### 💰 Set Your Donation
+![image](https://github.com/user-attachments/assets/2e396608-6722-4ff1-86ae-f3038e9de0d9)
+
+
+Users can choose how much they want to donate and in which cryptocurrency — currently supports Aptos (APT) and Polkadot.
+
+---
+
+### 🔗 Connect Your Socials (Optional)
+![image](https://github.com/user-attachments/assets/331c3148-e2b8-4f18-94af-deb796e507eb)
+
+
+To improve match accuracy, users can optionally link their social profiles. Data remains private and is only used to personalize recommendations.
+
+---
+
+### 🧭 Compass Agent Loading
+![image](https://github.com/user-attachments/assets/9ce63a81-74a6-4913-ba24-09d6c72da6cf)
+
+
+The Compass AI scans and ranks causes in real-time based on keywords, location, themes, and trust scores.
+
+---
+
+### 🎯 Personalized Matches
+![image](https://github.com/user-attachments/assets/d502cf38-322b-4a07-9d02-b268e4f28589)
+
+
+Each suggested organization comes with a **match %**, **trust score**, and a **recommended donation amount** based on your vision.
+
+---
+
+### 🌐 Multi-Chain Donation Support
+<p align="center">
+  <img src="eunoia_web/src/assets/screenshots/multichain_wallet_switcher.png" width="300" alt="Multi-chain Wallet Toggle"/>
+</p>
+
+Users can switch between Aptos and Polkadot networks directly from the wallet interface.
+
+---
+
+### 🔍 Transparent Search & Commitment
+![image](https://github.com/user-attachments/assets/1e155df0-05b9-410b-b299-5e90c5dabf64)
+
+
+Search by keyword or cause. All donations are 100% transparent, web3-native, and the 0.2% optional fee powers the platform’s growth engine.
+
+---
+
 ## 📚 Appendix: Technical Extras
 
 ### 🧠 Agent System – Compass
