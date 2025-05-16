@@ -4,6 +4,9 @@
   <img src="eunoia_web/src/assets/team_consensus_photo.jpg" alt="Eunoia Team at Consensus" width="100%" />
 </p>
 
+![image](https://github.com/user-attachments/assets/f64e0bd3-009b-48f6-95ca-d623bef29214)
+
+
 > **Randomly recruited on LinkedIn & Telegram. Perfectly balanced. Fully committed.**
 
 | Name         | Role                               | Background                         |
