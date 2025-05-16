@@ -1,3 +1,4 @@
+/* global BigInt */
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { 
   Box, 
@@ -85,6 +86,11 @@ const API_BASE_URL = 'http://localhost:8000/api';
 const MODULE_ADDRESS = "0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011";
 const MODULE_NAME = "eunoia_foundation";
 const DONATE_FUNCTION_NAME = "donate";
+
+// Polkadot Contract Constants (Placeholders until real ones are available)
+const POLKADOT_CONTRACT_ADDRESS = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"; // Placeholder
+const POLKADOT_MODULE_NAME = "eunoia_foundation";
+const POLKADOT_DONATE_FUNCTION_NAME = "donate";
 
 // Balance checking constants
 const APTOS_NODE_URL = "https://fullnode.testnet.aptoslabs.com";
@@ -926,7 +932,7 @@ const DonatePage = () => {
     return totalDonationAmount * 0.002;
   };
 
-  // Add the missing handleDonate function
+  // Add the handleDonate function with multi-chain support
   const handleDonate = async () => {
     if (aiMatchedCharities.length === 0 && currentStage === 'donationConfirmation') {
       setTransactionError("No AI matched charity selected for donation.");
@@ -947,34 +953,22 @@ const DonatePage = () => {
       return;
     }
 
-    const amountInOcta = Math.round(amountToDonate * Math.pow(10, 8)); 
-    const coinIdentifier = '0x1::aptos_coin::AptosCoin';
-
     setTransactionPending(true);
     setTransactionError(null);
     setDonationComplete(false);
 
     try {
-      const entryFunctionPayload = {
-        type: "entry_function_payload",
-        function: `${MODULE_ADDRESS}::${MODULE_NAME}::${DONATE_FUNCTION_NAME}`,
-        type_arguments: [coinIdentifier],
-        arguments: [
-          charityToDonate.name,
-          coinIdentifier,
-          amountInOcta.toString()
-        ],
-      };
-
-      if (window.aptos && window.aptos.isConnected) {
-        console.log("Constructed Entry Function Payload for AI donation:", JSON.stringify(entryFunctionPayload, null, 2));
-        const pendingTransaction = await window.aptos.signAndSubmitTransaction({ payload: entryFunctionPayload }); 
-        console.log("Transaction submitted:", pendingTransaction); 
-        setDonationComplete(true);
+      console.log(`Preparing donation on ${activeChain || 'aptos'} blockchain`);
+      
+      // Switch based on active blockchain
+      if (activeChain === 'polkadot') {
+        await handlePolkadotDonation(charityToDonate, amountToDonate);
       } else {
-        throw new Error("Aptos wallet not connected or not available. Please connect your wallet.");
+        // Default to Aptos if no chain specified or if chain is explicitly 'aptos'
+        await handleAptosDonation(charityToDonate, amountToDonate);
       }
-
+      
+      setDonationComplete(true);
     } catch (err) {
       console.error('Donation failed:', err);
       let errorMessage = "Donation failed. Please try again.";
@@ -998,6 +992,77 @@ const DonatePage = () => {
     }
   };
   
+  // Handle Aptos donation
+  const handleAptosDonation = async (charity, amount) => {
+    const amountInOcta = Math.round(amount * Math.pow(10, 8)); 
+    const coinIdentifier = '0x1::aptos_coin::AptosCoin';
+    
+    const entryFunctionPayload = {
+      type: "entry_function_payload",
+      function: `${MODULE_ADDRESS}::${MODULE_NAME}::${DONATE_FUNCTION_NAME}`,
+      type_arguments: [coinIdentifier],
+      arguments: [
+        charity.name,
+        coinIdentifier,
+        amountInOcta.toString()
+      ],
+    };
+
+    if (window.aptos && window.aptos.isConnected) {
+      console.log("Constructed Aptos Entry Function Payload:", JSON.stringify(entryFunctionPayload, null, 2));
+      const pendingTransaction = await window.aptos.signAndSubmitTransaction({ payload: entryFunctionPayload }); 
+      console.log("Aptos transaction submitted:", pendingTransaction);
+      return pendingTransaction; 
+    } else {
+      throw new Error("Aptos wallet not connected or not available. Please connect your wallet.");
+    }
+  };
+  
+  // Handle Polkadot donation
+  const handlePolkadotDonation = async (charity, amount) => {
+    try {
+      if (!polkadotApi) {
+        throw new Error("Polkadot API not initialized. Please try again.");
+      }
+      
+      // Convert from DOT to Planck (10 decimal places)
+      const amountInPlanck = BigInt(Math.round(amount * Math.pow(10, 10)));
+      
+      // Get the web3 extension injector
+      const { web3FromAddress } = await import('@polkadot/extension-dapp');
+      
+      // Ensure we're signed in
+      if (!walletAddress) {
+        throw new Error("Polkadot wallet not connected. Please connect your wallet.");
+      }
+      
+      // Get the injector for the current account
+      const injector = await web3FromAddress(walletAddress);
+      
+      console.log(`Preparing Polkadot donation of ${amount} DOT (${amountInPlanck} Planck) to ${charity.name}`);
+      
+      // For now, as a placeholder, we're just making a simple transfer
+      // In the future, this would call the actual contract donate function
+      const transferExtrinsic = polkadotApi.tx.balances.transferKeepAlive(
+        POLKADOT_CONTRACT_ADDRESS, // Placeholder contract address
+        amountInPlanck
+      );
+      
+      // Sign and send the transaction
+      const txHash = await transferExtrinsic.signAndSend(
+        walletAddress,
+        { signer: injector.signer }
+      );
+      
+      console.log("Polkadot transaction submitted:", txHash.toHex());
+      
+      return txHash;
+    } catch (error) {
+      console.error("Polkadot donation error:", error);
+      throw error;
+    }
+  };
+
   // Add the missing handleReset function
   const handleReset = () => {
     setCurrentStage('welcomeAI');
