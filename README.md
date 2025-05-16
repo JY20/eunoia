@@ -1,301 +1,221 @@
-# Eunoia - Onchained Giving. Borderless Impact.
+<p align="center">
+  <img src="eunoia_web\src\assets\Eunoia Logo.svg" alt="Eunoia Logo" width="220"/>
+</p>
 
-<!-- Add your logo_full_branding.jpg here -->
+<p align="center">
+  <img src="eunoia_web\src\assets\eunoia_hero_banner.jpg" alt="Eunoia Banner" width="100%" style="border-radius: 16px;"/>
+</p>
+
+<p align="center">
+  <b>🧠 Full-Stack AI Agents</b><br>
+  <b>💸 Charity without middlemen</b><br>
+  <b>🔗 Multi-chain: Aptos + Polkadot</b><br>
+  <b>🕵️ Track where your donation is going</b>
+</p>
+
 <!-- <p align="center">
   <img src="./logo_full_branding.jpg" alt="Eunoia Logo" width="300"/>
 </p> -->
 
-Eunoia is a radically transparent, advocate-centered giving platform built initially on the Aptos blockchain, and now expanding to be a **multi-chain solution supporting both Aptos and Polkadot**. We enable givers to track every penny from wallet → charity → spend in real-time. With an optional 0.20% "Amplify Impact" surcharge, Eunoia powers a self-funding marketing engine that grows the platform without burdening charities or donors.
+**Charity is broken. We’re fixing it.**
 
-Eunoia also aims to eliminate unnecessary middlemen, enabling donations to reach individuals directly—like missionaries or independent charity workers in developing countries—with full transparency and minimal fees.
+Eunoia is an agent-powered giving platform that brings **radical transparency** to philanthropy. Built initially on Aptos and now expanding to Polkadot, Eunoia tracks every penny from wallet → charity → real-world spend — all on-chain.
+
+We eliminate middlemen, minimize fees, and restore trust in giving. With our optional **0.20% “Amplify Impact”** model, platform growth funds itself — not the charities.
 
 ---
 
-## 🔍 The Problem Eunoia Solves
+## 💔 The Problem
 
-Traditional charitable giving often suffers from a lack of transparency, high intermediary fees, and delays in funds reaching the intended recipients. Donors are left wondering about the true impact of their contributions. Eunoia tackles these issues by leveraging the power of blockchain technology.
+> *"She robbed me of being a parent."* — Robyn, donor misled by a fraudulent agency
+
+Stories like Robyn’s and Kelly’s are far too common: $10,000 sent to adopt a child, and the funds disappeared. Children went underfed, and $400,000 was misused.
+
+- $7B+ lost every year to fraud, mismanagement, or opacity in the charity sector  
+- Up to 5% fees taken by platforms like GoFundMe  
+- 81% of donors **don’t trust nonprofits**
+
+---
+
+## 🧠 How Eunoia Works
+
+**Traditional giving is built on trust in logos.  
+Eunoia builds trust with data.**
+
+Instead of slow, manual vetting, our smart AI agents — we call them **Compass** — scan, rank, and recommend causes aligned with your values. You just describe what matters to you. We handle the rest.
+
+> **🧭 Real-time agents. Transparent donations. No spreadsheets. Just impact.**
 
 ---
 
 ## ✨ Key Features
 
-*   **🔮 Radical Transparency:** All donations and fund distributions are recorded on-chain, providing an immutable and publicly verifiable ledger on their respective blockchains.
-*   **🔄 Direct Giving:** Minimize intermediaries, allowing funds to flow more directly to charities and individuals on the ground.
-*   **⛓️ Multi-Chain Support:** Currently supports Aptos and Polkadot, with the flexibility to expand to other networks.
-*   **💰 Low Fees:** Significantly reduced transaction costs compared to traditional financial systems.
-*   **⏱️ Real-time Tracking:** Donors can see the journey of their funds.
-*   **👥 Advocate-Centered:** Empowering individual charity workers and smaller organizations.
-*   **🚀 Optional Impact Surcharge:** A novel mechanism (0.20%) to fund platform growth and marketing, ensuring sustainability without directly charging donors or charities excessively.
-*   **🔒 Secure Platform:** Built with robust backend and frontend technologies, leveraging the security of the Aptos network.
-*   **🎨 User-Friendly Interface:** A modern, intuitive UI/UX for both donors and charities.
+- **🔮 Radical Transparency:** All donations and fund distributions recorded on-chain
+- **🧭 AI-Powered Matching:** Agents match you with causes that fit your vision
+- **🔄 Direct Giving:** Donations go straight to charities or individuals
+- **⛓️ Multi-Chain Support:** Supports Aptos and Polkadot, expanding further
+- **💸 Ultra Low Fees:** Minimal platform fees; 0.20% optional for growth
+- **⏱️ Real-Time Impact:** Donors track their money’s impact immediately
+- **👥 Advocate-Focused:** Enables small orgs, field workers, and missionaries
+- **🔐 Secure + Verifiable:** Auditable smart contracts and verified charities
+- **🎨 Intuitive UI/UX:** Easy for anyone to use — donors and charities alike
 
 ---
 
-## 🛠️ Technology Stack
+## 🛣️ What’s Next
 
-### 💻 Frontend (`eunoia_web`)
-*   React (with Hooks and Context API)
-*   React Router for navigation
-*   Material UI (MUI) for UI components and styling
-*   Axios for API communication
-*   Aptos Wallet Adapter for wallet interactions
+- ✅ Launch on Mainnet  
+- ✅ Onboard first 5 verified charities  
+- ✅ Run $1,000+ in real donations, tracked end-to-end  
+- 🔜 Expand to 10+ underfunded causes in East Africa & SE Asia  
+- 🔜 Launch full-stack AI agent platform  
+- 🤝 Partner with EasyA & Foundation Collective for on-ground campaigns
 
-### ⚙️ Backend (`eunoia_backend`)
-*   Django (Python web framework)
-*   Django REST Framework (for building APIs)
-*   Django ORM with SQLite (for development, configurable for PostgreSQL in production)
-*   Pillow for image processing
-*   `django-cors-headers` for Cross-Origin Resource Sharing
+---
+
+## 🌍 Backed by Builders
+
+We've been supported by communities like **EasyA**, **Aptos Foundation**, **Polkadot Foundation**, and founders across the Web3 space.
+
+---
+
+## 🛠️ Tech Stack
+
+### 💻 Frontend
+- React (Hooks + Context API)
+- React Router, Axios
+- Material UI
+- Aptos Wallet Adapter
+
+### ⚙️ Backend
+- Django + Django REST Framework
+- SQLite / PostgreSQL-ready
+- Django Admin for charity management
+- CORS + Image processing
 
 ### 🔗 Blockchain
-*   **Aptos Network**
-    *   Move for smart contracts
-*   **Polkadot Network (via parachains/smart contract platforms)**
-    *   ink! (Rust-based eDSL) for smart contracts
+- **Aptos (Move-based smart contracts)**
+- **Polkadot (ink! smart contracts)**
 
 ---
 
-## 🏗️ System Architecture Overview
+## 🧱 Architecture
 
-Eunoia operates with a decoupled frontend and backend architecture:
+**Frontend (React)**
+- Browsing, wallet connection, donations  
+- Talks to backend + blockchain directly
 
-### 1️⃣ Frontend (React App - `@eunoia_web`)
-*   Handles all user interactions, including browsing charities, connecting Aptos wallets, and initiating donations.
-*   Communicates with the Django backend via REST APIs to fetch charity information, user data (future), and potentially submit registration details.
-*   Interacts directly with the Aptos blockchain via the Aptos Wallet Adapter for donation transactions and smart contract calls.
+**Backend (Django)**
+- Charity verification, API layer  
+- Admin + content management
 
-### 2️⃣ Backend (Django App - `@eunoia_backend`)
-*   Manages charity data: registration, verification, storing details like name, description, Aptos wallet address, and official documents.
-*   Provides RESTful API endpoints for the frontend to consume (e.g., list charities, charity details, featured charities).
-*   Handles administrative tasks, including charity verification via the Django Admin interface.
-*   Manages static and media files (logos, registration documents).
-
-### 3️⃣ Smart Contracts
-*   **Aptos Smart Contract:** Contains the core logic for receiving donations and distributing them to charities on the Aptos network.
-*   **Polkadot Smart Contract:** Provides similar donation and charity management functionalities on Polkadot-compatible chains using ink!.
+**Smart Contracts**
+- One per chain (Aptos + Polkadot)  
+- Handles donations, charity registry, history
 
 ---
 
-## 📘 Smart Contract Details
+## 🔍 Smart Contracts Overview
 
-The Eunoia platform utilizes smart contracts on both the Aptos and Polkadot networks to handle core donation logic, charity registration, and fund distribution transparently and securely.
-
-### 🔐 Aptos Smart Contract Details (`eunoia.move`)
-
-Located in `contract/sources/eunoia.move`, our contract implements the following key functionalities:
-
-#### Core Resources and Tables
-* `ContractData`: Main resource storing donation histories, charity wallets, and raised amounts
-* `HistoryEntry`: Records individual donation details including charity, coin type, amount and timestamp
-* Tables structure to efficiently store and retrieve donation and charity data
-
-#### Key Functions
-* `initialize_module`: Sets up the contract data structures
-* `add_charity`: Registers a new charity with its wallet address
-* `donate<CoinType>`: Processes donations of different coin types to registered charities
-* `get_donation_history`: View function to retrieve a user's donation history
-* `get_charity_raised_amount`: View function to check total raised by a charity per coin type
-* `get_charity_wallet`: View function to retrieve a charity's wallet address
-
-#### Events
-* `DonateEvent`: Emitted when donations are made for transparent tracking
-* `CharityRegisteredEvent`: Emitted when a new charity is registered
-
-#### Security Features
-* Comprehensive error handling
-* Access control with module owner verification
-* Checks to prevent unauthorized operations
-* Balance validations before transfers
-
-### 🌐 Contract Deployment (Aptos)
-
-The smart contract is configured in `contract/Move.toml` and deployed to the Aptos network at address:
+### 🟣 Aptos: `eunoia.move`
+- Donations, registration, history, fund checks
+- Immutable tracking via `DonateEvent` & `CharityRegisteredEvent`
+- Deployed at:
 ```
 0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011
 ```
 
-### 🦀 Polkadot (ink!) Smart Contract Details (`eunoia2` module)
-
-Located in `polkadot_contracts/eunoia/lib.rs`, our ink! smart contract provides donation and charity management functionalities for the Polkadot ecosystem. It's designed to be deployed on Substrate-based chains that support `pallet-contracts`.
-
-#### Core Storage Items
-*   `owner`: The `AccountId` (or `H160` for ink! 6+) of the contract administrator.
-*   `histories`: A `Mapping` from a donor's account to a `Vec` of their `HistoryEntry` structs.
-*   `charity_wallets`: A `Mapping` from a charity's name (String) to their wallet `AccountId` (or `H160`).
-*   `charity_raised_amounts`: A `Mapping` from a charity's name to a `BTreeMap` storing amounts raised per coin type (String to `U256` or `u128`).
-
-#### Key Structs and Events
-*   `HistoryEntry`: Struct recording details of each donation (charity, coin, amount, donor, timestamp).
-*   `DonateEvent`: Emitted when a donation is successfully processed.
-*   `CharityRegisteredEvent`: Emitted when a new charity is added.
-*   `Error`: Enum defining possible error conditions within the contract.
-
-#### Key Functions
-*   `new()`: Constructor to initialize the contract, setting the caller as the owner.
-*   `add_charity(charity_name: String, charity_wallet: AccountId)`: Allows the owner to register a new charity.
-*   `donate(charity_name: String, coin_name: String)`: A payable message allowing users to donate native tokens to a registered charity.
-*   `get_donation_history(donor: AccountId)`: View function to retrieve a donor's history.
-*   `get_charity_raised_amount(charity_name: String, coin_name: String)`: View function to check amounts raised by a charity.
-*   `get_charity_wallet(charity_name: String)`: View function to get a charity's registered wallet.
-
-#### Security and Design Considerations
-*   Owner-restricted administrative functions (e.g., `add_charity`).
-*   Payable messages for donations.
-*   Use of `Mapping` for efficient storage and retrieval.
-*   Events for off-chain tracking and UI updates.
-*   Currently under development for ink! 6.0, which involves updates to account types (e.g., `H160`) and value types (e.g., `U256`).
-
-### 🌐 Contract Deployment (Polkadot)
-Deployment of the ink! contract involves compiling it to a Wasm blob and a metadata file using `cargo-contract build`. This bundle can then be deployed to a compatible Substrate chain via UI tools like Polkadot-JS Apps or programmatically. The specific deployment address will vary based on the target network and deployment instance.
+### 🐞 Polkadot: `eunoia2` (ink!)
+- Built for Substrate-compatible chains
+- Smart fund routing, history mapping, verified orgs
+- ink! 6.0 upgrade ready
 
 ---
 
-## 🔄 Interaction Flow
+## 🔄 User Flow
 
-1. User browses charities on the React frontend (data fetched from Django API).
-2. User connects their Aptos wallet.
-3. User selects a charity and initiates a donation.
-4. React frontend interacts with the appropriate smart contract (Aptos or Polkadot via respective wallet adapters/libraries) to execute the donation transaction.
-5. Transaction is recorded on the respective blockchain.
-6. (Future) Backend might listen to blockchain events or periodically query the contract to update donation records.
-
----
-
-## 🚀 Setup and Installation Guide
-
-### Prerequisites
-
-* Node.js and npm
-* Python 3.8+
-* Pip (Python package installer)
-* Git
-* An Aptos-compatible wallet (e.g., Petra Wallet browser extension)
-
-### Installation and Setup
-
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd eunoia
-   ```
-
-2. **Backend Setup:**
-   ```bash
-   # Navigate to the backend directory
-   cd backend/eunoia_backend
-   
-   # Create and activate a virtual environment
-   python -m venv venv
-   
-   # On Windows
-   .\venv\Scripts\activate
-   
-   # On macOS/Linux
-   source venv/bin/activate
-   
-   # Install dependencies
-   pip install -r requirements.txt
-   
-   # Apply database migrations
-   python manage.py migrate
-   
-   # Create a superuser for admin access
-   python manage.py createsuperuser
-   # Follow the prompts to set username, email, and password
-   
-   # (Optional) Load initial sample data if available
-   python create_charity.py
-   
-   # Start the Django server
-   python manage.py runserver
-   ```
-   The backend will be available at `http://localhost:8000/api/`  
-   The admin interface will be accessible at `http://localhost:8000/admin/`
-
-3. **Frontend Setup:**
-   ```bash
-   # Navigate to the frontend directory (from project root)
-   cd eunoia_web
-   
-   # Install dependencies
-   npm install
-   
-   # Start the development server
-   npm start
-   ```
-   The frontend will be accessible at `http://localhost:3000`
-
-4. **Smart Contract Development (Optional):**
-
-   **Aptos (Move):**
-   ```bash
-   # Install Aptos CLI
-   # Follow instructions at https://aptos.dev/tools/aptos-cli/
-   
-   # Navigate to Aptos contract directory
-   cd contract 
-   # (This was the original path, adjust if your Aptos contract is elsewhere)
-   
-   # Compile Move contract
-   aptos move compile
-   
-   # Test the contract
-   aptos move test
-   
-   # Deploy the contract (requires Aptos account with funds)
-   aptos move publish --named-addresses eunoia=<your-account-address>
-   ```
-
-   **Polkadot (ink!):**
-   ```bash
-   # Install cargo-contract CLI
-   # cargo install cargo-contract --force
-   
-   # Navigate to Polkadot contract directory
-   cd polkadot_contracts/eunoia 
-   # (Or polkadot_contracts/eunoia2 if that's the active one)
-   
-   # Build the ink! contract
-   cargo contract build
-   
-   # (Testing typically uses `cargo test` within the contract crate)
-   # (Deployment uses tools like Polkadot-JS Apps with the .contract file from target/ink)
-   ```
+1. User connects wallet & enters cause vision  
+2. Agent matches causes, ranks them  
+3. User donates → blockchain logs it  
+4. Charity receives funds directly  
+5. Donor tracks spend in real time  
+6. Optional: Platform reinvests via 0.20% "Amplify Impact"  
 
 ---
 
-## 🔑 Key Functionalities
+## 🚀 Setup Guide
 
-### 📝 Charity Registration
-*   Charities can navigate to the `/register-charity` (or a similar route) on the frontend.
-*   This form will eventually submit data to a Django backend API endpoint.
-*   Currently, charity registration and initial data input are primarily managed via the Django templates (`/register-charity/` on the backend) and the Django Admin interface (`/admin/main/charity/add/`).
-*   Admins can verify charities through the Django Admin panel.
+### Prereqs
+- Node.js, Python 3.8+, Git, Aptos wallet
 
-### 💸 Donation Process
-*   Users connect their Aptos wallet (e.g., Petra) via the frontend.
-*   They browse verified charities (data served by the Django API).
-*   When a user decides to donate, the frontend interacts with the relevant smart contract (Aptos or Polkadot), guided by the selected charity's wallet address for the respective network.
-*   The transaction occurs directly on the chosen blockchain.
+### 🖥️ Backend
+```bash
+cd backend/eunoia_backend
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
 
-### 👁️ Transparency
-*   **On-Chain Transactions:** All donations are blockchain transactions, inherently public and verifiable on an Aptos explorer.
-*   **Verified Charities:** The backend maintains a list of charities, and admins can verify their legitimacy. Only verified charities are displayed for donation.
-*   **Direct Fund Flow (Goal):** The architecture aims to send funds as directly as possible to the charity's registered wallet, as managed by the smart contract.
+### 🧑‍🎨 Frontend
+```bash
+cd eunoia_web
+npm install
+npm start
+```
+
+### 🛠️ Contracts
+
+**Aptos**
+```bash
+cd contract
+aptos move compile
+aptos move publish --named-addresses eunoia=<your-address>
+```
+
+**Polkadot**
+```bash
+cd polkadot_contracts/eunoia
+cargo contract build
+```
 
 ---
 
-## 🤝 Contributing
+## 🔑 Admin + Functions
 
-We welcome contributions! If you'd like to contribute, please follow these steps:
-
-1.  Fork the repository.
-2.  Create a new branch (`git checkout -b feature/your-feature-name`).
-3.  Make your changes.
-4.  Commit your changes (`git commit -am 'Add some feature'`).
-5.  Push to the branch (`git push origin feature/your-feature-name`).
-6.  Create a new Pull Request.
+- `/register-charity`: Charity signup
+- `/admin`: Verify orgs via Django Admin
+- Donations auto-routed via smart contracts
+- On-chain logs for every transaction
 
 ---
 
-*This README provides a comprehensive overview. For more detailed information on specific components, please refer to the respective frontend and backend documentation or code comments where available.*
+## 🤝 Want to Contribute?
+
+```bash
+git clone <repo>
+git checkout -b feature/your-feature-name
+# Make changes
+git commit -am 'New feature'
+git push origin feature/your-feature-name
+# Open PR
+```
+
+---
+
+## 🔗 Connect With Us
+
+- 🌍 [Website](https://www.eunoia.work)
+- 𝕏  [X](https://x.com/eunoia_give)
+- 📱 [Telegram](https://t.me/+aDt6-_BdrTtjODMx)
+- 💻 [GitHub](https://github.com/JY20/eunoia)
+- 🎮 [Discord](https://discord.com/invite/CWYXFqyQe6)
+
+---
+
+> *Let’s fix giving. With agents, not middlemen.*
+
+---
+
+Would you like this version sent to you as a Markdown `.md` file or committed directly to your repo?
