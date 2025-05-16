@@ -86,7 +86,7 @@ Instead of slow, manual vetting, our smart AI agents — we call them **Compass*
 
 ---
 
-## 🛣️ What’s Done and What's Next
+## 🛣️ What's Done and What's Next
 
 - ✅ Launch on Mainnet and send to initiative in Middle East
 - ✅ Customer interviews with philanthropists, CEOs, developers
@@ -158,7 +158,7 @@ We've been supported by communities like **EasyA**, **Aptos Foundation**, **Polk
 
 **Semantic Search Architecture**
 
-![Semantic Search Architecture](eunoia_web\src\assets\semantic_search_architecture.svg)
+![Semantic Search Architecture](eunoia_web/src/assets/semantic_search_architecture.svg)
 ---
 
 ## 🔍 Smart Contracts Overview
