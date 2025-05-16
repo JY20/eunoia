@@ -96,6 +96,46 @@ Instead of slow, manual vetting, our smart AI agents — we call them **Compass*
 
 ---
 
+---
+
+## 📈 Go-To-Market Strategy
+
+> The Movement.
+
+### 🎯 1. **Start with Real Impact**
+- Onboard 5–10 verified charities with stories that resonate (education, health, and children-focused)
+- Deploy **$1,000+ in real donations** from hackathons and pilot users
+- Track & showcase every dollar — creating "Proof of Impact" content
+
+### 🌐 2. **Leverage Web3 Communities**
+- Partner with **EasyA**, **Aptos Foundation**, and **Polkadot Foundation**
+- Cross-post on Web3 community channels and Twitter/X
+- Launch a **"Track My Wallet → See My Impact"** campaign
+
+### 🎁 3. **Creator & Micro-Influencer Program**
+- Engage cause-driven creators (esp. Christian TikTok, philanthropic YouTubers, ethical lifestyle influencers)
+- Offer co-branded cause pages and transparent referral tracking
+
+### 🧠 4. **Hackathons & Builders**
+- Continue participating in global hackathons to onboard technical users
+- Launch a "Build for Good" bounty program with wallet-linked rewards
+- Open-source non-sensitive agent modules for public experimentation
+
+### 🪙 5. **Stablecoin + NGO Partnerships**
+- Collaborate with stablecoin ecosystems to promote real-world utility
+- Partner with grassroots NGOs in East Africa, Lebanon, and Southeast Asia for direct-to-worker giving
+
+### 🚀 6. **Use Virality**
+- Let the **"track your donation in real-time"** feature sell itself
+- Showcase heartwarming **before/after videos**, paired with blockchain proof
+- Let donors *feel* the impact — and own their digital trail of good
+
+---
+
+> *We're not going mass-market. We're going trust-market.*  
+> Each campaign is about depth, not just reach.
+
+
 ## 🛣️ What's Done and What's Next
 
 - ✅ Launch on Mainnet and send to initiative in Middle East
