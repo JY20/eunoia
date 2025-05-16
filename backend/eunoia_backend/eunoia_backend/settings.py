@@ -61,7 +61,7 @@ load_dotenv()
 SECRET_KEY = 'django-insecure-#da0k)&*ea)01gqr)3a_7$g#166x#&q2!$-2if+3zr#a6m(jy6'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['eunoia.work', 'www.eunoia.work', 'localhost', '127.0.0.1', '52.37.227.112', 'ec2-52-37-227-112.us-west-2.compute.amazonaws.com']
 
