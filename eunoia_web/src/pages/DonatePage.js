@@ -709,8 +709,8 @@ const AiProcessingView = ({
       setAiMatchedCharities([]);
       setAiSuggestedAllocations({});
 
-      // Artificial delay for testing animation visibility
-      await new Promise(resolve => setTimeout(resolve, 5000)); // 5-second delay
+      // // Artificial delay for testing animation visibility
+      // await new Promise(resolve => setTimeout(resolve, 5000)); // 5-second delay
 
       try {
         console.log(`Performing semantic search for: "${visionPrompt}"`);
@@ -1114,8 +1114,8 @@ const DonatePage = () => {
   const initialSearchMode = initialState.searchMode || 'direct';
   const initialSelectedCharities = initialState.selectedCharities || [];
   
-  const [currentStage, setCurrentStage] = useState('welcomeAI');
-  const [visionPrompt, setVisionPrompt] = useState('');
+  const [currentStage, setCurrentStage] = useState(initialSearchValue ? 'visionPrompt' : 'welcomeAI'); // Updated this line
+  const [visionPrompt, setVisionPrompt] = useState(initialSearchValue || ''); // Use initialSearchValue here
   const [totalDonationAmount, setTotalDonationAmount] = useState(50);
   const [aiMatchedCharities, setAiMatchedCharities] = useState([]);
   const [aiSuggestedAllocations, setAiSuggestedAllocations] = useState({});

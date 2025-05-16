@@ -74,6 +74,9 @@ const CharitySearch = ({ variant = 'standard', placeholder = "Search charities o
     
     setLoading(true);
     
+    // Determine the searchMode for navigation based on the variant
+    const modeForNavigation = variant === 'minimal' ? 'needs' : searchMode;
+    
     // Add a small delay to simulate processing
     setTimeout(() => {
       setLoading(false);
@@ -81,8 +84,8 @@ const CharitySearch = ({ variant = 'standard', placeholder = "Search charities o
       navigate('/donate', { 
         state: { 
           searchValue,
-          searchMode,
-          startStep: 0
+          searchMode: modeForNavigation, // Use 'needs' if minimal variant, otherwise current searchMode
+          startStep: 0 // Assuming DonatePage handles this to start semantic search if mode is 'needs'
         } 
       });
     }, 800);
