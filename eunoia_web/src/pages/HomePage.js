@@ -674,20 +674,20 @@ const HomePage = () => {
             <Grid item xs={12} sm={6} md={3}>
               <StatCard>
                 <Typography variant="h3" fontWeight="bold" color="primary.main">
-                  $2.8M+
+                  Global
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  Donations processed
+                  Reach & Impact
                 </Typography>
               </StatCard>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <StatCard>
                 <Typography variant="h3" fontWeight="bold" color="primary.main">
-                  47+
+                  Growing
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  Verified charities
+                  Network of Charities
                 </Typography>
               </StatCard>
             </Grid>
@@ -697,11 +697,21 @@ const HomePage = () => {
                   0.2%
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  Optional fee
+                  Optional Fee
                 </Typography>
               </StatCard>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
+              <StatCard>
+                <Typography variant="h3" fontWeight="bold" color="primary.main">
+                  Web3
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  Powered Platform
+                </Typography>
+              </StatCard>
+            </Grid>
+             <Grid item xs={12} sm={6} md={3}>
               <StatCard>
                 <Typography variant="h3" fontWeight="bold" color="primary.main">
                   100%
