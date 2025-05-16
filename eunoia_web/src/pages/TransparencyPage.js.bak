@@ -33,6 +33,7 @@ import { AppContext, CHAINS } from '../components/AppProvider';
 
 // Icons
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
@@ -107,21 +108,20 @@ const GlassCard = styled(Paper)(({ theme }) => ({
 
 const FlowNode = styled(Box)(({ theme, color }) => ({
   position: 'relative',
-  padding: theme.spacing(3, 4),
+  padding: theme.spacing(3),
   backgroundColor: color,
   color: 'white',
   borderRadius: '16px',
-  minWidth: 200,
+  minWidth: 180,
   textAlign: 'center',
-  boxShadow: `0 10px 20px ${alpha(color, 0.4)}`,
+  boxShadow: `0 8px 16px ${alpha(color, 0.3)}`,
   transition: 'all 0.3s ease',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  border: '2px solid white',
   '&:hover': {
     transform: 'translateY(-5px)',
-    boxShadow: `0 15px 25px ${alpha(color, 0.5)}`,
+    boxShadow: `0 12px 20px ${alpha(color, 0.4)}`,
   },
   zIndex: 1
 }));
@@ -129,23 +129,14 @@ const FlowNode = styled(Box)(({ theme, color }) => ({
 const FlowArrow = styled(Box)(({ theme }) => ({
   position: 'relative',
   zIndex: 1,
-  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-  padding: theme.spacing(1.5),
-  borderRadius: '50%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
-  animation: 'pulse-arrow 2s infinite',
+  animation: 'flow 2s infinite',
   '& svg': {
-    transform: 'rotate(0deg)', // Ensure arrow is not rotated
-    color: theme.palette.primary.main,
-    fontSize: 36
+    transform: 'rotate(0deg)' // Ensure arrow is not rotated
   },
-  '@keyframes pulse-arrow': {
-    '0%': { transform: 'translateX(-8px) scale(1)' },
-    '50%': { transform: 'translateX(8px) scale(1.1)' },
-    '100%': { transform: 'translateX(-8px) scale(1)' }
+  '@keyframes flow': {
+    '0%': { transform: 'translateX(-5px)' },
+    '50%': { transform: 'translateX(5px)' },
+    '100%': { transform: 'translateX(-5px)' }
   }
 }));
 
@@ -191,17 +182,13 @@ const AnimatedIcon = styled(Box)(({ theme, delay = 0 }) => ({
 }));
 
 const StatCard = styled(Box)(({ theme, color }) => ({
-  padding: theme.spacing(2.5),
-  borderRadius: theme.shape.borderRadius * 2,
   backgroundColor: alpha(color, 0.1),
   display: 'flex',
-  alignItems: 'center',
-  height: '100%',
   transition: 'transform 0.3s, box-shadow 0.3s',
   '&:hover': {
     transform: 'translateY(-5px)',
-    boxShadow: `0 8px 24px ${alpha(color, 0.2)}`,
-  }
+    boxShadow: '0 16px 40px rgba(0, 0, 0, 0.12)',
+  },
 }));
 
 const FlowSection = () => {
@@ -217,14 +204,12 @@ const FlowSection = () => {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between',
-        p: { xs: 3, md: 5 },
-        backgroundColor: alpha(theme.palette.primary.main, 0.05),
+        p: { xs: 2, md: 4 },
+        backgroundColor: alpha(theme.palette.background.default, 0.7),
         borderRadius: 4,
-        border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-        boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+        boxShadow: 'inset 0 0 20px rgba(0,0,0,0.03)',
         overflow: 'auto',
-        mb: 4,
-        minHeight: '180px'
+        mb: 3
       }}>
         {/* Background gradient line */}
         <Box sx={{
@@ -232,11 +217,9 @@ const FlowSection = () => {
           top: '50%',
           left: 0,
           right: 0,
-          height: '6px',
+          height: '4px',
           background: `linear-gradient(90deg, ${theme.palette.primary.light}, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
           transform: 'translateY(-50%)',
-          boxShadow: '0 0 15px rgba(114, 9, 183, 0.4)',
-          borderRadius: '3px',
           zIndex: 0
         }} />
         
@@ -251,7 +234,7 @@ const FlowSection = () => {
         
         {/* Custom arrow with animation */}
         <FlowArrow>
-          <ArrowForwardIcon />
+          <ArrowRightAltIcon sx={{ fontSize: 40, color: theme.palette.text.primary }} />
         </FlowArrow>
         
         {/* Platform Node */}
@@ -265,7 +248,7 @@ const FlowSection = () => {
         
         {/* Custom arrow with animation */}
         <FlowArrow>
-          <ArrowForwardIcon />
+          <ArrowRightAltIcon sx={{ fontSize: 40, color: theme.palette.text.primary }} />
         </FlowArrow>
         
         {/* Charity Node */}
@@ -289,8 +272,8 @@ const FlowSection = () => {
           label="Platform Fee: Only 0.2%" 
           color="secondary"
           sx={{ 
-          p: 2,
-          borderRadius: '50px',
+            p: 2,
+            borderRadius: '50px',
             boxShadow: '0 4px 12px rgba(76, 201, 240, 0.3)',
             fontSize: '1rem',
             fontWeight: 'medium',
@@ -334,7 +317,7 @@ const TransparencyPage = () => {
         }
       }
     };
-    
+
     setupPolkadotApi();
     
     return () => {
@@ -344,7 +327,7 @@ const TransparencyPage = () => {
       }
     };
   }, [activeChain]);
-
+  
   useEffect(() => {
     console.log(`Transparency Page active chain: ${activeChain}`);
     fetchDonations();
@@ -521,32 +504,21 @@ const TransparencyPage = () => {
         setLoading(false);
       }
     } catch (error) {
-      console.error('Error in fetchDonations:', error);
-      setDonations([]);
-      setLoading(false);
-    }
-  };
-  
-  // Fetch Aptos events as a fallback method
-  const fetchAptosEvents = async () => {
-    try {
-      const donateEventStructFQN = `${CONTRACTS.APTOS.ADDRESS}::${CONTRACTS.APTOS.MODULE}::DonateEvent`;
-      const NODE_URL = 'https://fullnode.testnet.aptoslabs.com/v1';
 
       const mapEventToDonation = event => ({
         to: event.data.charity_name,
         amount: `${event.data.amount} ${event.data.coin_name}`,
-        txHash: event.transaction_version,
+    }
         timestamp: new Date(parseInt(event.data.timestamp, 10) * 1000).toLocaleString(),
-        donor: event.data.donor_address,
-        rawAmount: parseInt(event.data.amount, 10),
-        chain: 'aptos'
+  
+  // Fetch Aptos events as a fallback method
+  const fetchAptosEvents = async () => {
       });
 
       let foundDonations = [];
 
       const fetchEventsForCreationNumber = async (creationNumStr) => {
-        const url = `${NODE_URL}/accounts/${CONTRACTS.APTOS.ADDRESS}/events/${creationNumStr}?limit=100`;
+        to: event.data.charity_name,
         console.log(`Fetching events directly from API: ${url}`);
         const response = await fetch(url);
         if (!response.ok) {
@@ -556,11 +528,11 @@ const TransparencyPage = () => {
         }
         const events = await response.json();
         console.log(`Received ${events.length} events from API for creation_number ${creationNumStr}.`);
-        
-        // Filter events by the connected wallet address if available
+
+      const fetchEventsForCreationNumber = async (creationNumStr) => {
         return events
           .filter(event => event.type === donateEventStructFQN)
-          .filter(event => !account || !account.address || event.data.donor_address === account.address)
+        const response = await fetch(url);
           .map(mapEventToDonation);
       };
 
@@ -587,26 +559,38 @@ const TransparencyPage = () => {
       }
 
       if (foundDonations.length > 0) {
-        // Calculate stats
-        const uniqueCharities = new Set(foundDonations.map(d => d.to)).size;
-        const totalAmount = foundDonations.reduce((sum, d) => sum + (d.rawAmount || 0), 0);
-        
-        setStats({
-          totalDonations: foundDonations.length,
-          totalAmount,
-          uniqueCharities
-        });
+      // Try creation_number "1" regardless of success/failure of "0"
+      try {
+        const donationsFrom1 = await fetchEventsForCreationNumber("1");
+        foundDonations.push(...donationsFrom1);
+        if (donationsFrom1.length > 0) {
+            console.log(`Found ${donationsFrom1.length} DonateEvents with creation_number 1 from API.`);
+        }
+      } catch (error) {
+        console.warn("Failed to fetch or process events from creation_number 1 (API)", error);
+      }
 
-        // Sort by timestamp (newest first)
-        setDonations(foundDonations.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
-        setLastUpdated(new Date());
+      if (foundDonations.length > 0) {
+        // Calculate stats
+      } else {
+        console.warn("No DonateEvents found for this module on creation_numbers 0 or 1 using direct API call.");
+        
+      }
+    } catch (error) {
+          totalAmount,
+      setDonations([]); 
+    } finally {
+      setLoading(false);
+    }
+  };
+
       } else {
         console.warn("No DonateEvents found for this module on creation_numbers 0 or 1 using direct API call.");
         setDonations([]);
       }
     } catch (error) {
       console.error('Error in fetchAptosEvents:', error);
-      setDonations([]); 
+      setDonations([]);
     } finally {
       setLoading(false);
     }
@@ -625,9 +609,9 @@ const TransparencyPage = () => {
   // Function to truncate addresses/hashes for display
   const truncateAddress = (address, start = 6, end = 4) => {
     if (!address) return '';
-    if (address.length <= start + end) return address;
-    return `${address.slice(0, start)}...${address.slice(-end)}`;
   };
+
+  return (
 
   // Chain-specific messaging for UI
   const getWalletMessage = () => {
@@ -654,7 +638,7 @@ const TransparencyPage = () => {
               zIndex: 1
             }}
           >
-            Tracking
+            Donation Tracking
           </Typography>
           <Typography 
             variant="h6" 
@@ -708,8 +692,8 @@ const TransparencyPage = () => {
                 <Box>
                   <Typography variant="h3" fontWeight="bold" color="white" sx={{ textShadow: '0 0 10px rgba(0,0,0,0.3)' }}>
                     {stats.totalAmount || 0}
-                  </Typography>
-                  <Typography variant="subtitle1" fontWeight="medium" color="white">
+      <FlowSection />
+      
                     Total Value {activeChain === CHAINS.POLKADOT ? '(DOT)' : '(USDC)'}
                   </Typography>
                 </Box>
@@ -720,13 +704,13 @@ const TransparencyPage = () => {
       </PageHeader>
 
       <Container maxWidth="lg">
-      <FlowSection />
-      
+        <FlowSection />
+        
         <Box sx={{ mb: 8 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mb: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
               Your Donation History
-              <Chip 
+      </Typography>
                 label={activeChain === CHAINS.POLKADOT ? 'Polkadot' : 'Aptos'} 
                 color={activeChain === CHAINS.POLKADOT ? 'secondary' : 'primary'}
                 size="small"
@@ -738,7 +722,7 @@ const TransparencyPage = () => {
                 <Typography variant="caption" color="text.secondary" sx={{ mr: 2, display: 'inline-flex', alignItems: 'center' }}>
                   <ScheduleIcon fontSize="small" sx={{ mr: 0.5 }} />
                   Last updated: {lastUpdated.toLocaleTimeString()}
-      </Typography>
+                </Typography>
               )}
               <Tooltip title="Refresh data">
                 <IconButton 
@@ -750,7 +734,7 @@ const TransparencyPage = () => {
                       bgcolor: alpha(theme.palette.primary.main, 0.1) 
                     },
                     animation: loading ? 'spin 1s linear infinite' : 'none',
-                    '@keyframes spin': {
+      {loading ? (
                       '0%': { transform: 'rotate(0deg)' },
                       '100%': { transform: 'rotate(360deg)' }
                     }
@@ -762,7 +746,7 @@ const TransparencyPage = () => {
             </Box>
           </Box>
           
-      {loading ? (
+          {loading ? (
             <Box sx={{ 
               display: 'flex', 
               justifyContent: 'center', 
@@ -783,35 +767,35 @@ const TransparencyPage = () => {
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {getWalletMessage()}
-                </Typography>
-              </Box>
-            </GlassCard>
-          ) : donations.length === 0 ? (
-            <GlassCard>
-              <Box sx={{ textAlign: 'center', py: 6 }}>
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  No donation history found
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  You haven't made any donations yet with this wallet on {activeChain === CHAINS.POLKADOT ? 'Polkadot' : 'Aptos'}
-                </Typography>
         </Box>
-            </GlassCard>
+              </Box>
       ) : (
-            <StyledTableContainer component={Paper}>
+          ) : donations.length === 0 ? (
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>To Charity</TableCell>
                 <TableCell>Amount</TableCell>
-                    <TableCell>From</TableCell>
+                <Typography variant="body2" color="text.secondary">
                 <TableCell>Time</TableCell>
-                    <TableCell align="center">Action</TableCell>
+                </Typography>
               </TableRow>
             </TableHead>
             <TableBody>
               {donations.map((donation, index) => (
                 <TableRow key={index}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>To Charity</TableCell>
+                    <TableCell>Amount</TableCell>
+                    <TableCell>From</TableCell>
+                    <TableCell>Time</TableCell>
+                    <TableCell align="center">Action</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {donations.map((donation, index) => (
+                    <TableRow key={index}>
                       <TableCell>
                         <Stack direction="row" alignItems="center" spacing={1}>
                           <AccountBalanceIcon color="primary" />
@@ -823,7 +807,7 @@ const TransparencyPage = () => {
                           icon={<MonetizationOnIcon />} 
                           label={donation.amount}
                           variant="outlined"
-                          color="primary"
+                  <TableCell>
                           size="small"
                         />
                       </TableCell>
@@ -831,35 +815,23 @@ const TransparencyPage = () => {
                         <Stack direction="row" alignItems="center" spacing={1}>
                           <PersonIcon fontSize="small" color="action" />
                           <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                            {truncateAddress(donation.donor)}
-                          </Typography>
-                        </Stack>
-                      </TableCell>
-                  <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <ScheduleIcon fontSize="small" color="action" />
-                          <Typography variant="body2">{donation.timestamp}</Typography>
-                        </Stack>
-                      </TableCell>
-                      <TableCell align="center">
-                        <ViewButton
                       variant="contained"
                       color="primary"
-                          size="small"
-                          onClick={() => handleViewTransaction(donation.txHash, donation.chain || activeChain)}
-                          endIcon={<OpenInNewIcon />}
+                        </Stack>
+                      </TableCell>
+                      <TableCell>
                     >
-                          View on Explorer
-                        </ViewButton>
+                          <ScheduleIcon fontSize="small" color="action" />
+                          <Typography variant="body2">{donation.timestamp}</Typography>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-            </StyledTableContainer>
+                          color="primary"
       )}
-        </Box>
-      </Container>
+                          onClick={() => handleViewTransaction(donation.txHash, donation.chain || activeChain)}
+                          endIcon={<OpenInNewIcon />}
     </Box>
   );
 };

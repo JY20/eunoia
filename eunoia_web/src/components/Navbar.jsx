@@ -41,7 +41,7 @@ import logo from '../assets/logo.jpg';
 import aptosLogo from '../assets/aptos.png';
 import polkadotLogo from '../assets/polkadot.png';
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { AppContext } from './AppProvider';
+import { AppContext, CHAINS } from './AppProvider';
 
 // Try to import Polkadot extension - will handle if the package isn't installed
 let web3Accounts, web3Enable, web3FromSource;
@@ -58,12 +58,6 @@ try {
     web3Enable = async () => [];
     web3FromSource = async () => null;
 }
-
-// Define chain constants
-const CHAINS = {
-    APTOS: 'aptos',
-    POLKADOT: 'polkadot'
-};
 
 // Helper function to convert Uint8Array to Hex String
 const toHexString = (byteArray) => {
@@ -266,9 +260,8 @@ const Navbar = () => {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [accountMenuAnchor, setAccountMenuAnchor] = useState(null);
     const [chainsMenuAnchor, setChainsMenuAnchor] = useState(null);
-    const [activeChain, setActiveChain] = useState(CHAINS.APTOS);
     const location = useLocation();
-    const info = useContext(AppContext);
+    const { walletAddress, setWalletAddress, activeChain, setActiveChain } = useContext(AppContext);
     const { connect, disconnect, account, connected, wallets } = useWallet();
     const [buttonLabel, setButtonLabel] = useState('Connect Wallet');
     const [polkadotConnected, setPolkadotConnected] = useState(false);
@@ -303,6 +296,7 @@ const Navbar = () => {
     const handleSwitchChain = (chain) => {
         setActiveChain(chain);
         handleChainsMenuClose();
+        
         // Reset connection state when switching chains
         if (chain === CHAINS.POLKADOT && connected) {
             disconnect().catch(console.error);
@@ -310,6 +304,72 @@ const Navbar = () => {
             // Disconnect Polkadot if we had a connection
             setPolkadotConnected(false);
             setPolkadotAddress(null);
+            setWalletAddress(null);
+        }
+        
+        // Auto-connect to the selected wallet if possible
+        if (chain === CHAINS.APTOS && !connected && wallets.length > 0) {
+            const petraWallet = wallets.find((w) => w.name.toLowerCase().includes('petra'));
+            if (petraWallet && petraWallet.readyState === 'Installed') {
+                setTimeout(() => {
+                    connect(petraWallet.name).catch(console.error);
+                }, 500);
+            }
+        } else if (chain === CHAINS.POLKADOT && !polkadotConnected) {
+            // Attempt to connect to Polkadot wallet
+            setTimeout(() => {
+                connectToPolkadot().catch(console.error);
+            }, 500);
+        }
+    };
+
+    const connectToPolkadot = async () => {
+        try {
+            setButtonLabel('Connecting...');
+            
+            // Enable Polkadot.js extensions
+            const extensions = await web3Enable('Eunoia Donation Platform');
+            
+            // Check if SubWallet is available
+            const subWalletExtension = extensions.find(ext => 
+                ext.name.toLowerCase().includes('subwallet') || 
+                ext.name.toLowerCase().includes('sub wallet')
+            );
+            
+            if (!subWalletExtension && extensions.length === 0) {
+                console.warn('No Polkadot wallet extensions found.');
+                setButtonLabel('Connect');
+                return false;
+            }
+            
+            // Get accounts from extension
+            const allAccounts = await web3Accounts();
+            
+            if (allAccounts.length === 0) {
+                console.warn('No accounts found in Polkadot wallet.');
+                setButtonLabel('Connect');
+                return false;
+            }
+            
+            // Use the first account
+            const account = allAccounts[0];
+            const address = account.address;
+            const shortAddress = `${address.substring(0, 4)}...${address.substring(address.length - 4)}`;
+            
+            setPolkadotConnected(true);
+            setPolkadotAddress(address);
+            setButtonLabel(shortAddress);
+            setWalletAddress(address);
+            console.log('Connected to Polkadot wallet with address:', address);
+            
+            // Store polkadot address in localStorage for reference by other components
+            localStorage.setItem('polkadotAddress', address);
+            
+            return true;
+        } catch (e) {
+            console.error('Failed to connect to Polkadot wallet:', e);
+            setButtonLabel('Connect');
+            return false;
         }
     };
 
@@ -344,7 +404,7 @@ const Navbar = () => {
             if (displayAddr && typeof displayAddr === 'string' && displayAddr.length > 7) {
                 const profile = `${displayAddr.substring(0, 4)}...${displayAddr.substring(displayAddr.length - 4)}`;
                 setButtonLabel(profile);
-                info.setWalletAddress(displayAddr);
+                setWalletAddress(displayAddr);
                 return true;
             }
             }
@@ -352,7 +412,7 @@ const Navbar = () => {
         }
         return false;
         },
-        [account, info]
+        [account, setWalletAddress]
     );
 
     const handleConnectButton = async () => {
@@ -363,13 +423,13 @@ const Navbar = () => {
                     if (!petraWallet) {
                         alert('Petra wallet is not detected. Please install the Petra wallet extension.');
                         setButtonLabel('Connect');
-                        info.setWalletAddress(null);
+                        setWalletAddress(null);
                         return;
                     }
                     if (petraWallet.readyState !== 'Installed') {
                         alert('Petra wallet is not ready. Please ensure it is installed and enabled.');
                         setButtonLabel('Connect');
-                        info.setWalletAddress(null);
+                        setWalletAddress(null);
                         return;
                     }
                     setButtonLabel('Connecting...');
@@ -377,59 +437,14 @@ const Navbar = () => {
                 } catch (e) {
                     alert(`Error connecting wallet: ${e.message || 'Unknown error'}`);
                     setButtonLabel('Connect');
-                    info.setWalletAddress(null);
+                    setWalletAddress(null);
                 }
             } else {
                 handleAccountMenuOpen(window.event);
             }
         } else if (activeChain === CHAINS.POLKADOT) {
             if (!polkadotConnected) {
-                try {
-                    setButtonLabel('Connecting...');
-                    
-                    // Enable Polkadot.js extensions
-                    const extensions = await web3Enable('Eunoia Donation Platform');
-                    
-                    // Check if SubWallet is available
-                    const subWalletExtension = extensions.find(ext => 
-                        ext.name.toLowerCase().includes('subwallet') || 
-                        ext.name.toLowerCase().includes('sub wallet')
-                    );
-                    
-                    if (!subWalletExtension && extensions.length === 0) {
-                        alert('No Polkadot wallet extensions found. Please install SubWallet or another Polkadot.js compatible extension.');
-                        setButtonLabel('Connect');
-                        return;
-                    }
-                    
-                    if (!subWalletExtension && extensions.length > 0) {
-                        console.warn('SubWallet not found, but other Polkadot extensions are available. Using the first available extension.');
-                    }
-                    
-                    // Get accounts from extension
-                    const allAccounts = await web3Accounts();
-                    
-                    if (allAccounts.length === 0) {
-                        alert('No accounts found in your Polkadot wallet. Please create or import an account first.');
-                        setButtonLabel('Connect');
-                        return;
-                    }
-                    
-                    // Use the first account
-                    const account = allAccounts[0];
-                    const address = account.address;
-                    const shortAddress = `${address.substring(0, 4)}...${address.substring(address.length - 4)}`;
-                    
-                    setPolkadotConnected(true);
-                    setPolkadotAddress(address);
-                    setButtonLabel(shortAddress);
-                    info.setWalletAddress(address);
-                    console.log('Connected to Polkadot wallet with address:', address);
-                } catch (e) {
-                    console.error('Failed to connect to SubWallet:', e);
-                    alert(`Error connecting to Polkadot wallet: ${e.message || 'Unknown error'}`);
-                    setButtonLabel('Connect');
-                }
+                await connectToPolkadot();
             } else {
                 handleAccountMenuOpen(window.event);
             }
@@ -442,14 +457,15 @@ const Navbar = () => {
             if (activeChain === CHAINS.APTOS && connected) {
                 await disconnect();
                 setButtonLabel("Connect Wallet");
-                info.setWalletAddress(null);
+                setWalletAddress(null);
                 console.log("Aptos wallet disconnected");
             } else if (activeChain === CHAINS.POLKADOT && polkadotConnected) {
                 // For Polkadot, we just clear the state since there's no explicit disconnect method
                 setPolkadotConnected(false);
                 setPolkadotAddress(null);
                 setButtonLabel("Connect Wallet");
-                info.setWalletAddress(null);
+                setWalletAddress(null);
+                localStorage.removeItem('polkadotAddress');
                 console.log("Polkadot wallet disconnected");
             }
             handleAccountMenuClose();
@@ -484,18 +500,18 @@ const Navbar = () => {
         if (connected && displayAddr && typeof displayAddr === 'string' && displayAddr.length > 7) {
             const profile = displayAddr.substring(0, 4) + "..." + displayAddr.substring(displayAddr.length - 4);
             setButtonLabel(profile);
-            info.setWalletAddress(displayAddr);
+            setWalletAddress(displayAddr);
             console.log("Wallet state updated via useEffect. Connected with address:", displayAddr);
         } else if (activeChain === CHAINS.APTOS) {
             setButtonLabel("Connect Wallet");
             if (!connected) {
-                info.setWalletAddress(null);
+                setWalletAddress(null);
             }
             if (connected && !displayAddr) {
                 console.warn("useEffect: Wallet connected but no valid display address found in account object.", account ? JSON.stringify(account, null, 2) : null);
             }
         }
-    }, [connected, account, info, setButtonLabel, wallets, activeChain]);
+    }, [connected, account, setWalletAddress, wallets, activeChain]);
 
     const drawer = (
         <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center', p: 2 }}>
