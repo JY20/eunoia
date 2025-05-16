@@ -20,6 +20,26 @@
 - 🤝 Bonded over Chick-Fil-A  
 - 🧠 Built 12+ agents, smart contracts, and real-world impact tools
 
+## 📚 Table of Contents
+
+- [👥 The Team](#-the-team)
+- [🌍 EUNOIA – We're fixing Charity](#-eunoia---were-fixing-charity)
+- [💔 The Problem](#-the-problem)
+- [🧠 How Eunoia Works](#-how-eunoia-works)
+- [✨ Key Features](#-key-features)
+- [🔗 We're onboarding users!](#-were-onboarding-users-follow-us--connect-for-more)
+- [📈 Go-To-Market Strategy](#-go-to-market-strategy)
+- [🛣️ What's Done and What's Next](#-whats-done-and-whats-next)
+- [🌍 Backed by Builders](#-backed-by-builders)
+- [🎥 Loom Videos](#-loom-videos)
+- [🛠️ Technology Stack](#️-technology-stack)
+- [🏗️ System Architecture Overview](#-system-architecture-overview)
+- [🔍 Smart Contracts Overview](#-smart-contracts-overview)
+- [🔄 User Flow (Interaction Flow)](#-user-flow-interaction-flow)
+- [🖼️ Eunoia In Action – UI Walkthrough](#-eunoia-in-action--ui-walkthrough)
+- [📚 Appendix: Technical Extras](#-appendix-technical-extras)
+- [🤝 Want to Contribute?](#-want-to-contribute)
+
 
 ## 👥 EUNOIA - We're fixing Charity. 
 <p align="center">
