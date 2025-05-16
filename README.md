@@ -43,7 +43,6 @@
 - [📚 Appendix: Technical Extras](#-appendix-technical-extras)
 - [🤝 Want to Contribute?](#-want-to-contribute)
 
-
 ## 👥 EUNOIA - We're fixing Charity. 
 <p align="center">
   <img src="eunoia_web/src/assets/Eunoia Logo.svg" alt="Eunoia Logo" width="500"/>
@@ -169,6 +168,24 @@ Instead of slow, manual vetting, our smart AI agents — we call them **Compass*
 - 🤝 Partner with EasyA & Foundation Collective for on-ground campaigns
 
 ---
+
+## 🗣️ Customer Interviews
+
+In just 72 hours, we validated our idea by speaking with founders, foundation leaders, and investors across the Web3 and fintech space.
+
+![image](https://github.com/user-attachments/assets/459a0ee1-d024-4a2d-846e-1f1fd4dbc699)
+
+**Here's who we asked:**
+
+- 💬 **Phil Kwok** – CEO & Co-Founder, EasyA  
+- 💬 **Dom Kwok** – COO & Co-Founder, EasyA  
+- 💬 **Anuhya & Jon** – Aptos Foundation  
+- 💬 **Edward** – Polkadot Foundation  
+- 💬 **Adam Cai** – CEO & Co-Founder, Virgo  
+- ❌ **Kevin O'Leary** – Rejected us 😅 BUT WE'RE STILL BUILDING
+
+> These conversations shaped our smart contract design, wallet UX, and GTM focus. We're building with community insights baked in.
+
 
 ## 🌍 Backed by Builders
 
