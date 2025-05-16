@@ -1,3 +1,27 @@
+## 👥 The Team
+
+<p align="center">
+  <img src="eunoia_web\src\assets\team_consensus_photo.jpg" alt="Eunoia Team at Consensus" width="100%" />
+</p>
+
+> **Randomly recruited on LinkedIn & Telegram. Perfectly balanced. Fully committed.**
+
+| Name         | Role                               | Background                         |
+|--------------|------------------------------------|-------------------------------------|
+| **Randy**    | AI Engineer                        | McGill University                   |
+| **Alex**     | Product Manager                    | University of Waterloo              |
+| **Jimmy**    | Web3 Engineer & Quant              | McMaster University                 |
+| **Alejandro**| AI, Full Stack & Cybersecurity     | University of Waterloo              |
+| **Chelsea**  | Finance & Strategic Partnerships   | Columbia University                 |
+
+- 💻 **Perfect mix:** Web3 × AI × Full-Stack × PM × Finance  
+- 🌍 **8 languages spoken**  
+- 🎯 **Startup + nonprofit experience**  
+- 🤝 Bonded over Chick-Fil-A  
+- 🧠 Built 12+ agents, smart contracts, and real-world impact tools
+
+
+## 👥 EUNOIA - We're fixing Charity. 
 <p align="center">
   <img src="eunoia_web\src\assets\Eunoia Logo.svg" alt="Eunoia Logo" width="220"/>
 </p>
@@ -91,7 +115,6 @@ We've been supported by communities like **EasyA**, **Aptos Foundation**, **Polk
 - Django + Django REST Framework
 - SQLite / PostgreSQL-ready
 - Django Admin for charity management
-- CORS + Image processing
 
 ### 🔗 Blockchain
 - **Aptos (Move-based smart contracts)**
@@ -113,6 +136,12 @@ We've been supported by communities like **EasyA**, **Aptos Foundation**, **Polk
 - One per chain (Aptos + Polkadot)  
 - Handles donations, charity registry, history
 
+**High-Level Compass Agent Architecture**
+
+![Compass Agent Architecture](eunoia_web/src/assets/compass_architecture.png)
+
+**Semantic Search Architecture**
+![Semantic Search Architecture](eunoia_web\src\assets\semantic_search_architecture.svg)
 ---
 
 ## 🔍 Smart Contracts Overview
@@ -142,64 +171,131 @@ We've been supported by communities like **EasyA**, **Aptos Foundation**, **Polk
 6. Optional: Platform reinvests via 0.20% "Amplify Impact"  
 
 ---
-
 ## 🚀 Setup Guide
 
-### Prereqs
-- Node.js, Python 3.8+, Git, Aptos wallet
+### 📦 Prerequisites
 
-### 🖥️ Backend
+- [Node.js](https://nodejs.org/) (v18 or higher)
+- [Python 3.8+](https://www.python.org/downloads/)
+- [Aptos CLI](https://aptos.dev/tools/aptos-cli/)
+- [Rust toolchain](https://rustup.rs/)
+- [cargo-contract](https://github.com/paritytech/cargo-contract) (for Polkadot)
+- Git
+- Aptos-compatible wallet (e.g. [Petra](https://petra.app/))
+
+### ⚙️ Backend Setup
+
 ```bash
+git clone <repo-url>
 cd backend/eunoia_backend
-python -m venv venv && source venv/bin/activate
+
+# Create & activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Apply DB migrations
 python manage.py migrate
+
+# Create superuser (for Django Admin)
 python manage.py createsuperuser
-python manage.py runserver
+
+# Optional: Load test data
+python create_charity.py
+
+# Run backend server
+python manage.py runserver  # Runs on http://127.0.0.1:8000
 ```
 
-### 🧑‍🎨 Frontend
+### 🧑‍🎨 Frontend Setup
+
 ```bash
-cd eunoia_web
+cd ../../eunoia_web
 npm install
-npm start
+npm start  # Runs on http://localhost:3000
 ```
 
-### 🛠️ Contracts
+### 🔗 Smart Contract Setup
 
-**Aptos**
+#### 🟣 Aptos (Move)
+
 ```bash
 cd contract
 aptos move compile
-aptos move publish --named-addresses eunoia=<your-address>
+aptos move test
+
+# Deploy (requires funded account)
+aptos move publish --named-addresses eunoia=<your_account_address>
 ```
 
-**Polkadot**
+#### 🐞 Polkadot (ink!)
+
 ```bash
 cd polkadot_contracts/eunoia
-cargo contract build
+cargo contract build  # Produces .contract Wasm bundle
 ```
 
 ---
 
 ## 🔑 Admin + Functions
 
-- `/register-charity`: Charity signup
-- `/admin`: Verify orgs via Django Admin
-- Donations auto-routed via smart contracts
-- On-chain logs for every transaction
+- `/register-charity`: Public charity registration form
+- `/admin`: Django admin panel for verifying and managing charities
+- Donations: Triggered via frontend → smart contract
+- Blockchain logging: All transfers & verifications logged via events
+
+---
+
+## 📚 Appendix: Technical Extras
+
+### 🧠 Agent System – Compass
+
+Our agent stack is designed around **modularity**, with each Compass agent specializing in a single task:
+
+- 🔍 Search agents: query hundreds of causes
+- 🧾 Vetting agents: verify credibility
+- 🧠 Matching agents: align values with charities
+- 📊 Feedback agents: update donor dashboards
+- 💬 Language agents: translate or clarify data
+
+Each agent is orchestrated using async pipelines and can be extended or replaced easily. Prompting strategies are version-controlled.
+
+---
+
+### 🔎 Semantic Search
+
+We use hybrid embeddings (BM25 + dense) to match user vision prompts to verified cause profiles.
+
+- 🧠 Vector backend: FAISS + SQLite
+- 🔤 Language model: OpenAI + fine-tuned fallback (GPT 3.5-turbo-1106)
+- 🧰 Preprocessing: Text cleaning, keyword expansion
+- 🔄 Retraining pipeline: Auto-updates based on cause metadata and user trends
+
+---
+
+### 🔐 Contract Security Features
+
+Both **Aptos** and **Polkadot** contracts include:
+
+- ✅ Admin-gated charity registration
+- ✅ Balance + overflow checks
+- ✅ Event logs for all user activity
+- ✅ Modular upgrade support (Move module / Ink! modularity)
+- ✅ View-only history + query functions
 
 ---
 
 ## 🤝 Want to Contribute?
 
 ```bash
-git clone <repo>
+git clone <repo-url>
 git checkout -b feature/your-feature-name
 # Make changes
-git commit -am 'New feature'
+git commit -am "Your description"
 git push origin feature/your-feature-name
-# Open PR
+# Then open a Pull Request
 ```
 
 ---
@@ -207,15 +303,11 @@ git push origin feature/your-feature-name
 ## 🔗 Connect With Us
 
 - 🌍 [Website](https://www.eunoia.work)
-- 𝕏  [X](https://x.com/eunoia_give)
 - 📱 [Telegram](https://t.me/+aDt6-_BdrTtjODMx)
 - 💻 [GitHub](https://github.com/JY20/eunoia)
 - 🎮 [Discord](https://discord.com/invite/CWYXFqyQe6)
+- 𝕏 [Twitter/X](https://x.com/eunoia_give)
 
 ---
 
 > *Let’s fix giving. With agents, not middlemen.*
-
----
-
-Would you like this version sent to you as a Markdown `.md` file or committed directly to your repo?
