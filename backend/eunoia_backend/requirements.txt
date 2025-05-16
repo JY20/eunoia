@@ -8,3 +8,4 @@ django-cors-headers
 aptos-sdk
 beautifulsoup4
 scikit-learn
+gunicorn
