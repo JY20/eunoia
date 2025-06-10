@@ -77,7 +77,7 @@ const CharityResultCard = ({
     const keywords = ['education', 'faith', 'africa', 'children', 'empowerment', 'uganda', 'health', 'environment', 'innovation', 'community'];
     return keywords.filter(kw => explanation.toLowerCase().includes(kw)).slice(0, 3);
   };
-  const reasonTags = getReasonTags(charity.ai_explanation);
+  // const reasonTags = getReasonTags(charity.ai_explanation || "");
 
   const handleIncreaseAmount = (e) => {
     e.stopPropagation();

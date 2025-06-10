@@ -28,7 +28,7 @@ import CharitySearch from '../components/CharitySearch';
 import CharityResultCard from '../components/CharityResultCard'; // Assuming this was the intended component
 
 // Constants
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api';
 
 const PageHeader = styled(Box)(({ theme }) => ({
   background: 'linear-gradient(135deg, #7E57C2 0%, #B39DDB 100%)',
