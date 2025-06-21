@@ -61,7 +61,7 @@
   <img src="./logo_full_branding.jpg" alt="Eunoia Logo" width="300"/>
 </p> -->
 
-**Charity is broken. We're fixing it.**
+**Giving is frustrating. We're fixing it.**
 
 Eunoia is an agent-powered giving platform that brings **radical transparency** to philanthropy. Built initially on Aptos and now expanding to Polkadot, Eunoia tracks every penny from wallet → charity → real-world spend — all on-chain.
 
