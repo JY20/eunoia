@@ -61,7 +61,7 @@
   <img src="./logo_full_branding.jpg" alt="Eunoia Logo" width="300"/>
 </p> -->
 
-**Charity is broken. We're fixing it.**
+**Giving is frustrating. We're fixing it.**
 
 Eunoia is an agent-powered giving platform that brings **radical transparency** to philanthropy. Built initially on Aptos and now expanding to Polkadot, Eunoia tracks every penny from wallet → charity → real-world spend — all on-chain.
 
@@ -122,7 +122,7 @@ Instead of slow, manual vetting, our smart AI agents — we call them **Compass*
 
 ### 🎯 1. **Start with Real Impact**
 - Onboard 5–10 verified charities with stories that resonate (education, health, and children-focused)
-- Deploy **$1,000+ in real donations** from hackathons and pilot users
+- Deploy **$1,000+ in real donations** from pilot users
 - Track & showcase every dollar — creating "Proof of Impact" content
 
 ### 🌐 2. **Leverage Web3 Communities**
@@ -134,12 +134,7 @@ Instead of slow, manual vetting, our smart AI agents — we call them **Compass*
 - Engage cause-driven creators (esp. Christian TikTok, philanthropic YouTubers, ethical lifestyle influencers)
 - Offer co-branded cause pages and transparent referral tracking
 
-### 🧠 4. **Hackathons & Builders**
-- Continue participating in global hackathons to onboard technical users
-- Launch a "Build for Good" bounty program with wallet-linked rewards
-- Open-source non-sensitive agent modules for public experimentation
-
-### 🪙 5. **Stablecoin + NGO Partnerships**
+### 🪙 4. **Stablecoin + NGO Partnerships**
 - Collaborate with stablecoin ecosystems to promote real-world utility
 - Partner with grassroots NGOs in East Africa, Lebanon, and Southeast Asia for direct-to-worker giving
 
@@ -470,7 +465,7 @@ Transparency is not just promised — it's enforced by code.
 ![image](https://github.com/user-attachments/assets/134f4ac2-9bf2-421a-a426-5095ab5d7b00)
 
 
-Let users describe what matters to them. Eunoia’s Compass agent will interpret their vision and begin matching relevant causes.
+Let users describe what matters to them. Eunoia's Compass agent will interpret their vision and begin matching relevant causes.
 
 ### 🔗 Connect Your Socials (Optional)
 ![image](https://github.com/user-attachments/assets/331c3148-e2b8-4f18-94af-deb796e507eb)
@@ -507,7 +502,7 @@ Users can switch between Aptos and Polkadot networks directly from the wallet in
 ![image](https://github.com/user-attachments/assets/1e155df0-05b9-410b-b299-5e90c5dabf64)
 
 
-Search by keyword or cause. All donations are 100% transparent, web3-native, and the 0.2% optional fee powers the platform’s growth engine.
+Search by keyword or cause. All donations are 100% transparent, web3-native, and the 0.2% optional fee powers the platform's growth engine.
 
 ---
 
