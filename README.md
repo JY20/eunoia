@@ -1,3 +1,11 @@
+## 🌟 Project Overview
+
+**Tagline:**  
+> **Eunoia is a full-stack AI giving platform, rebuilding charity from the ground up using blockchain transparency and intelligent agents.**
+
+**Description:**  
+Eunoia is a full-stack AI-powered charity platform using blockchain for radical transparency. It matches donors to causes using autonomous AI agents (Compass) and tracks every donation on-chain, from wallet to real-world impact. Built on Aptos and now Polkadot (via ink! smart contracts), Eunoia ensures secure, direct giving with ultra-low fees. The platform addresses donor distrust and fraud with real-time impact tracing and smart contract accountability.
+
 ## 👥 The Team
 
 ![image](https://github.com/user-attachments/assets/2a25accd-f8f4-4eec-83cf-fede3594ce32)
