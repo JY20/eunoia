@@ -8,7 +8,7 @@ virtualenv/
 .ENV/
 .virtualenv/
 .vscode/
-
+/node_modules/
 # Python
 __pycache__/
 *.py[cod]

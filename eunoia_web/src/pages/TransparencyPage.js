@@ -25,7 +25,9 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { AptosClient, TxnBuilderTypes, HexString } from 'aptos';
-import { ApiPromise, WsProvider } from '@polkadot/api';
+// Import polkadot-api if needed in the future
+// import { createClient } from "polkadot-api";
+// import { getSmProvider } from 'polkadot-api/sm-provider';
 import axios from 'axios'; // Ensure axios is imported
 
 // Context
@@ -319,36 +321,14 @@ const TransparencyPage = () => {
   
   // Get the active chain from the app context
   const { activeChain } = useContext(AppContext);
-  const [polkadotApi, setPolkadotApi] = useState(null);
   
-  // REMOVE Polkadot API initialization if not used for other purposes on this page
-  // useEffect(() => {
-  //   const setupPolkadotApi = async () => {
-  //     if (activeChain === CHAINS.POLKADOT) { // And if polkadotApi is actually needed elsewhere
-  //       try {
-  //         const wsProvider = new WsProvider('wss://rpc.polkadot.io');
-  //         const api = await ApiPromise.create({ provider: wsProvider });
-  //         setPolkadotApi(api);
-  //         console.log('Polkadot API initialized');
-  //       } catch (error) {
-  //         console.error('Failed to initialize Polkadot API:', error);
-  //       }
-  //     }
-  //   };
-    
-  //   setupPolkadotApi();
-    
-  //   return () => {
-  //     if (polkadotApi) {
-  //       polkadotApi.disconnect();
-  //     }
-  //   };
-  // }, [activeChain, polkadotApi]); // Dependency on polkadotApi itself can cause loop if not careful
+  // NOTE: Polkadot API initialization is not currently needed for this page
+  // If needed in the future, use polkadot-api instead of @polkadot/api
 
   useEffect(() => {
     console.log(`Transparency Page active chain: ${activeChain}`);
     fetchDonations();
-  }, [activeChain]); // Refetch when chain changes if you want to show chain-specific elements, but main data is global now
+  }, [activeChain]);
   
   // REMOVE: getDonationHistory, getAptosHistory, getPolkadotHistory, fetchAptosEvents
   // These are replaced by a direct backend call in fetchDonations

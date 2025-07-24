@@ -48,7 +48,8 @@ import { List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
 
 // Import Aptos libraries for balance checking
 import { AptosClient, CoinClient } from "aptos";
-import { ApiPromise, WsProvider } from '@polkadot/api';
+import { createClient } from "polkadot-api";
+import { getSmProvider } from 'polkadot-api/sm-provider';
 
 // New Icons for AI flow
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'; // For AI
@@ -1164,8 +1165,8 @@ const DonatePage = () => {
     const setupPolkadotApi = async () => {
       if (activeChain === CHAINS.POLKADOT) {
         try {
-          const wsProvider = new WsProvider(POLKADOT_NODE_URL);
-          const api = await ApiPromise.create({ provider: wsProvider });
+          const provider = getSmProvider(POLKADOT_NODE_URL);
+          const api = createClient(provider);
           setPolkadotApi(api);
           console.log('Polkadot API initialized');
         } catch (error) {
@@ -1179,11 +1180,11 @@ const DonatePage = () => {
     
     return () => {
       // Clean up Polkadot API connection on unmount
-      if (polkadotApi) {
+      if (polkadotApi && polkadotApi.disconnect) {
         polkadotApi.disconnect();
       }
     };
-  }, [activeChain, polkadotApi]);
+  }, [activeChain]);
 
   // Check wallet balance whenever wallet address or selected crypto changes
   useEffect(() => {
@@ -1271,12 +1272,12 @@ const DonatePage = () => {
         throw new Error("Polkadot API not initialized");
       }
       
-      const { data: balanceData } = await polkadotApi.query.system.account(address);
-      const free = balanceData.free.toBigInt();
+      const balance = await polkadotApi.rpc.state.call('system_account', [address]);
+      const free = balance?.data?.free || '0';
       
-      // Convert from Planck to DOT (10 decimal places for Polkadot, KSM has 12)
-      const decimals = polkadotApi.registry.chainDecimals[0] || 10;
-      const balanceNumber = Number(free) / Math.pow(10, decimals);
+      // Convert from Planck to DOT (10 decimal places for Polkadot)
+      const decimals = 10; // Polkadot has 10 decimals
+      const balanceNumber = Number(BigInt(free)) / Math.pow(10, decimals);
       return balanceNumber;
     } catch (error) {
       console.error("Error fetching Polkadot balance:", error);
@@ -1634,38 +1635,31 @@ const DonatePage = () => {
         throw new Error(`Invalid donation amount: ${amount}`);
       }
       // Use chain's specific decimals
-      const decimals = polkadotApi.registry.chainDecimals[0] || 10;
+      const decimals = 10; // Polkadot has 10 decimals
       const amountInPlanck = BigInt(Math.round(numericAmount * Math.pow(10, decimals)));
-      
-      // Get the web3 extension injector
-      const { web3FromAddress } = await import('@polkadot/extension-dapp');
       
       // Ensure we're signed in
       if (!walletAddress) {
         throw new Error("Polkadot wallet not connected. Please connect your wallet.");
       }
       
-      // Get the injector for the current account
-      const injector = await web3FromAddress(walletAddress);
-      
       console.log(`Preparing Polkadot donation of ${amount} DOT (${amountInPlanck} Planck) to ${charity.name}`);
       
-      // For now, as a placeholder, we're just making a simple transfer
-      // In the future, this would call the actual contract donate function
-      const transferExtrinsic = polkadotApi.tx.balances.transferKeepAlive(
-        POLKADOT_CONTRACT_ADDRESS, // Placeholder contract address
-        amountInPlanck
-      );
+      // Create the transaction
+      const tx = await polkadotApi.tx.balances.transferKeepAlive({
+        dest: POLKADOT_CONTRACT_ADDRESS, // Placeholder contract address
+        value: amountInPlanck.toString()
+      });
       
-      // Sign and send the transaction
-      const txHash = await transferExtrinsic.signAndSend(
-        walletAddress,
-        { signer: injector.signer }
-      );
+      // Sign and send the transaction using the browser extension
+      const { web3FromAddress } = await import('@polkadot/extension-dapp');
+      const injector = await web3FromAddress(walletAddress);
       
-      console.log("Polkadot transaction submitted:", txHash.toHex());
+      const result = await tx.signAndSend(walletAddress, { signer: injector.signer });
       
-      return txHash;
+      console.log("Polkadot transaction submitted:", result.hash);
+      
+      return result;
     } catch (error) {
       console.error("Polkadot donation error:", error);
       throw error;
