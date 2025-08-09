@@ -48,6 +48,8 @@ import { List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
 
 // Import Aptos libraries for balance checking
 import { AptosClient, CoinClient } from "aptos";
+// Import Polkadot contract interaction libraries
+import { ContractPromise } from '@polkadot/api-contract';
 import { createClient } from "polkadot-api";
 import { getSmProvider } from 'polkadot-api/sm-provider';
 
@@ -62,12 +64,7 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser'; // For trust sc
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 // Icons for Moodboard (placeholders)
-import SchoolIcon from '@mui/icons-material/School'; // Education
-import ForestIcon from '@mui/icons-material/Forest'; // Environment
-import GavelIcon from '@mui/icons-material/Gavel'; // Justice
-import ChurchIcon from '@mui/icons-material/Church'; // Faith-based (example)
-import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism'; // Local support/Community
-import CodeIcon from '@mui/icons-material/Code'; // Innovation
+
 import TwitterIcon from '@mui/icons-material/Twitter';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
@@ -88,8 +85,8 @@ const MODULE_ADDRESS = "0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d3
 const MODULE_NAME = "eunoia_foundation";
 const DONATE_FUNCTION_NAME = "donate";
 
-// Polkadot Contract Constants (Placeholders until real ones are available)
-const POLKADOT_CONTRACT_ADDRESS = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"; // Placeholder
+// Polkadot Contract Constants
+const POLKADOT_CONTRACT_ADDRESS = "0xb1e581e1528A6f48D6F8040c146630eE853ac8c7"; // Deployed contract address
 const POLKADOT_MODULE_NAME = "eunoia_foundation";
 const POLKADOT_DONATE_FUNCTION_NAME = "donate";
 
@@ -451,15 +448,23 @@ const VisionPromptView = ({
   walletBalance,
   loadingBalance,
   balanceError,
-  setMaxDonationAmount
+  setMaxDonationAmount,
+  activeChain
 }) => {
-  const cryptoOptions = [
+  // Define chain-specific cryptocurrency options
+  const aptosCryptoOptions = [
     { value: 'APT', label: 'Aptos (APT)' },
-    { value: 'BTC', label: 'Bitcoin (BTC)' },
-    { value: 'ETH', label: 'Ethereum (ETH)' },
-    { value: 'SOL', label: 'Solana (SOL)' },
     { value: 'USDC', label: 'USD Coin (USDC)' }
   ];
+  
+  const polkadotCryptoOptions = [
+    { value: 'DOT', label: 'Polkadot (DOT)' },
+    { value: 'KSM', label: 'Kusama (KSM)' },
+    { value: 'WND', label: 'Westend (WND)' }
+  ];
+  
+  // Select the appropriate options based on the active chain
+  const cryptoOptions = activeChain === CHAINS.POLKADOT ? polkadotCryptoOptions : aptosCryptoOptions;
 
   const handleSocialChange = (platform, value) => {
     setSocialHandles(prev => ({ ...prev, [platform]: value }));
@@ -1121,7 +1126,9 @@ const DonatePage = () => {
   const [aiMatchedCharities, setAiMatchedCharities] = useState([]);
   const [aiSuggestedAllocations, setAiSuggestedAllocations] = useState({});
   const [socialHandles, setSocialHandles] = useState({ twitter: '', instagram: '', linkedin: '' });
-  const [selectedCrypto, setSelectedCrypto] = useState('APT');
+  // Set default cryptocurrency based on active chain
+  const getDefaultCrypto = () => activeChain === CHAINS.POLKADOT ? 'DOT' : 'APT';
+  const [selectedCrypto, setSelectedCrypto] = useState(getDefaultCrypto());
   const [searchValue, setSearchValue] = useState(initialSearchValue);
   const [needsDescription, setNeedsDescription] = useState(initialSearchMode === 'needs' ? initialSearchValue : '');
   const [searchMode, setSearchMode] = useState(initialSearchMode);
@@ -1160,15 +1167,28 @@ const DonatePage = () => {
     'Confirm & Donate'
   ];
 
-  // Initialize Polkadot API
+  // Initialize Polkadot API and update selected crypto when chain changes
   useEffect(() => {
+    // Update selected cryptocurrency when chain changes
+    setSelectedCrypto(activeChain === CHAINS.POLKADOT ? 'DOT' : 'APT');
+    
     const setupPolkadotApi = async () => {
       if (activeChain === CHAINS.POLKADOT) {
         try {
-          const provider = getSmProvider(POLKADOT_NODE_URL);
-          const api = createClient(provider);
+          // Import the required modules dynamically
+          const { ApiPromise, WsProvider } = await import('@polkadot/api');
+          
+          // Create a WebSocket provider
+          const wsProvider = new WsProvider(POLKADOT_NODE_URL);
+          
+          // Create the API instance
+          const api = await ApiPromise.create({ provider: wsProvider });
+          
+          // Wait for the API to be ready
+          await api.isReady;
+          
           setPolkadotApi(api);
-          console.log('Polkadot API initialized');
+          console.log('Polkadot API initialized with @polkadot/api');
         } catch (error) {
           console.error('Failed to initialize Polkadot API:', error);
           setBalanceError("Failed to initialize Polkadot connection");
@@ -1208,7 +1228,7 @@ const DonatePage = () => {
     try {
       let balance = 0;
       
-      if (activeChain === CHAINS.APTOS || !activeChain) {
+      if (activeChain === CHAINS.APTOS) {
         balance = await getAptosBalance(walletAddress, selectedCrypto);
       } else if (activeChain === CHAINS.POLKADOT) {
         balance = await getPolkadotBalance(walletAddress);
@@ -1272,15 +1292,22 @@ const DonatePage = () => {
         throw new Error("Polkadot API not initialized");
       }
       
-      const balance = await polkadotApi.rpc.state.call('system_account', [address]);
-      const free = balance?.data?.free || '0';
+      // Use the proper API call for @polkadot/api
+      const { data: { free } } = await polkadotApi.query.system.account(address);
       
-      // Convert from Planck to DOT (10 decimal places for Polkadot)
-      const decimals = 10; // Polkadot has 10 decimals
-      const balanceNumber = Number(BigInt(free)) / Math.pow(10, decimals);
+      // Get decimals based on the selected cryptocurrency
+      let decimals = 10; // Default for DOT
+      if (selectedCrypto === 'KSM') {
+        decimals = 12; // Kusama has 12 decimals
+      } else if (selectedCrypto === 'WND') {
+        decimals = 12; // Westend has 12 decimals
+      }
+      
+      // Convert from smallest unit to human-readable value
+      const balanceNumber = Number(free.toBigInt()) / Math.pow(10, decimals);
       return balanceNumber;
     } catch (error) {
-      console.error("Error fetching Polkadot balance:", error);
+      console.error(`Error fetching ${selectedCrypto} balance:`, error);
       // For testing, return a mock balance
       return 5;
     }
@@ -1492,7 +1519,7 @@ const DonatePage = () => {
     // setDonationComplete(false); // This is set on success/failure or for next step
 
     try {
-      console.log(`Preparing donation on ${activeChain || CHAINS.APTOS} blockchain for ${charityToDonate.name}`);
+      console.log(`Preparing donation on ${activeChain || CHAINS.POLKADOT} blockchain for ${charityToDonate.name}`);
       
       let txResult;
       let txHashForBackend;
@@ -1634,22 +1661,81 @@ const DonatePage = () => {
       if (isNaN(numericAmount) || numericAmount <= 0) {
         throw new Error(`Invalid donation amount: ${amount}`);
       }
-      // Use chain's specific decimals
-      const decimals = 10; // Polkadot has 10 decimals
-      const amountInPlanck = BigInt(Math.round(numericAmount * Math.pow(10, decimals)));
+      // Use token-specific decimals
+      let decimals = 10; // Default for DOT
+      if (selectedCrypto === 'KSM') {
+        decimals = 12; // Kusama has 12 decimals
+      } else if (selectedCrypto === 'WND') {
+        decimals = 12; // Westend has 12 decimals
+      }
+      
+      const amountInSmallestUnit = BigInt(Math.round(numericAmount * Math.pow(10, decimals)));
       
       // Ensure we're signed in
       if (!walletAddress) {
         throw new Error("Polkadot wallet not connected. Please connect your wallet.");
       }
       
-      console.log(`Preparing Polkadot donation of ${amount} DOT (${amountInPlanck} Planck) to ${charity.name}`);
+      console.log(`Preparing Polkadot donation of ${amount} ${selectedCrypto} (${amountInSmallestUnit} smallest units) to ${charity.name}`);
       
-      // Create the transaction
-      const tx = await polkadotApi.tx.balances.transferKeepAlive({
-        dest: POLKADOT_CONTRACT_ADDRESS, // Placeholder contract address
-        value: amountInPlanck.toString()
-      });
+      // Create a transaction to interact with the EunoiaFoundation contract
+      // We need to encode the parameters for the donate function
+      const charityName = charity.name;
+      const tokenName = selectedCrypto; // Using the selected crypto as token name
+      
+      // Load contract ABI from the optimized contract
+      let contractAbi;
+      try {
+        contractAbi = await import('../../polkadot_contracts/westend/eunoia_optimized_abi.json');
+      } catch (error) {
+        console.warn('Could not load contract ABI, falling back to direct call:', error);
+        contractAbi = null;
+      }
+      
+      // Create the contract call
+      let tx;
+      
+      try {
+        if (contractAbi && contractAbi.default) {
+          // Use the contract instance with ABI if available
+          const contract = new ContractPromise(
+            polkadotApi,
+            contractAbi.default,
+            POLKADOT_CONTRACT_ADDRESS
+          );
+          
+          console.log("Creating contract call with ABI");
+          
+          // Get the gas estimate
+          const gasLimit = polkadotApi.registry.createType('WeightV2', {
+            refTime: 1000000000,
+            proofSize: 50000,
+          });
+          
+          // Execute the actual transaction
+          tx = contract.tx.donate(
+            { value: amountInSmallestUnit.toString(), gasLimit },
+            charityName,
+            tokenName
+          );
+          
+          console.log("Contract transaction created successfully");
+        } else {
+          console.log("Using fallback direct contract call");
+          // Fallback to simple transfer if ABI is not available
+          tx = polkadotApi.tx.balances.transferKeepAlive(
+            POLKADOT_CONTRACT_ADDRESS,
+            amountInSmallestUnit.toString()
+          );
+        }
+      } catch (error) {
+        console.error("Error creating contract transaction:", error);
+        // Ultimate fallback - just do a simple transfer
+        tx = polkadotApi.tx.balances.transferKeepAlive(
+          POLKADOT_CONTRACT_ADDRESS,
+          amountInSmallestUnit.toString()
+        );
+      }
       
       // Sign and send the transaction using the browser extension
       const { web3FromAddress } = await import('@polkadot/extension-dapp');
@@ -1704,6 +1790,7 @@ const DonatePage = () => {
           loadingBalance={loadingBalance}
           balanceError={balanceError}
           setMaxDonationAmount={setMaxDonationAmount}
+          activeChain={activeChain}
         />;
       case 'aiProcessing':
         return <AiProcessingView 

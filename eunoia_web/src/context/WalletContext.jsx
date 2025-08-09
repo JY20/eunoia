@@ -1,8 +1,6 @@
 /* global BigInt */
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useWallet as useAptosWallet } from "@aptos-labs/wallet-adapter-react";
-import { createClient } from "polkadot-api";
-import { getSmProvider } from 'polkadot-api/sm-provider';
 import aptosLogo from '../assets/logos/aptos-logo.svg';
 import polkadotLogo from '../assets/logos/polkadot-logo.svg';
 
@@ -48,7 +46,7 @@ export const useMultiWallet = () => useContext(WalletContext);
 
 export const WalletProvider = ({ children }) => {
   // Current active chain
-  const [activeChain, setActiveChain] = useState(CHAINS.APTOS);
+  const [activeChain, setActiveChain] = useState(CHAINS.POLKADOT);
   
   // Wallets state
   const [polkadotAccounts, setPolkadotAccounts] = useState([]);
@@ -64,10 +62,19 @@ export const WalletProvider = ({ children }) => {
   // Initialize Polkadot connection
   const initPolkadot = async () => {
     try {
-      // Create client
-      const provider = getSmProvider(polkadotNetwork.endpoint);
-      const client = createClient(provider);
-      setPolkadotClient(client);
+      // Import the required modules dynamically
+      const { ApiPromise, WsProvider } = await import('@polkadot/api');
+      
+      // Create a WebSocket provider
+      const wsProvider = new WsProvider(polkadotNetwork.endpoint);
+      
+      // Create the API instance
+      const api = await ApiPromise.create({ provider: wsProvider });
+      
+      // Wait for the API to be ready
+      await api.isReady;
+      
+      setPolkadotClient(api);
       
       // Get accounts from browser extension
       const { web3Accounts, web3Enable } = await import('@polkadot/extension-dapp');
@@ -80,7 +87,7 @@ export const WalletProvider = ({ children }) => {
         setPolkadotConnected(true);
         
         // Get balance for selected account with new client
-        await updatePolkadotBalance(accounts[0], client);
+        await updatePolkadotBalance(accounts[0], api);
       }
       
       return true;
@@ -99,11 +106,11 @@ export const WalletProvider = ({ children }) => {
       const clientToUse = client || polkadotClient;
       if (!clientToUse) return;
       
-      const balance = await clientToUse.rpc.state.call('system_account', [account.address]);
-      const free = balance?.data?.free || '0';
+      // Use the proper API call for @polkadot/api
+      const { data: { free } } = await clientToUse.query.system.account(account.address);
       
       // Format balance
-      const balanceBigInt = BigInt(free);
+      const balanceBigInt = free.toBigInt();
       const divisor = BigInt(10) ** BigInt(polkadotNetwork.decimals);
       const integerPart = balanceBigInt / divisor;
       const fractionalPart = balanceBigInt % divisor;
@@ -162,14 +169,23 @@ export const WalletProvider = ({ children }) => {
         polkadotClient.disconnect();
       }
       
-      // Create new client with new network
-      const provider = getSmProvider(network.endpoint);
-      const client = createClient(provider);
-      setPolkadotClient(client);
+      // Import the required modules dynamically
+      const { ApiPromise, WsProvider } = await import('@polkadot/api');
+      
+      // Create a WebSocket provider with the new endpoint
+      const wsProvider = new WsProvider(network.endpoint);
+      
+      // Create the API instance
+      const api = await ApiPromise.create({ provider: wsProvider });
+      
+      // Wait for the API to be ready
+      await api.isReady;
+      
+      setPolkadotClient(api);
       
       // Update balance for selected account with new client
       if (selectedPolkadotAccount) {
-        await updatePolkadotBalance(selectedPolkadotAccount, client);
+        await updatePolkadotBalance(selectedPolkadotAccount, api);
       }
     } catch (error) {
       console.error('Failed to switch Polkadot network:', error);
