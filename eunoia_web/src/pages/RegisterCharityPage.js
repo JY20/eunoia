@@ -14,15 +14,10 @@ import {
   Stepper,
   Step,
   StepLabel,
-  StepContent,
   Card,
-  CardMedia,
   Divider,
-  IconButton,
   Fade,
   Grow,
-  Zoom,
-  Input,
   FormHelperText
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
@@ -394,11 +389,6 @@ const RegisterCharityPage = () => {
     submissionData.append('tagline', formData.mission);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/charities/`, submissionData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
 
       setSnackbar({
         open: true,

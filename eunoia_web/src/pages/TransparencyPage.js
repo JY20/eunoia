@@ -13,9 +13,7 @@ import {
   CircularProgress,
   Container,
   Grid,
-  Card,
   Chip,
-  Divider,
   Avatar,
   IconButton,
   alpha,
@@ -24,10 +22,6 @@ import {
   Tooltip
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { AptosClient, TxnBuilderTypes, HexString } from 'aptos';
-// Import polkadot-api if needed in the future
-// import { createClient } from "polkadot-api";
-// import { getSmProvider } from 'polkadot-api/sm-provider';
 import axios from 'axios'; // Ensure axios is imported
 
 // Context
@@ -40,26 +34,10 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
-import ShowChartIcon from '@mui/icons-material/ShowChart';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import PersonIcon from '@mui/icons-material/Person';
 import RefreshIcon from '@mui/icons-material/Refresh';
-
-// Ensure this points to the TESTNET
-const aptosClient = new AptosClient('https://fullnode.testnet.aptoslabs.com/v1');
-
-// Chain-specific contract addresses
-const CONTRACTS = {
-  APTOS: {
-    ADDRESS: '0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011',
-    MODULE: 'eunoia_foundation'
-  },
-  POLKADOT: {
-    ADDRESS: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', // Placeholder contract address
-    MODULE: 'eunoia' // Placeholder module name
-  }
-};
 
 // Chain explorer URLs
 const EXPLORERS = {

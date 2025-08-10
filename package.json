@@ -1,5 +1,42 @@
 {
+  "name": "polkadot-test-app",
+  "version": "1.0.0",
+  "description": "Testing app for Polkadot smart contract",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "keywords": ["polkadot", "smart contract", "testing"],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "polkadot-api": "^1.14.1"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "^5.0.1",
+    "@polkadot/api": "^10.11.2",
+    "@polkadot/extension-dapp": "^0.58.10",
+    "@polkadot/api-contract": "^10.11.2",
+    "@polkadot/util": "^12.6.2",
+    "@polkadot/util-crypto": "^12.6.2",
+    "web3": "^4.4.0",
+    "@mui/material": "^5.15.7",
+    "@mui/icons-material": "^5.15.7",
+    "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }

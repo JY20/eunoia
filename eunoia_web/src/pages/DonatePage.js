@@ -6,14 +6,7 @@ import {
   Typography, 
   TextField, 
   Button, 
-  Stepper, 
-  Step, 
-  StepLabel, 
   Grid, 
-  Card, 
-  CardContent, 
-  CardMedia, 
-  CardActions, 
   Divider, 
   Chip, 
   Stack, 
@@ -24,7 +17,6 @@ import {
   useTheme,
   alpha,
   Paper,
-  Avatar,
   CircularProgress,
   LinearProgress,
   Slider,
@@ -33,8 +25,6 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
-import VerifiedIcon from '@mui/icons-material/Verified';
-import FavoriteIcon from '@mui/icons-material/Favorite';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -43,7 +33,6 @@ import TextsmsIcon from '@mui/icons-material/Textsms';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { Collapse } from '@mui/material';
 import { List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
 
 // Import Aptos libraries for balance checking
@@ -52,16 +41,13 @@ import { AptosClient, CoinClient } from "aptos";
 import { ContractPromise } from '@polkadot/api-contract';
 import { createClient } from "polkadot-api";
 import { getSmProvider } from 'polkadot-api/sm-provider';
+import polkadotWallet from '../utils/polkadotWallet';
 
 // New Icons for AI flow
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'; // For AI
 import InsightsIcon from '@mui/icons-material/Insights'; // For AI analysis
-import ShareIcon from '@mui/icons-material/Share'; // For sharing impact
-import InfoIcon from '@mui/icons-material/Info';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import ExploreIcon from '@mui/icons-material/Explore'; // Placeholder for Compass
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser'; // For trust score
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 // Icons for Moodboard (placeholders)
 
@@ -92,7 +78,7 @@ const POLKADOT_DONATE_FUNCTION_NAME = "donate";
 
 // Balance checking constants
 const APTOS_NODE_URL = "https://fullnode.testnet.aptoslabs.com";
-const POLKADOT_NODE_URL = "wss://rpc.polkadot.io";
+const POLKADOT_NODE_URL = "wss://westend-rpc.polkadot.io";
 
 // Token type mapping
 const TOKEN_TYPES = {
@@ -100,55 +86,6 @@ const TOKEN_TYPES = {
   DOT: "DOT",
   USDC: "0x1::coin::CoinStore<0x8c805723ebc0a7fc5b7d3e7b75d567918e806b3461cb9fa21941a9edc0220bf::usdc::USDC>"
 };
-
-// Mock data until API integration
-// const MOCK_CHARITIES_DATA = [ ... ];
-
-// Styled components
-const GlassCard = styled(Paper)(({ theme }) => ({
-  background: alpha(theme.palette.background.paper, 0.8),
-  backdropFilter: 'blur(10px)',
-  borderRadius: theme.shape.borderRadius * 2,
-  padding: theme.spacing(3),
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'space-between',
-  transition: 'transform 0.3s, box-shadow 0.3s',
-  '&:hover': {
-    transform: 'translateY(-8px)',
-    boxShadow: '0 16px 40px rgba(0, 0, 0, 0.15)',
-  },
-}));
-
-const CharityCard = styled(Card)(({ theme, selected }) => ({
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  borderRadius: '16px',
-  overflow: 'hidden',
-  transition: 'all 0.3s ease',
-  border: selected ? `2px solid ${theme.palette.primary.main}` : 'none',
-  boxShadow: selected 
-    ? `0 8px 24px ${alpha(theme.palette.primary.main, 0.4)}` 
-    : '0 4px 12px rgba(0, 0, 0, 0.1)',
-  '&:hover': {
-    transform: 'translateY(-8px)',
-    boxShadow: selected 
-      ? `0 12px 30px ${alpha(theme.palette.primary.main, 0.5)}` 
-      : '0 8px 24px rgba(0, 0, 0, 0.15)',
-  },
-}));
-
-const AmountInput = styled(TextField)(({ theme }) => ({
-  '& .MuiOutlinedInput-root': {
-    borderRadius: '50px',
-    '&:hover fieldset': {
-      borderColor: theme.palette.primary.main,
-    },
-  },
-}));
 
 const StepContent = styled(Box)(({ theme }) => ({
   paddingTop: theme.spacing(4),
@@ -185,18 +122,6 @@ const BackButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-const StyledCharityCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(2),
-  marginBottom: theme.spacing(3),
-  borderRadius: '16px',
-  boxShadow: theme.shadows[6],
-  transition: 'transform 0.3s, box-shadow 0.3s',
-  '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: theme.shadows[12],
-  },
-}));
-
 const SidebarPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(2.5),
   borderRadius: '16px',
@@ -205,13 +130,6 @@ const SidebarPaper = styled(Paper)(({ theme }) => ({
   height: '100%',
 }));
 
-const ExpandableSection = styled(Box)({
-  cursor: 'pointer',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginTop: '8px',
-});
 
 // Top-level CharityResultsView component
 const CharityResultsView = ({
@@ -248,7 +166,6 @@ const CharityResultsView = ({
       givingStyle: 'One-time (recurring can be an option)'
     };
   };
-  const userInputs = extractUserInputs();
 
   console.log('Individual Amounts:', aiSuggestedAllocations); // This was an old log, might be individualDonationAmounts now
   console.log('CharityResultsView - received combinedMissionStatement prop:', combinedMissionStatement);
@@ -329,24 +246,6 @@ const CharityResultsView = ({
         <Grid item xs={12} md={4}>
           <SidebarPaper>
             <Typography variant="h6" fontWeight="bold" gutterBottom>How Compass found your matches:</Typography>
-            {/* <List dense>
-              <ListItem>
-                <ListItemIcon sx={{minWidth: '30px'}}><Typography variant="body2" fontWeight="bold">🎯</Typography></ListItemIcon>
-                <ListItemText primaryTypographyProps={{variant: 'body2', fontWeight: 'medium'}} secondaryTypographyProps={{variant: 'caption'}} primary="Mission:" secondary={userInputs.mission} />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon sx={{minWidth: '30px'}}><Typography variant="body2" fontWeight="bold">💖</Typography></ListItemIcon>
-                <ListItemText primaryTypographyProps={{variant: 'body2', fontWeight: 'medium'}} secondaryTypographyProps={{variant: 'caption'}} primary="Values:" secondary={userInputs.values} />
-              </ListItem> */}
-              {/* <ListItem>
-                <ListItemIcon sx={{minWidth: '30px'}}><Typography variant="body2" fontWeight="bold">🌍</Typography></ListItemIcon>
-                <ListItemText primaryTypographyProps={{variant: 'body2', fontWeight: 'medium'}} secondaryTypographyProps={{variant: 'caption'}} primary="Region:" secondary={userInputs.region} />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon sx={{minWidth: '30px'}}><Typography variant="body2" fontWeight="bold">💸</Typography></ListItemIcon>
-                <ListItemText primaryTypographyProps={{variant: 'body2', fontWeight: 'medium'}} secondaryTypographyProps={{variant: 'caption'}} primary="Giving Style:" secondary={userInputs.givingStyle} />
-              </ListItem> */}
-            {/* </List> */}
 
             {/* Display Combined Mission Statement HERE */}
             {combinedMissionStatement && (
@@ -449,7 +348,9 @@ const VisionPromptView = ({
   loadingBalance,
   balanceError,
   setMaxDonationAmount,
-  activeChain
+  activeChain,
+  handleConnectWallet,
+  walletAddress
 }) => {
   // Define chain-specific cryptocurrency options
   const aptosCryptoOptions = [
@@ -459,7 +360,6 @@ const VisionPromptView = ({
   
   const polkadotCryptoOptions = [
     { value: 'DOT', label: 'Polkadot (DOT)' },
-    { value: 'KSM', label: 'Kusama (KSM)' },
     { value: 'WND', label: 'Westend (WND)' }
   ];
   
@@ -515,16 +415,29 @@ const VisionPromptView = ({
             Set Your Donation Amount
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {loadingBalance ? (
-              <CircularProgress size={16} sx={{ mr: 1 }} />
+            {walletAddress ? (
+              <>
+                {loadingBalance ? (
+                  <CircularProgress size={16} sx={{ mr: 1 }} />
+                ) : (
+                  <AccountBalanceWalletIcon fontSize="small" sx={{ mr: 1, color: theme.palette.text.secondary }} />
+                )}
+                <Typography variant="body2" color={balanceError ? "error" : "text.secondary"}>
+                  {balanceError 
+                    ? "Error loading balance" 
+                    : `Balance: ${walletBalance.toFixed(4)} ${selectedCrypto}`}
+                </Typography>
+              </>
             ) : (
-              <AccountBalanceWalletIcon fontSize="small" sx={{ mr: 1, color: theme.palette.text.secondary }} />
+              <Button 
+                variant="outlined" 
+                size="small" 
+                startIcon={<AccountBalanceWalletIcon />}
+                onClick={handleConnectWallet}
+              >
+                Connect Wallet
+              </Button>
             )}
-            <Typography variant="body2" color={balanceError ? "error" : "text.secondary"}>
-              {balanceError 
-                ? "Error loading balance" 
-                : `Balance: ${walletBalance.toFixed(4)} ${selectedCrypto}`}
-            </Typography>
           </Box>
         </Box>
         <Box sx={{ display: 'flex', flexDirection: {xs: 'column', sm: 'row'}, gap: 2, my: 2 }}>
@@ -669,7 +582,16 @@ const VisionPromptView = ({
             onClick={() => {
               if (!hasNavigatedRef.current) {
                 hasNavigatedRef.current = true;
-                setCurrentStage('aiProcessing');
+                // If wallet not connected, try to connect first
+                if (!walletAddress) {
+                  handleConnectWallet().then(success => {
+                    if (success) {
+                      setCurrentStage('aiProcessing');
+                    }
+                  });
+                } else {
+                  setCurrentStage('aiProcessing');
+                }
                 setTimeout(() => { hasNavigatedRef.current = false; }, 1000); 
               }
             }} 
@@ -677,7 +599,7 @@ const VisionPromptView = ({
             sx={{py: 1.5, fontSize: '1.1rem'}}
             endIcon={<ChevronRightIcon />}
         >
-          Continue
+          {walletAddress ? 'Continue' : 'Connect Wallet & Continue'}
         </GlowButton>
       </Box>
       <Typography variant="caption" display="block" sx={{mt:2, textAlign: 'center', color: 'text.secondary'}}>
@@ -1127,7 +1049,7 @@ const DonatePage = () => {
   const [aiSuggestedAllocations, setAiSuggestedAllocations] = useState({});
   const [socialHandles, setSocialHandles] = useState({ twitter: '', instagram: '', linkedin: '' });
   // Set default cryptocurrency based on active chain
-  const getDefaultCrypto = () => activeChain === CHAINS.POLKADOT ? 'DOT' : 'APT';
+  const getDefaultCrypto = () => activeChain === CHAINS.POLKADOT ? 'WND' : 'APT';
   const [selectedCrypto, setSelectedCrypto] = useState(getDefaultCrypto());
   const [searchValue, setSearchValue] = useState(initialSearchValue);
   const [needsDescription, setNeedsDescription] = useState(initialSearchMode === 'needs' ? initialSearchValue : '');
@@ -1170,7 +1092,7 @@ const DonatePage = () => {
   // Initialize Polkadot API and update selected crypto when chain changes
   useEffect(() => {
     // Update selected cryptocurrency when chain changes
-    setSelectedCrypto(activeChain === CHAINS.POLKADOT ? 'DOT' : 'APT');
+    setSelectedCrypto(activeChain === CHAINS.POLKADOT ? 'WND' : 'APT');
     
     const setupPolkadotApi = async () => {
       if (activeChain === CHAINS.POLKADOT) {
@@ -1285,26 +1207,25 @@ const DonatePage = () => {
     }
   };
 
-  // Get balance for Polkadot
+  // Get balance for Polkadot/Westend
   const getPolkadotBalance = async (address) => {
     try {
-      if (!polkadotApi) {
-        throw new Error("Polkadot API not initialized");
+      // Get network based on selected cryptocurrency
+      let network = polkadotWallet.POLKADOT_NETWORKS.WESTEND; // Default to Westend
+      if (selectedCrypto === 'DOT') {
+        network = polkadotWallet.POLKADOT_NETWORKS.POLKADOT;
+      } else if (selectedCrypto === 'KSM') {
+        network = polkadotWallet.POLKADOT_NETWORKS.KUSAMA;
       }
       
-      // Use the proper API call for @polkadot/api
-      const { data: { free } } = await polkadotApi.query.system.account(address);
+      // Initialize API if needed
+      await polkadotWallet.initApi(network.endpoint);
       
-      // Get decimals based on the selected cryptocurrency
-      let decimals = 10; // Default for DOT
-      if (selectedCrypto === 'KSM') {
-        decimals = 12; // Kusama has 12 decimals
-      } else if (selectedCrypto === 'WND') {
-        decimals = 12; // Westend has 12 decimals
-      }
+      // Use polkadotWallet utility to get account balance
+      const formattedBalance = await polkadotWallet.getBalance({ address }, network);
       
-      // Convert from smallest unit to human-readable value
-      const balanceNumber = Number(free.toBigInt()) / Math.pow(10, decimals);
+      // Extract numeric value from formatted balance (e.g., "5.0000 WND" -> 5.0000)
+      const balanceNumber = parseFloat(formattedBalance.split(' ')[0]);
       return balanceNumber;
     } catch (error) {
       console.error(`Error fetching ${selectedCrypto} balance:`, error);
@@ -1315,6 +1236,9 @@ const DonatePage = () => {
   
   // Set maximum donation amount based on wallet balance
   const setMaxDonationAmount = () => {
+    if (!walletBalance) {
+      return;
+    }
     // Leave a small amount for transaction fees
     const maxAmount = Math.max(0, walletBalance - 0.1);
     setTotalDonationAmount(Number(maxAmount.toFixed(2)));
@@ -1333,7 +1257,7 @@ const DonatePage = () => {
   
   const handleConnectWallet = async () => {
     try {
-      if (activeChain === 'aptos' || !activeChain) {
+      if (activeChain === CHAINS.APTOS || !activeChain) {
         // Connect Aptos wallet
         if (window.aptos) {
           try {
@@ -1357,7 +1281,7 @@ const DonatePage = () => {
           setTransactionError("Aptos wallet extension not found. Please install Petra wallet.");
           return false;
         }
-      } else if (activeChain === 'polkadot') {
+      } else if (activeChain === CHAINS.POLKADOT) {
         // Connect Polkadot wallet
         try {
           // Import from polkadot extension
@@ -1656,33 +1580,27 @@ const DonatePage = () => {
       if (!polkadotApi) {
         throw new Error("Polkadot API not initialized. Please try again.");
       }
-      
+
       const numericAmount = Number(amount);
       if (isNaN(numericAmount) || numericAmount <= 0) {
         throw new Error(`Invalid donation amount: ${amount}`);
       }
-      // Use token-specific decimals
-      let decimals = 10; // Default for DOT
-      if (selectedCrypto === 'KSM') {
-        decimals = 12; // Kusama has 12 decimals
-      } else if (selectedCrypto === 'WND') {
-        decimals = 12; // Westend has 12 decimals
-      }
-      
+
+      // Hardcode for WND (Westend) with 12 decimals
+      const decimals = 12;
       const amountInSmallestUnit = BigInt(Math.round(numericAmount * Math.pow(10, decimals)));
-      
+
       // Ensure we're signed in
       if (!walletAddress) {
         throw new Error("Polkadot wallet not connected. Please connect your wallet.");
       }
-      
-      console.log(`Preparing Polkadot donation of ${amount} ${selectedCrypto} (${amountInSmallestUnit} smallest units) to ${charity.name}`);
-      
+
+      console.log(`Preparing Westend donation of ${amount} WND (${amountInSmallestUnit} plancks) to ${charity.name}`);
+
       // Create a transaction to interact with the EunoiaFoundation contract
-      // We need to encode the parameters for the donate function
       const charityName = charity.name;
-      const tokenName = selectedCrypto; // Using the selected crypto as token name
-      
+      const tokenName = 'WND'; // Hardcode to WND
+
       // Load contract ABI from the optimized contract
       let contractAbi;
       try {
@@ -1691,34 +1609,34 @@ const DonatePage = () => {
         console.warn('Could not load contract ABI, falling back to direct call:', error);
         contractAbi = null;
       }
-      
+
       // Create the contract call
       let tx;
-      
+
       try {
         if (contractAbi && contractAbi.default) {
-          // Use the contract instance with ABI if available
+          // Use the contract instance with ABI
           const contract = new ContractPromise(
             polkadotApi,
             contractAbi.default,
             POLKADOT_CONTRACT_ADDRESS
           );
-          
+
           console.log("Creating contract call with ABI");
-          
+
           // Get the gas estimate
           const gasLimit = polkadotApi.registry.createType('WeightV2', {
             refTime: 1000000000,
             proofSize: 50000,
           });
-          
+
           // Execute the actual transaction
           tx = contract.tx.donate(
             { value: amountInSmallestUnit.toString(), gasLimit },
             charityName,
             tokenName
           );
-          
+
           console.log("Contract transaction created successfully");
         } else {
           console.log("Using fallback direct contract call");
@@ -1730,28 +1648,27 @@ const DonatePage = () => {
         }
       } catch (error) {
         console.error("Error creating contract transaction:", error);
-        // Ultimate fallback - just do a simple transfer
+        // Ultimate fallback - simple transfer
         tx = polkadotApi.tx.balances.transferKeepAlive(
           POLKADOT_CONTRACT_ADDRESS,
           amountInSmallestUnit.toString()
         );
       }
-      
+
       // Sign and send the transaction using the browser extension
       const { web3FromAddress } = await import('@polkadot/extension-dapp');
       const injector = await web3FromAddress(walletAddress);
-      
+
       const result = await tx.signAndSend(walletAddress, { signer: injector.signer });
-      
-      console.log("Polkadot transaction submitted:", result.hash);
-      
+
+      console.log("Westend transaction submitted:", result.hash);
+
       return result;
     } catch (error) {
-      console.error("Polkadot donation error:", error);
+      console.error("Westend donation error:", error);
       throw error;
     }
   };
-
   // Add the missing handleReset function
   const handleReset = () => {
     setCurrentStage('welcomeAI');
@@ -1791,6 +1708,8 @@ const DonatePage = () => {
           balanceError={balanceError}
           setMaxDonationAmount={setMaxDonationAmount}
           activeChain={activeChain}
+          handleConnectWallet={handleConnectWallet}
+          walletAddress={walletAddress}
         />;
       case 'aiProcessing':
         return <AiProcessingView 
