@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, ValidationError
 from typing import List, Optional
 from django.conf import settings
 from .models import Charity # Assuming Charity model is in the same app's models.py
+from django.db.models import Q
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from django.db.models.signals import post_save
@@ -53,7 +54,7 @@ except Exception as e:
 
 # --- Core Functions (Synchronous) ---
 
-def get_embedding(text: str, model="text-embedding-ada-002") -> Optional[List[float]]:
+def get_embedding(text: str, model="text-embedding-3-small") -> Optional[List[float]]:
     if not client or not text:
         return None
     try:
@@ -271,9 +272,31 @@ def generate_combined_mission_statement(user_query: str, charities_data: List[di
         return None
 
 def enhance_query_and_search(user_query: str, top_k: int = 5) -> List[Charity]:
+    def fallback_charity_search(q: str, limit: int = 6) -> List[Charity]:
+        try:
+            base_qs = Charity.objects.all()
+            if q and q.strip():
+                naive_qs = base_qs.filter(
+                    Q(name__icontains=q) |
+                    Q(description__icontains=q) |
+                    Q(tagline__icontains=q)
+                ).order_by('-is_verified', '-date_registered')
+                results = list(naive_qs[:limit])
+                if results:
+                    print(f"Fallback search returned {len(results)} charities for query '{q}'.")
+                    return results
+            # As a last resort, return some verified or recent charities
+            verified_qs = base_qs.filter(is_verified=True).order_by('-date_registered')
+            results = list(verified_qs[:limit]) if verified_qs.exists() else list(base_qs.order_by('-date_registered')[:limit])
+            print(f"Fallback default returned {len(results)} charities.")
+            return results
+        except Exception as e:
+            print(f"Fallback search error: {e}")
+            return []
+
     if not client:
-        print("OpenAI client not initialized. Cannot perform search.")
-        return []
+        print("OpenAI client not initialized. Using fallback search.")
+        return fallback_charity_search(user_query)
 
     try:
         enhanced_query_tool = {
@@ -315,14 +338,14 @@ def enhance_query_and_search(user_query: str, top_k: int = 5) -> List[Charity]:
 
         query_embedding = get_embedding(search_query_text)
         if not query_embedding:
-            print(f"Failed to embed query: '{search_query_text}'")
-            return []
+            print(f"Failed to embed query: '{search_query_text}'. Using fallback search.")
+            return fallback_charity_search(user_query)
 
         charities_with_embeddings = Charity.objects.filter(embedding__isnull=False).exclude(embedding__exact=[]) # Exclude empty lists
         
         if not charities_with_embeddings.exists():
-            print("No charities with embeddings found in the database.")
-            return []
+            print("No charities with embeddings found in the database. Using fallback search.")
+            return fallback_charity_search(user_query)
 
         # Filter out charities with invalid or missing embeddings before creating numpy array
         valid_charities = []
@@ -340,8 +363,8 @@ def enhance_query_and_search(user_query: str, top_k: int = 5) -> List[Charity]:
                 print(f"Skipping charity {charity.name} due to missing or invalid embedding: {charity.embedding}")
         
         if not valid_charities:
-            print("No charities with valid embeddings available for search.")
-            return []
+            print("No charities with valid embeddings available for search. Using fallback search.")
+            return fallback_charity_search(user_query)
 
         charity_embeddings_np = np.array(all_charity_embeddings_list)
         query_embedding_np = np.array(query_embedding).reshape(1, -1)
@@ -368,7 +391,7 @@ def enhance_query_and_search(user_query: str, top_k: int = 5) -> List[Charity]:
         top_k_indices = np.argsort(similarities)[-actual_top_k:][::-1]
 
         results = []
-        similarity_threshold = 0.75 # Keep your threshold
+        similarity_threshold = 0.5 # Slightly relaxed threshold
         for i in top_k_indices:
             if i < len(valid_charities) and similarities[i] >= similarity_threshold: # Check index bounds and threshold
                 results.append(valid_charities[i])
@@ -376,14 +399,17 @@ def enhance_query_and_search(user_query: str, top_k: int = 5) -> List[Charity]:
                 # print(f"Skipping charity {valid_charities[i].name if i < len(valid_charities) else 'N/A'} with similarity {similarities[i] if i < len(similarities) else 'N/A'}")
 
         print(f"Found {len(results)} charities for query '{search_query_text}' (threshold: {similarity_threshold}).")
+        if not results:
+            print("Semantic search yielded 0 results. Using fallback search.")
+            return fallback_charity_search(user_query)
         return results
 
     except openai.APIError as e:
         print(f"OpenAI API error during semantic search for query '{user_query}': {e}")
-        return []
+        return fallback_charity_search(user_query)
     except Exception as e:
         print(f"General error during semantic search for query '{user_query}': {e} (Type: {type(e).__name__})")
-        return []
+        return fallback_charity_search(user_query)
 
 # --- Django Signals ---
 @receiver(post_save, sender=Charity)

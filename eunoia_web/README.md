@@ -1,3 +1,19 @@
+## Frontend environment configuration
+
+Create a `.env` file in `eunoia_web/` to switch API targets without changing code.
+
+Example:
+
+```
+# Local Django API (default)
+REACT_APP_API_BASE_URL=http://127.0.0.1:8000/api
+
+# Or Azure API
+# REACT_APP_API_BASE_URL=https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api
+```
+
+Restart the dev server after changes: `npm start`.
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

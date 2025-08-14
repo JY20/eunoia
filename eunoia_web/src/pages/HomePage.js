@@ -20,6 +20,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import CharitySearch from '../components/CharitySearch';
 
 // Import icons
@@ -34,7 +35,6 @@ import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArro
 
 // Constants
 // const API_URL = 'http://localhost:8000/api'; // Commented out as API call is mocked
-const API_BASE_URL = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api';
 
 // Styled Components
 const HeroSection = styled(Box)(({ theme }) => ({

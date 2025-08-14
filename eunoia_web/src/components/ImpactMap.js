@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, Paper, Chip } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
 
+
 // Styled map container
 const MapContainer = styled(Paper)(({ theme }) => ({
   position: 'relative',

@@ -27,6 +27,7 @@ import { styled } from '@mui/material/styles';
 import { AptosClient, TxnBuilderTypes, HexString } from 'aptos';
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import axios from 'axios'; // Ensure axios is imported
+import { API_BASE_URL as API_BASE_URL_TRANSPARENCY } from '../config';
 
 // Context
 import { AppContext, CHAINS } from '../components/AppProvider';
@@ -65,7 +66,7 @@ const EXPLORERS = {
   POLKADOT: 'https://polkadot.subscan.io/extrinsic'
 };
 
-const API_BASE_URL_TRANSPARENCY = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api'; // Define for this page if not globally available
+// API base URL is provided by config
 
 // Styled Components
 const PageHeader = styled(Box)(({ theme }) => ({

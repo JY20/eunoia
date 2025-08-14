@@ -19,10 +19,11 @@ import AddToDriveIcon from '@mui/icons-material/AddToDrive'; // Placeholder for 
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'; // For initialize button
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import { AppContext } from '../components/AppProvider';
 // import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow } from '@vis.gl/react-google-maps'; // Removed as per user request and it was unused
 
-const API_BASE_URL = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api';
+// API base URL is provided by config
 const MODULE_ADDRESS = "0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011";
 const MODULE_NAME = "eunoia_foundation";
 const ADD_CHARITY_FUNCTION_NAME = "add_charity";
