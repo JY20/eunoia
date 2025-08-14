@@ -7,6 +7,8 @@ virtualenv/
 .env/
 .ENV/
 .virtualenv/
+*/.env
+.env
 
 # Python
 __pycache__/
