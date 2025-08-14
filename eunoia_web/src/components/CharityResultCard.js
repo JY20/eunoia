@@ -77,7 +77,7 @@ const CharityResultCard = ({
     const keywords = ['education', 'faith', 'africa', 'children', 'empowerment', 'uganda', 'health', 'environment', 'innovation', 'community'];
     return keywords.filter(kw => explanation.toLowerCase().includes(kw)).slice(0, 3);
   };
-  const reasonTags = getReasonTags(charity.ai_explanation);
+  const reasonTags = getReasonTags(charity?.ai_explanation ?? "");
 
   const handleIncreaseAmount = (e) => {
     e.stopPropagation();
@@ -113,20 +113,20 @@ const CharityResultCard = ({
         <Grid container spacing={1} alignItems="flex-start" sx={{ mb: 1 }}> 
           <Grid item xs={3} sm={2} md={3}>
             <Avatar 
-              src={charity.logo || 'https://via.placeholder.com/100?text=U'} 
-              alt={`${charity.name} logo`} 
+              src={charity?.logo ?? 'https://via.placeholder.com/100?text=U'}
+              alt={`${charity?.name || 'Charity'} logo`}
               sx={{ width: 56, height: 56 }}
               variant="rounded"
             />
           </Grid>
           <Grid item xs={9} sm={10} md={9}>
             <Typography variant="h6" fontWeight="bold" component="div" sx={{fontSize: '1.0rem', lineHeight: 1.3}}>
-              {charity.name}
+              {`${charity?.name || 'Charity'} logo`}
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5, mt: 0.5}}>
                 <Chip 
                   icon={<CheckCircleIcon fontSize="small"/>} 
-                  label={`${charity.match_score_percent}% Match`}
+                  label={`${charity?.match_score_percent ?? '0'}% Match`}
                   color="primary" 
                   size="small" 
                   variant="filled" 
@@ -134,7 +134,7 @@ const CharityResultCard = ({
                 />
                 <Chip 
                   icon={<VerifiedUserIcon fontSize="small"/>} 
-                  label={`Trust: ${charity.trust_score_grade}`}
+                  label={`Trust: ${charity?.trust_score_grade || 'N/A'}`}
                   color="success" 
                   size="small" 
                   variant="outlined" 
@@ -152,19 +152,19 @@ const CharityResultCard = ({
         </ExpandableSection>
         <Collapse in={expanded} timeout="auto" unmountOnExit>
           <Typography variant="body2" sx={{ mt: 0.5, fontSize: '0.75rem', color: 'text.secondary' }}>
-            {charity.ai_explanation || "AI explanation not available."}
+            {charity?.ai_explanation || "AI explanation not available."}
           </Typography>
         </Collapse>
         
-        {charity.category && (
-          <Chip 
-            label={charity.category_display || charity.category} 
-            size="small" 
-            variant="outlined" 
-            sx={{ fontSize: '0.65rem', alignSelf: 'flex-start', mb: 1}}
+        {charity?.category && (
+          <Chip
+            label={charity?.category_display || charity.category}
+            size="small"
+            variant="outlined"
+            sx={{ fontSize: '0.65rem', alignSelf: 'flex-start', mb: 1 }}
           />
         )}
-        
+
         {isSelected && (
           <Paper elevation={0} sx={{ borderRadius: '8px', p:1, background: alpha(theme.palette.grey[500], 0.05), mt: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <Typography variant="caption" display="block" textAlign="center" fontWeight="medium" sx={{mb: 0.5}}>

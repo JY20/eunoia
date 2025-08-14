@@ -40,7 +40,7 @@ import ImageIcon from '@mui/icons-material/Image';
 // import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow } from '@vis.gl/react-google-maps';
 
 // Constants
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api';
 
 // Styled components
 const PageWrapper = styled(Box)(({ theme }) => ({

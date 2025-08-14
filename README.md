@@ -1,8 +1,17 @@
+## 🌟 Project Overview
+
+**Tagline:**  
+> **Eunoia is a full-stack AI giving platform, rebuilding charity from the ground up using blockchain transparency and intelligent agents.**
+
+**Description:**  
+Eunoia is a full-stack AI-powered charity platform using blockchain for radical transparency. It matches donors to causes using autonomous AI agents (Compass) and tracks every donation on-chain, from wallet to real-world impact. Built on Aptos and now Polkadot (via ink! smart contracts), Eunoia ensures secure, direct giving with ultra-low fees. The platform addresses donor distrust and fraud with real-time impact tracing and smart contract accountability.
+
 ## 👥 The Team
 
-<p align="center">
-  <img src="eunoia_web/src/assets/team_consensus_photo.jpg" alt="Eunoia Team at Consensus" width="100%" />
-</p>
+![image](https://github.com/user-attachments/assets/2a25accd-f8f4-4eec-83cf-fede3594ce32)
+
+![image](https://github.com/user-attachments/assets/f64e0bd3-009b-48f6-95ca-d623bef29214)
+
 
 > **Randomly recruited on LinkedIn & Telegram. Perfectly balanced. Fully committed.**
 
@@ -20,6 +29,25 @@
 - 🤝 Bonded over Chick-Fil-A  
 - 🧠 Built 12+ agents, smart contracts, and real-world impact tools
 
+## 📚 Table of Contents
+
+- [👥 The Team](#-the-team)
+- [🌍 EUNOIA – We're fixing Charity](#-eunoia---were-fixing-charity)
+- [💔 The Problem](#-the-problem)
+- [🧠 How Eunoia Works](#-how-eunoia-works)
+- [✨ Key Features](#-key-features)
+- [🔗 We're onboarding users!](#-were-onboarding-users-follow-us--connect-for-more)
+- [📈 Go-To-Market Strategy](#-go-to-market-strategy)
+- [🛣️ What's Done and What's Next](#-whats-done-and-whats-next)
+- [🌍 Backed by Builders](#-backed-by-builders)
+- [🎥 Loom Videos](#-loom-videos)
+- [🛠️ Technology Stack](#️-technology-stack)
+- [🏗️ System Architecture Overview](#-system-architecture-overview)
+- [🔍 Smart Contracts Overview](#-smart-contracts-overview)
+- [🔄 User Flow (Interaction Flow)](#-user-flow-interaction-flow)
+- [🖼️ Eunoia In Action – UI Walkthrough](#-eunoia-in-action--ui-walkthrough)
+- [📚 Appendix: Technical Extras](#-appendix-technical-extras)
+- [🤝 Want to Contribute?](#-want-to-contribute)
 
 ## 👥 EUNOIA - We're fixing Charity. 
 <p align="center">
@@ -41,7 +69,7 @@
   <img src="./logo_full_branding.jpg" alt="Eunoia Logo" width="300"/>
 </p> -->
 
-**Charity is broken. We're fixing it.**
+**Giving is frustrating. We're fixing it.**
 
 Eunoia is an agent-powered giving platform that brings **radical transparency** to philanthropy. Built initially on Aptos and now expanding to Polkadot, Eunoia tracks every penny from wallet → charity → real-world spend — all on-chain.
 
@@ -102,7 +130,7 @@ Instead of slow, manual vetting, our smart AI agents — we call them **Compass*
 
 ### 🎯 1. **Start with Real Impact**
 - Onboard 5–10 verified charities with stories that resonate (education, health, and children-focused)
-- Deploy **$1,000+ in real donations** from hackathons and pilot users
+- Deploy **$1,000+ in real donations** from pilot users
 - Track & showcase every dollar — creating "Proof of Impact" content
 
 ### 🌐 2. **Leverage Web3 Communities**
@@ -114,12 +142,7 @@ Instead of slow, manual vetting, our smart AI agents — we call them **Compass*
 - Engage cause-driven creators (esp. Christian TikTok, philanthropic YouTubers, ethical lifestyle influencers)
 - Offer co-branded cause pages and transparent referral tracking
 
-### 🧠 4. **Hackathons & Builders**
-- Continue participating in global hackathons to onboard technical users
-- Launch a "Build for Good" bounty program with wallet-linked rewards
-- Open-source non-sensitive agent modules for public experimentation
-
-### 🪙 5. **Stablecoin + NGO Partnerships**
+### 🪙 4. **Stablecoin + NGO Partnerships**
 - Collaborate with stablecoin ecosystems to promote real-world utility
 - Partner with grassroots NGOs in East Africa, Lebanon, and Southeast Asia for direct-to-worker giving
 
@@ -146,6 +169,24 @@ Instead of slow, manual vetting, our smart AI agents — we call them **Compass*
 - 🤝 Partner with EasyA & Foundation Collective for on-ground campaigns
 
 ---
+
+## 🗣️ Customer Interviews
+
+In just 72 hours, we validated our idea by speaking with founders, foundation leaders, and investors across the Web3 and fintech space.
+
+![image](https://github.com/user-attachments/assets/459a0ee1-d024-4a2d-846e-1f1fd4dbc699)
+
+**Here's who we asked:**
+
+- 💬 **Phil Kwok** – CEO & Co-Founder, EasyA  
+- 💬 **Dom Kwok** – COO & Co-Founder, EasyA  
+- 💬 **Anuhya & Jon** – Aptos Foundation  
+- 💬 **Edward** – Polkadot Foundation  
+- 💬 **Adam Cai** – CEO & Co-Founder, Virgo  
+- ❌ **Kevin O'Leary** – Rejected us 😅 BUT WE'RE STILL BUILDING
+
+> These conversations shaped our smart contract design, wallet UX, and GTM focus. We're building with community insights baked in.
+
 
 ## 🌍 Backed by Builders
 
@@ -212,11 +253,11 @@ We've been supported by communities like **EasyA**, **Aptos Foundation**, **Polk
 
 **High-Level Compass Agent Architecture**
 
-![Compass Agent Architecture](eunoia_web/src/assets/compass_architecture.png)
+![image](https://github.com/user-attachments/assets/7331b5ad-cc48-419c-98bd-be60b9999260)
 
 **Semantic Search Architecture**
 
-![Semantic Search Architecture](eunoia_web/src/assets/semantic_search_architecture.svg)
+![image]eunoia_web\src\assets\team_consensus_photo.jpg)
 ---
 
 ## 🔍 Smart Contracts Overview
@@ -432,7 +473,7 @@ Transparency is not just promised — it's enforced by code.
 ![image](https://github.com/user-attachments/assets/134f4ac2-9bf2-421a-a426-5095ab5d7b00)
 
 
-Let users describe what matters to them. Eunoia’s Compass agent will interpret their vision and begin matching relevant causes.
+Let users describe what matters to them. Eunoia's Compass agent will interpret their vision and begin matching relevant causes.
 
 ### 🔗 Connect Your Socials (Optional)
 ![image](https://github.com/user-attachments/assets/331c3148-e2b8-4f18-94af-deb796e507eb)
@@ -469,7 +510,7 @@ Users can switch between Aptos and Polkadot networks directly from the wallet in
 ![image](https://github.com/user-attachments/assets/1e155df0-05b9-410b-b299-5e90c5dabf64)
 
 
-Search by keyword or cause. All donations are 100% transparent, web3-native, and the 0.2% optional fee powers the platform’s growth engine.
+Search by keyword or cause. All donations are 100% transparent, web3-native, and the 0.2% optional fee powers the platform's growth engine.
 
 ---
 

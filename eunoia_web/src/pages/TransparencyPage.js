@@ -65,7 +65,7 @@ const EXPLORERS = {
   POLKADOT: 'https://polkadot.subscan.io/extrinsic'
 };
 
-const API_BASE_URL_TRANSPARENCY = 'http://localhost:8000/api'; // Define for this page if not globally available
+const API_BASE_URL_TRANSPARENCY = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api'; // Define for this page if not globally available
 
 // Styled Components
 const PageHeader = styled(Box)(({ theme }) => ({
