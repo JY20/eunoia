@@ -48,7 +48,7 @@ media/
 *.pyw
 *.pyz
 
-.cursor/
+# .cursor/
 # Ignore target directories for Polkadot contracts
 polkadot_contracts/target/
 polkadot_contracts/*/target/
