@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 import string
 from django.core.management.base import BaseCommand, CommandError
+import argparse
 from django.utils.crypto import get_random_string
 from django.db import transaction
 
@@ -32,6 +33,8 @@ class Command(BaseCommand):
         parser.add_argument('url', type=str, help='Website URL of the charity to research')
         parser.add_argument('--name', type=str, default=None, help='Optional explicit charity name')
         parser.add_argument('--max-pages', type=int, default=6, help='Max pages to crawl (default: 6)')
+        # Verified by default; allow override with --no-verified
+        parser.add_argument('--verified', action=argparse.BooleanOptionalAction, default=True, help='Mark charity as verified (default: true)')
 
     def handle(self, *args, **options):
         # Use autocommit so the created Charity is visible to the async research thread
@@ -40,6 +43,7 @@ class Command(BaseCommand):
         url: str = options['url']
         name_opt: str | None = options.get('name')
         max_pages: int = options['max_pages']
+        is_verified: bool = options['verified']
 
         if not url.startswith('http://') and not url.startswith('https://'):
             raise CommandError('URL must start with http:// or https://')
@@ -60,7 +64,7 @@ class Command(BaseCommand):
             aptos_wallet_address=aptos_addr,
             website_url=url,
             contact_email=email,
-            is_verified=False,
+            is_verified=is_verified,
         )
 
         # Reconnect signal

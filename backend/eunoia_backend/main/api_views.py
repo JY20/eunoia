@@ -23,6 +23,7 @@ DONATE_FUNCTION_NAME = "donate"
 
 # Import agent service launcher
 from agents_sdk import launch_charity_research_in_background
+from agents_sdk.compass_matching_agents import match_top_movements_sync
 
 class CharityViewSet(viewsets.ModelViewSet):
     queryset = Charity.objects.all().order_by('-date_registered')
@@ -156,6 +157,21 @@ class MovementViewSet(viewsets.ModelViewSet):
     queryset = Movement.objects.all().order_by('-created_at')
     serializer_class = MovementSerializer
     permission_classes = []
+
+
+class CompassMatchView(views.APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        query = request.data.get('query')
+        top_k = int(request.data.get('top_k', 10))
+        if not query:
+            return Response({"error": "Missing 'query'"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            result = match_top_movements_sync(query, top_k)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Ensure your serializers.py has DonationTransactionSerializer
 # Example (add this to your main/serializers.py):

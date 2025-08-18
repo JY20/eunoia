@@ -14,6 +14,7 @@ set_tracing_disabled(True)
 from .utils import smart_website_crawler, CrawledWebsiteData
 from .charity_profile_agent import charity_profile_agent, CharityProfile
 from .movement_finder_agent import movement_finder_agent, MovementData, MovementAnalysisResult
+from main.utils import get_embedding
 
 
 logger = logging.getLogger(__name__)
@@ -114,6 +115,23 @@ class CharityResearchManager:
             combined_text = "\n\n".join([p.content for p in crawled.pages])
             charity.extracted_text_data = combined_text[:15000]
 
+        # Generate/update the charity embedding from description + tagline + keywords
+        try:
+            text_for_embedding_parts: List[str] = []
+            if charity.description:
+                text_for_embedding_parts.append(charity.description)
+            if charity.tagline:
+                text_for_embedding_parts.append(charity.tagline)
+            if charity.keywords:
+                text_for_embedding_parts.append(" ".join(charity.keywords))
+            text_for_embedding = " \n ".join(text_for_embedding_parts).strip()
+            if text_for_embedding:
+                emb = await sync_to_async(get_embedding)(text_for_embedding)
+                if emb:
+                    charity.embedding = emb
+        except Exception:
+            pass
+
         await sync_to_async(charity.save)()
 
         # Create/update movements
@@ -122,6 +140,14 @@ class CharityResearchManager:
                 continue
             base_slug = slugify(m.title)[:290]
             slug = await sync_to_async(self._unique_slug)(charity, base_slug)
+            # Compute embedding from summary if present
+            movement_embedding = None
+            if m.summary:
+                try:
+                    movement_embedding = await sync_to_async(get_embedding)(m.summary)
+                except Exception:
+                    movement_embedding = None
+
             await sync_to_async(Movement.objects.update_or_create)(
                 charity=charity,
                 slug=slug,
@@ -133,6 +159,7 @@ class CharityResearchManager:
                     'start_date': None,
                     'source_urls': (m.source_urls or []),
                     'confidence_score': round(float(m.confidence_score or 0.0), 3),
+                    'embedding': movement_embedding,
                     'is_active': True,
                 }
             )

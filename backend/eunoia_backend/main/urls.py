@@ -29,6 +29,9 @@ urlpatterns = [
     # New endpoint for semantic charity search
     path('api/charity-semantic-search/', api_views.CharitySemanticSearchView.as_view(), name='charity-semantic-search'),
 
+    # Compass matching endpoint
+    path('api/compass/match/', api_views.CompassMatchView.as_view(), name='compass-match'),
+
     # Old API endpoints (to be removed or commented out)
     # path('api/charities/featured/', api.featured_charities, name='api-featured-charities'),
     # path('api/charities/', api.all_charities, name='api-all-charities'),

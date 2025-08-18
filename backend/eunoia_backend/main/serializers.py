@@ -71,7 +71,7 @@ class MovementSerializer(serializers.ModelSerializer):
         model = Movement
         fields = [
             'id', 'charity', 'charity_name', 'title', 'slug', 'summary', 'category',
-            'geography', 'start_date', 'source_urls', 'confidence_score', 'is_active',
+            'geography', 'start_date', 'source_urls', 'confidence_score', 'embedding', 'is_active',
             'last_seen', 'created_at', 'updated_at'
         ]
         read_only_fields = ['last_seen', 'created_at', 'updated_at']

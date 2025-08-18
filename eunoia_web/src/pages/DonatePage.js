@@ -233,7 +233,9 @@ const CharityResultsView = ({
   handleToggleCharitySelection,
   individualDonationAmounts,
   handleIndividualAmountChange,
-  combinedMissionStatement
+  combinedMissionStatement,
+  compassRecommendations = [],
+  groupedMatches = {}
 }) => {
   console.log('CharityResultsView render, charities:', aiMatchedCharities);
   console.log('Selected IDs:', selectedCharityIds);
@@ -265,6 +267,42 @@ const CharityResultsView = ({
           Backed by hundreds of data points.
         </Typography>
       </Box>
+
+      {/* Top 3 movement recommendations */}
+      {Array.isArray(compassRecommendations) && compassRecommendations.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>Top Picks For You</Typography>
+          <Grid container spacing={2}>
+            {compassRecommendations.slice(0,3).map((rec, idx) => {
+              const group = Object.values(groupedMatches || {}).find(g => g.charity_name === rec.charity_name);
+              const movement = group?.movements?.find(m => m.movement_id === rec.movement_id);
+              const charityId = group?.charity_id;
+              const summary = movement?.summary || '';
+              return (
+                <Grid item xs={12} md={4} key={`${rec.movement_id}-${idx}`}>
+                  <Paper sx={{ p: 2, borderRadius: '12px' }} elevation={3}>
+                    <Typography variant="subtitle2" color="text.secondary">{rec.charity_name}</Typography>
+                    <Typography variant="h6" fontWeight="bold" sx={{ mt: 0.5 }}>{rec.movement_title}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      {summary ? `${summary.substring(0, 180)}${summary.length > 180 ? '…' : ''}` : 'No summary available.'}
+                    </Typography>
+                    {rec.reason && (
+                      <Typography variant="caption" color="primary" sx={{ display: 'block', mt: 1.5, fontStyle: 'italic' }}>
+                        {rec.reason}
+                      </Typography>
+                    )}
+                    {charityId && (
+                      <Button size="small" sx={{ mt: 1.5, borderRadius: '20px' }} variant={selectedCharityIds.has(charityId) ? 'contained' : 'outlined'} onClick={() => handleToggleCharitySelection(charityId)}>
+                        {selectedCharityIds.has(charityId) ? 'Selected' : 'Select Charity'}
+                      </Button>
+                    )}
+                  </Paper>
+                </Grid>
+              );
+            })}
+          </Grid>
+        </Box>
+      )}
 
       <Grid container spacing={3}>
         {/* Charity Results Feed - now a nested grid for 2 columns */}
@@ -692,7 +730,9 @@ const AiProcessingView = ({
   setSemanticSearchError,
   semanticSearchLoading,
   semanticSearchError,
-  setCombinedMissionStatement // New prop for setting combined mission
+  setCombinedMissionStatement, // New prop for setting combined mission
+  setCompassRecommendations,
+  setGroupedMatches
 }) => { 
   console.log('AiProcessingView render');
   
@@ -713,80 +753,121 @@ const AiProcessingView = ({
       // await new Promise(resolve => setTimeout(resolve, 5000)); // 5-second delay
 
       try {
-        console.log(`Performing semantic search for: "${visionPrompt}"`);
-        const response = await axios.get(`${API_BASE_URL}/charity-semantic-search/`, {
-          params: { query: visionPrompt }
+        console.log(`Compass matching for: "${visionPrompt}"`);
+        const response = await axios.post(`${API_BASE_URL}/compass/match/`, {
+          query: visionPrompt,
+          top_k: 10,
         });
 
-        console.log("Semantic search response from backend:", response.data);
+        console.log("Compass response:", response.data);
 
-        // Backend now returns an object: { matched_charities: [], combined_mission: "..." }
-        if (response.data && response.data.matched_charities && response.data.matched_charities.length > 0) {
-          const charities = response.data.matched_charities.map(charity => ({
-            ...charity,
-            id: charity.id || Date.now() + Math.random(),
-            name: charity.name || "Unnamed Charity",
-            description: charity.description || "No description available.",
-            logo: charity.logo_url || charity.logo || 'https://via.placeholder.com/300x200.png?text=No+Logo',
-            aptos_wallet_address: charity.aptos_wallet_address || "N/A",
-            category: charity.category_display || charity.category || "Other",
-            // Corrected: use response.data.matched_charities for indexOf
-            match_score_percent: charity.similarity_score 
-                ? Math.round(charity.similarity_score * 100) 
-                : (95 - (response.data.matched_charities.indexOf(charity) * 5)),
-            trust_score_grade: 'A',
-            ai_explanation: `Matches your interest in "${visionPrompt.substring(0,30)}..." due to its focus on ${charity.category_display || charity.category || 'relevant areas'}.`,
-          }));
+        const grouped = response.data?.grouped_matches || {};
+        const recommendations = response.data?.recommendations?.top_recommendations || [];
 
-          setAiMatchedCharities(charities);
+        const byCharityId = new Map();
+        const priorityIds = [];
 
-          const totalScore = charities.reduce((sum, charity) => sum + (charity.match_score_percent || 0), 0);
-          const allocations = {};
-          let cumulativeAllocation = 0;
-
-          if (totalScore > 0) {
-            charities.forEach((charity, index) => {
-              let rawAllocation;
-              if (index === charities.length - 1) {
-                  rawAllocation = totalDonationAmount - cumulativeAllocation;
-              } else {
-                  rawAllocation = ( (charity.match_score_percent || 0) / totalScore) * totalDonationAmount;
-              }
-              const finalAllocation = Math.max(0, parseFloat(rawAllocation.toFixed(2)));
-              allocations[charity.id] = finalAllocation;
-              cumulativeAllocation += finalAllocation;
-            });
-            
-            const sumOfAllocations = Object.values(allocations).reduce((sum, val) => sum + val, 0);
-            if (sumOfAllocations !== totalDonationAmount && charities.length > 0) {
-                const lastCharityId = charities[charities.length -1].id;
-                const diff = totalDonationAmount - sumOfAllocations;
-                allocations[lastCharityId] = Math.max(0, parseFloat((allocations[lastCharityId] + diff).toFixed(2)));
-            }
-
-          } else if (charities.length > 0) {
-            const equalShare = parseFloat((totalDonationAmount / charities.length).toFixed(2));
-            charities.forEach(charity => {
-              allocations[charity.id] = equalShare;
-            });
-            
-            const sumOfAllocations = Object.values(allocations).reduce((sum, val) => sum + val, 0);
-              if (sumOfAllocations !== totalDonationAmount && charities.length > 0) {
-                  const lastCharityId = charities[charities.length -1].id;
-                  const diff = totalDonationAmount - sumOfAllocations;
-                  allocations[lastCharityId] = Math.max(0, parseFloat((allocations[lastCharityId] + diff).toFixed(2)));
-              }
+        // Prioritize charities present in recommendations first
+        recommendations.forEach(rec => {
+          const group = Object.values(grouped).find(g => g.charity_name === rec.charity_name);
+          if (group && !byCharityId.has(group.charity_id)) {
+            byCharityId.set(group.charity_id, group);
+            priorityIds.push(group.charity_id);
           }
-          setAiSuggestedAllocations(allocations);
-          
-          // Set the combined mission statement from the API response
-          setCombinedMissionStatement(response.data.combined_mission || "Explore these charities that align with your vision.");
+        });
+
+        // Add remaining groups ordered by highest movement score
+        const remaining = Object.values(grouped)
+          .filter(g => !byCharityId.has(g.charity_id))
+          .sort((a,b) => {
+            const atop = Math.max(...a.movements.map(m => m.score || 0), 0);
+            const btop = Math.max(...b.movements.map(m => m.score || 0), 0);
+            return btop - atop;
+          });
+        remaining.forEach(g => {
+          byCharityId.set(g.charity_id, g);
+          priorityIds.push(g.charity_id);
+        });
+
+        if (priorityIds.length === 0) {
+          setSemanticSearchError("No strong matches were found for your vision.");
+          setCombinedMissionStatement("");
           setCurrentStage('charityResults');
-        } else {
-          setSemanticSearchError("No charities found matching your vision. Try rephrasing or broadening your search.");
-          setCombinedMissionStatement(""); // Clear combined mission if no charities
-          setCurrentStage('charityResults'); 
+          return;
         }
+
+        // Fetch full charity details for each id
+        const detailResponses = await Promise.all(
+          priorityIds.map(id => axios.get(`${API_BASE_URL}/charities/${id}/`).catch(() => null))
+        );
+
+        const detailsById = new Map();
+        detailResponses.forEach((res, idx) => {
+          const id = priorityIds[idx];
+          if (res && res.data) detailsById.set(id, res.data);
+        });
+
+        // Build cards data
+        const charities = priorityIds.map((id, index) => {
+          const group = byCharityId.get(id);
+          const detail = detailsById.get(id) || {};
+          const topScore = Math.max(...(group.movements || []).map(m => m.score || 0), 0);
+          const reasonForThisCharity = recommendations.find(r => r.charity_name === group.charity_name)?.reason || '';
+
+          return {
+            id: id,
+            name: detail.name || group.charity_name,
+            description: detail.description || group.charity_description || "No description available.",
+            logo: (detail.logo_url || detail.logo) || 'https://via.placeholder.com/300x200.png?text=No+Logo',
+            aptos_wallet_address: detail.aptos_wallet_address || "N/A",
+            category: detail.category_display || detail.category || "Other",
+            match_score_percent: topScore ? Math.round(topScore * 100) : (95 - (index * 5)),
+            trust_score_grade: 'A',
+            ai_explanation: reasonForThisCharity || `Top movements from ${group.charity_name} align with your vision.`,
+            // Extra data (not used directly by cards but handy)
+            movements: group.movements || [],
+          };
+        });
+
+        setAiMatchedCharities(charities);
+
+        // Compute allocations from match scores
+        const totalScore = charities.reduce((sum, c) => sum + (c.match_score_percent || 0), 0);
+        const allocations = {};
+        let cumulativeAllocation = 0;
+        if (totalScore > 0) {
+          charities.forEach((charity, index) => {
+            let rawAllocation;
+            if (index === charities.length - 1) {
+              rawAllocation = totalDonationAmount - cumulativeAllocation;
+            } else {
+              rawAllocation = ((charity.match_score_percent || 0) / totalScore) * totalDonationAmount;
+            }
+            const finalAllocation = Math.max(0, parseFloat(rawAllocation.toFixed(2)));
+            allocations[charity.id] = finalAllocation;
+            cumulativeAllocation += finalAllocation;
+          });
+          const sumOfAllocations = Object.values(allocations).reduce((s,v)=>s+v,0);
+          if (sumOfAllocations !== totalDonationAmount && charities.length > 0) {
+            const lastId = charities[charities.length - 1].id;
+            const diff = totalDonationAmount - sumOfAllocations;
+            allocations[lastId] = Math.max(0, parseFloat((allocations[lastId] + diff).toFixed(2)));
+          }
+        } else if (charities.length > 0) {
+          const equalShare = parseFloat((totalDonationAmount / charities.length).toFixed(2));
+          charities.forEach(c => allocations[c.id] = equalShare);
+          const sumOfAllocations = Object.values(allocations).reduce((s,v)=>s+v,0);
+          if (sumOfAllocations !== totalDonationAmount && charities.length > 0) {
+            const lastId = charities[charities.length - 1].id;
+            const diff = totalDonationAmount - sumOfAllocations;
+            allocations[lastId] = Math.max(0, parseFloat((allocations[lastId] + diff).toFixed(2)));
+          }
+        }
+        setAiSuggestedAllocations(allocations);
+        setCombinedMissionStatement(""); // We no longer use combined mission; Compass provides recs
+        setCompassRecommendations(recommendations);
+        setGroupedMatches(grouped);
+        setCurrentStage('charityResults');
       } catch (error) {
         console.error('Error during semantic search:', error);
         let detailedError = "Failed to fetch charity recommendations. Please try again later.";
@@ -1147,6 +1228,8 @@ const DonatePage = () => {
   const [semanticSearchError, setSemanticSearchError] = useState(null);
   const [currentProcessingCharityIndex, setCurrentProcessingCharityIndex] = useState(0); // New state for sequential donations
   const [combinedMissionStatement, setCombinedMissionStatement] = useState(''); // New state
+  const [compassRecommendations, setCompassRecommendations] = useState([]);
+  const [groupedMatches, setGroupedMatches] = useState({});
   
   // New state for selectable charities and individual amounts
   const [selectedCharityIds, setSelectedCharityIds] = useState(new Set());
@@ -1723,6 +1806,8 @@ const DonatePage = () => {
           semanticSearchLoading={semanticSearchLoading}
           semanticSearchError={semanticSearchError}
           setCombinedMissionStatement={setCombinedMissionStatement} // Pass setter to AiProcessingView
+          setCompassRecommendations={setCompassRecommendations}
+          setGroupedMatches={setGroupedMatches}
         />;
       case 'charityResults':
         return <CharityResultsView 
@@ -1743,6 +1828,8 @@ const DonatePage = () => {
           individualDonationAmounts={individualDonationAmounts}
           handleIndividualAmountChange={handleIndividualAmountChange}
           combinedMissionStatement={combinedMissionStatement} // Pass statement to CharityResultsView
+          compassRecommendations={compassRecommendations}
+          groupedMatches={groupedMatches}
         />;
       case 'donationConfirmation':
         return <DonationConfirmationView 
