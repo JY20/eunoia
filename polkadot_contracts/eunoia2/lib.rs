@@ -2,46 +2,69 @@
 
 #[ink::contract]
 pub mod eunoia {
-    // use ink::prelude::string::String;
+    use ink::prelude::string::String;
+    use ink::primitives::U256;
+    use core::u64;
+    use ink::primitives::Address as otherAddress;
 
     #[ink(storage)]
     pub struct Eunoia {
         value: bool,
     }
 
-    // #[ink(event)]
-    // pub struct DonateEvent {
-    //     #[ink(topic)]
-    //     donor: AccountId,
-    //     charity_name: String,
-    //     token_name: String,
-    //     amount: Balance,
-    //     timestamp: Timestamp,
-    // }
+    pub struct HistoryEntry{
+        charity_name: String,
+        coin_name: String, 
+        amount_donated: U256,
+        donor_address: otherAddress,
+        timestamp: u64,
+    }
 
     impl Eunoia {
-        /// Creates a new flipper smart contract initialized with the given value.
         #[ink(constructor)]
         pub fn new(init_value: bool) -> Self {
             Self { value: init_value }
         }
 
-        /// Creates a new flipper smart contract initialized to `false`.
         #[ink(constructor)]
         pub fn new_default() -> Self {
             Self::new(Default::default())
         }
 
-        /// Flips the current value of the Flipper's boolean.
         #[ink(message)]
         pub fn flip(&mut self) {
             self.value = !self.value;
         }
 
-        /// Returns the current value of the Flipper's boolean.
         #[ink(message)]
         pub fn get(&self) -> bool {
             self.value
+        }
+
+        #[ink(message)]
+        pub fn give_me(&mut self, value: U256) {
+            assert!(value <= self.env().balance(), "insufficient funds!");
+
+            if self.env().transfer(self.env().caller(), value).is_err() {
+                panic!(
+                    "requested transfer failed. this can be the case if the contract does not\
+                    have sufficient free funds or if the transfer would have brought the\
+                    contract's balance below minimum balance."
+                )
+            }
+        }
+
+        #[ink(message)]
+        pub fn give_to(&mut self, to: otherAddress, value: U256) {
+            assert!(value <= self.env().balance(), "insufficient funds!");
+
+            if self.env().transfer(to, value).is_err() {
+                panic!(
+                    "requested transfer failed. This can be the case if the contract does not \
+                    have sufficient free funds or if the transfer would have brought the \
+                    contract's balance below minimum balance."
+                )
+            }
         }
     }
 
