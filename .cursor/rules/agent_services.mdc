@@ -1,0 +1,404 @@
+---
+description: Whenever a new agentic service is discussed or needed, use this rule to guide the creation of the service.
+alwaysApply: false
+---
+# OpenAI Agents SDK Service Architecture Guide
+
+This rule provides comprehensive guidelines for building services using the OpenAI Agents SDK (sometimes referred to as agents SDK). Follow these patterns to create easily extendable, achievable, and modular agent services.
+
+## Service Definition
+
+A **service** is a system that:
+- Takes an input
+- Runs through a manager that coordinates multiple agents
+- Works through a series of steps with that input
+- Returns a determined output
+
+Example: A calendar enricher service that takes an email as input, checks calendars and weather through agents, and returns an enriched email with scheduled actions.
+
+## Directory Structure
+
+### Base Directory
+Services should be stored in the `agents_sdk/` directory (or user-specified location). Each service follows this structure:
+
+```
+agents_sdk/
+├── {service_name}_agents/
+│   ├── __init__.py         # Empty file (required)
+│   ├── manager.py          # Main manager class
+│   ├── agents/             # Directory containing all agent files
+│   │   ├── __init__.py
+│   │   ├── agent1.py       # Individual agent files
+│   │   └── agent2.py
+│   ├── tools.py           # Optional: Agent tools and functions
+│   └── utilities.py       # Optional: Helper functions for manager
+```
+
+
+## File Structure Guidelines
+
+### 1. manager.py
+
+**Must contain:**
+- A manager class that serves as the main entry point
+- Imports for agents from the agents/ directory
+- A main method that takes input and returns output
+- A wrapper function/class for sync/async compatibility (for Django/other contexts)
+
+**Key Requirements:**
+- Always `await` agent Runners (critical for OpenAI SDK)
+- Follow OpenAI SDK documentation for Runners
+- Structure operations in logical steps
+- Use as few agents as necessary while maintaining quality
+- Import agents from agents/ directory (don't initialize in __init__)
+
+**Example Pattern:**
+```python
+# Import agents from agents directory
+from .agents.agent1 import agent1
+from .agents.agent2 import agent2
+
+class ServiceManager:
+    async def process(self, input_data):
+        # Step 1: Initial processing
+        # Step 2: Agent coordination using imported agents
+        # Step 3: Final output generation
+        
+    def sync_wrapper(self, input_data):
+        # Sync wrapper for Django/other contexts
+```
+
+### 2. agents/ Directory
+
+**Each agent file contains:**
+- Instructions as a constant string (uppercase)
+- Agent definition with model specification
+- Pydantic models for structured outputs
+- Optional tools list
+
+**Model Selection:**
+- **GPT-4.1**: Basic operations
+- **O1 Mini**: Complex reasoning, multiple simultaneous operations  
+- **O3**: Most complex operations only when absolutely necessary
+
+**Agent File Pattern:**
+```python
+AGENT_INSTRUCTIONS = """
+Detailed system message and developer instructions for the agent.
+Clear description of what the agent does and expected behavior.
+"""
+
+# Pydantic models for structured outputs
+class AgentResponse(BaseModel):
+    field1: str = Field(description="Clear field description")
+    field2: Optional[int] = Field(description="Another field")
+    # Never use Dict as field type - use nested Pydantic models instead
+
+# Agent definition
+agent_name = Agent(
+    name="agent_name",
+    model="gpt-4.1",
+    instructions=AGENT_INSTRUCTIONS,
+    tools=[tool1, tool2] #if needed 
+)
+```
+
+**Critical Rules:**
+- One agent per file
+- No classes except Pydantic models
+- Always define structured output models
+- Never use `Dict` fields in Pydantic models - use nested Pydantic models
+- Include good field descriptions (not extensive, but clear)
+
+### 3. tools.py (Optional)
+
+**Purpose:** Define functions that agents can use as tools
+
+**Requirements:**
+- Use `@function_tool` decorator
+- Well-documented string docs
+- Pydantic objects as inputs (never dictionaries)
+- No nested tool functions with decorators
+
+**Critical Nesting Rule:**
+❌ **Never do this:**
+```python
+@function_tool
+def check_single_city(city: str):
+    # Single city check
+    
+@function_tool  
+def check_multiple_cities(cities: List[str]):
+    for city in cities:
+        check_single_city(city)  # This will fail!
+```
+
+✅ **Solutions:**
+1. **Preferred:** Only give batch tool to agent, no decorator on single function
+2. **Alternative:** Create internal copy without decorator:
+```python
+def _check_single_city_internal(city: str):
+    # Implementation without decorator
+
+@function_tool
+def check_single_city(city: str):
+    return _check_single_city_internal(city)
+    
+@function_tool
+def check_multiple_cities(cities: List[str]):
+    for city in cities:
+        _check_single_city_internal(city)  # Use internal version
+```
+
+**Function Requirements:**
+- Only include functions intended as agent tools
+- No other utility functions (use utilities.py instead)
+
+### 4. utilities.py (Optional)
+
+**Purpose:** Helper functions for manager.py operations
+
+**Contains:**
+- Deterministic functions needed by manager
+- Data retrieval functions  
+- Pre/post-processing utilities
+- Functions that are NOT given to agents
+
+**When to use:** Rarely necessary - most operations handled by manager + agents + tools
+
+## Best Practices
+
+### Manager Design
+- Think in modular steps
+- Use specialized agents for specific tasks
+- Chain agents: Agent 1 → Process → Agent 2 → Final Output
+- Always structure outputs using Pydantic models
+- For web search, refer to documentation guidelines
+
+### Agent Instructions
+- Provide clear, detailed instructions
+- Always specify expected output structure
+- Include context about the agent's role in the larger service
+- Quality instructions > quantity of agents
+
+### Structured Outputs
+- Always use Pydantic BaseModel for agent responses
+- Define models in the same agent file
+- Use nested Pydantic models instead of Dict fields
+- Include clear field descriptions
+- Well-fitted models for specific use cases
+
+### Error Handling
+- Implement proper error handling in manager
+- Use logging for debugging
+- Provide meaningful error messages
+- Consider fallback strategies
+
+## Integration Guidelines
+
+### Django Integration
+- Create sync wrappers for async agent operations
+- Handle Django ORM operations properly
+
+### Testing
+- Test manager operations end-to-end
+- Test error scenarios# OpenAI Agents SDK Service Architecture Guide
+
+This rule provides comprehensive guidelines for building services using the OpenAI Agents SDK (sometimes referred to as agents SDK). Follow these patterns to create easily extendable, achievable, and modular agent services.
+
+## Service Definition
+
+A **service** is a system that:
+- Takes an input
+- Runs through a manager that coordinates multiple agents
+- Works through a series of steps with that input
+- Returns a determined output
+
+Example: A calendar enricher service that takes an email as input, checks calendars and weather through agents, and returns an enriched email with scheduled actions.
+
+## Directory Structure
+
+### Base Directory
+Services should be stored in the `agents_sdk/` directory (or user-specified location). Each service follows this structure:
+
+```
+agents_sdk/
+├── {service_name}_agents/
+│   ├── __init__.py         # Empty file (required)
+│   ├── manager.py          # Main manager class
+│   ├── agents/             # Directory containing all agent files
+│   │   ├── __init__.py
+│   │   ├── agent1.py       # Individual agent files
+│   │   └── agent2.py
+│   ├── tools.py           # Optional: Agent tools and functions
+│   └── utilities.py       # Optional: Helper functions for manager
+```
+
+
+## File Structure Guidelines
+
+### 1. manager.py
+
+**Must contain:**
+- A manager class that serves as the main entry point
+- Imports for agents from the agents/ directory
+- A main method that takes input and returns output
+- A wrapper function/class for sync/async compatibility (for Django/other contexts)
+
+**Key Requirements:**
+- Always `await` agent Runners (critical for OpenAI SDK)
+- Follow OpenAI SDK documentation for Runners
+- Structure operations in logical steps
+- Use as few agents as necessary while maintaining quality
+- Import agents from agents/ directory (don't initialize in __init__)
+
+**Example Pattern:**
+```python
+# Import agents from agents directory
+from .agents.agent1 import agent1
+from .agents.agent2 import agent2
+
+class ServiceManager:
+    async def process(self, input_data):
+        # Step 1: Initial processing
+        # Step 2: Agent coordination using imported agents
+        # Step 3: Final output generation
+        
+    def sync_wrapper(self, input_data):
+        # Sync wrapper for Django/other contexts
+```
+
+### 2. agents/ Directory
+
+**Each agent file contains:**
+- Instructions as a constant string (uppercase)
+- Agent definition with model specification
+- Pydantic models for structured outputs
+- Optional tools list
+
+**Model Selection:**
+- **GPT-4.1**: Basic operations
+- **O1 Mini**: Complex reasoning, multiple simultaneous operations  
+- **O3**: Most complex operations only when absolutely necessary
+
+**Agent File Pattern:**
+```python
+AGENT_INSTRUCTIONS = """
+Detailed system message and developer instructions for the agent.
+Clear description of what the agent does and expected behavior.
+"""
+
+# Pydantic models for structured outputs
+class AgentResponse(BaseModel):
+    field1: str = Field(description="Clear field description")
+    field2: Optional[int] = Field(description="Another field")
+    # Never use Dict as field type - use nested Pydantic models instead
+
+# Agent definition
+agent_name = Agent(
+    model="gpt-4.1",
+    instructions=AGENT_INSTRUCTIONS,
+    tools=[tool1, tool2] #if needed 
+)
+```
+
+**Critical Rules:**
+- One agent per file
+- No classes except Pydantic models
+- Always define structured output models
+- Never use `Dict` fields in Pydantic models - use nested Pydantic models
+- Include good field descriptions (not extensive, but clear)
+
+### 3. tools.py (Optional)
+
+**Purpose:** Define functions that agents can use as tools
+
+**Requirements:**
+- Use `@function_tool` decorator
+- Well-documented string docs
+- Pydantic objects as inputs (never dictionaries)
+- No nested tool functions with decorators
+
+**Critical Nesting Rule:**
+❌ **Never do this:**
+```python
+@function_tool
+def check_single_city(city: str):
+    # Single city check
+    
+@function_tool  
+def check_multiple_cities(cities: List[str]):
+    for city in cities:
+        check_single_city(city)  # This will fail!
+```
+
+✅ **Solutions:**
+1. **Preferred:** Only give batch tool to agent, no decorator on single function
+2. **Alternative:** Create internal copy without decorator:
+```python
+def _check_single_city_internal(city: str):
+    # Implementation without decorator
+
+@function_tool
+def check_single_city(city: str):
+    return _check_single_city_internal(city)
+    
+@function_tool
+def check_multiple_cities(cities: List[str]):
+    for city in cities:
+        _check_single_city_internal(city)  # Use internal version
+```
+
+**Function Requirements:**
+- Only include functions intended as agent tools
+- No other utility functions (use utilities.py instead)
+
+### 4. utilities.py (Optional)
+
+**Purpose:** Helper functions for manager.py operations
+
+**Contains:**
+- Deterministic functions needed by manager
+- Data retrieval functions  
+- Pre/post-processing utilities
+- Functions that are NOT given to agents
+
+**When to use:** Rarely necessary - most operations handled by manager + agents + tools
+
+## Best Practices
+
+### Manager Design
+- Think in modular steps
+- Use specialized agents for specific tasks
+- Chain agents: Agent 1 → Process → Agent 2 → Final Output
+- Always structure outputs using Pydantic models
+- For web search, refer to documentation guidelines
+
+### Agent Instructions
+- Provide clear, detailed instructions
+- Always specify expected output structure
+- Include context about the agent's role in the larger service
+- Quality instructions > quantity of agents
+
+### Structured Outputs
+- Always use Pydantic BaseModel for agent responses
+- Define models in the same agent file
+- Use nested Pydantic models instead of Dict fields
+- Include clear field descriptions
+- Well-fitted models for specific use cases
+
+### Error Handling
+- Implement proper error handling in manager
+- Use logging for debugging
+- Provide meaningful error messages
+- Consider fallback strategies
+
+## Integration Guidelines
+
+### Django Integration
+- Create sync wrappers for async agent operations
+- Handle Django ORM operations properly
+
+### Testing
+- Test manager operations end-to-end
+- Test error scenarios

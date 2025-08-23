@@ -13,6 +13,7 @@ router.register(r'impacts', api_views.ImpactViewSet, basename='impact')
 router.register(r'marketing-campaigns', api_views.MarketingCampaignViewSet, basename='marketingcampaign')
 router.register(r'social-posts', api_views.SocialPostViewSet, basename='socialpost')
 router.register(r'donation-transactions', api_views.DonationTransactionViewSet, basename='donationtransaction')
+router.register(r'movements', api_views.MovementViewSet, basename='movement')
 
 urlpatterns = [
     path('', HomeView.as_view(), name='home'),
@@ -27,6 +28,9 @@ urlpatterns = [
 
     # New endpoint for semantic charity search
     path('api/charity-semantic-search/', api_views.CharitySemanticSearchView.as_view(), name='charity-semantic-search'),
+
+    # Compass matching endpoint
+    path('api/compass/match/', api_views.CompassMatchView.as_view(), name='compass-match'),
 
     # Old API endpoints (to be removed or commented out)
     # path('api/charities/featured/', api.featured_charities, name='api-featured-charities'),

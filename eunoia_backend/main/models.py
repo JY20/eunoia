@@ -154,3 +154,27 @@ class DonationTransaction(models.Model):
         verbose_name_plural = _("Donation Transactions")
         ordering = ['-timestamp']
         unique_together = ('transaction_hash', 'blockchain') # A hash should be unique per blockchain
+
+
+class Movement(models.Model):
+    charity = models.ForeignKey(Charity, on_delete=models.CASCADE, related_name='movements')
+    title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=300)
+    summary = models.TextField(blank=True, null=True)
+    category = models.CharField(max_length=100, blank=True, null=True)
+    geography = models.CharField(max_length=255, blank=True, null=True)
+    start_date = models.DateField(blank=True, null=True)
+    source_urls = models.JSONField(blank=True, null=True, default=list)
+    confidence_score = models.DecimalField(max_digits=4, decimal_places=3, blank=True, null=True)
+    embedding = models.JSONField(blank=True, null=True, help_text="Embedding of the movement summary for semantic matching")
+    is_active = models.BooleanField(default=True)
+    last_seen = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.charity.name})"
+
+    class Meta:
+        unique_together = ('charity', 'slug')
+        ordering = ['charity', '-created_at']

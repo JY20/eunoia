@@ -22,13 +22,18 @@ import SearchIcon from '@mui/icons-material/Search';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import { Link, useNavigate } from 'react-router-dom';
 import CharitySearch from '../components/CharitySearch';
 // import CharityFilter from '../components/CharityFilter'; // Removed as file not found and component unused
 import CharityResultCard from '../components/CharityResultCard'; // Assuming this was the intended component
 
 // Constants
-const API_BASE_URL = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api';
+<<<<<<< HEAD
+const API_BASE_URL = 'http://127.0.0.1:8000/api'; // Local development backend
+// const API_BASE_URL = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api'; // Production
+=======
+>>>>>>> origin/P1
 
 const PageHeader = styled(Box)(({ theme }) => ({
   background: 'linear-gradient(135deg, #7E57C2 0%, #B39DDB 100%)',

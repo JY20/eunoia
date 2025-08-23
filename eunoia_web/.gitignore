@@ -26,3 +26,7 @@ yarn-error.log*
 # package manager files
 .pnp/
 .pnp.js
+
+.pem
+*/.pem
+terraform\eunoiaec2.pem

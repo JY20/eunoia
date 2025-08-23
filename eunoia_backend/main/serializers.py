@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Charity, Impact, MarketingCampaign, SocialPost, DonationTransaction
+from .models import Charity, Impact, MarketingCampaign, SocialPost, DonationTransaction, Movement
 
 class CharitySerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(source='get_category_display', read_only=True)
@@ -62,3 +62,16 @@ class DonationTransactionSerializer(serializers.ModelSerializer):
             'charity_wallet_address', 'amount', 'currency', 'blockchain', 
             'blockchain_display', 'timestamp', 'status'
         ] 
+
+
+class MovementSerializer(serializers.ModelSerializer):
+    charity_name = serializers.CharField(source='charity.name', read_only=True)
+
+    class Meta:
+        model = Movement
+        fields = [
+            'id', 'charity', 'charity_name', 'title', 'slug', 'summary', 'category',
+            'geography', 'start_date', 'source_urls', 'confidence_score', 'embedding', 'is_active',
+            'last_seen', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['last_seen', 'created_at', 'updated_at']

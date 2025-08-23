@@ -1,0 +1,435 @@
+---
+description: When creating any kind of agents
+globs: 
+alwaysApply: false
+---
+# Comprehensive Guide to OpenAI Agents SDK
+
+This guide provides a detailed overview of the OpenAI Agents SDK, its core components, key patterns, and advanced features to help build sophisticated AI agent applications.
+
+## 1. Core SDK Components
+
+### 1.1. `Agent` (`agents.Agent`)
+The `Agent` is the fundamental building block, representing an LLM-powered entity.
+
+**Key Initialization Parameters:**
+*   `name: str`: A descriptive name for the agent.
+*   `instructions: str | Callable[[RunContextWrapper, Agent], str]`: The system prompt.
+    *   Can be a static string.
+    *   Can be a function for dynamic system prompts based on runtime context. See [dynamic_system_prompt.py](mdc:openai-agents-python/examples/basic/dynamic_system_prompt.py).
+*   `model: str`: Specifies the OpenAI model (e.g., "gpt-4o", "o3-mini").
+*   `output_type: type | AgentOutputSchemaBase | None`: Defines the expected output structure.
+    *   Use Pydantic `BaseModel` or dataclasses for structured JSON. E.g., `WebSearchPlan` in [planner_agent.py](mdc:openai-agents-python/examples/research_bot/agents/planner_agent.py).
+    *   Use `str` for plain text.
+    *   For non-strict Pydantic schemas: `AgentOutputSchema(YourModel, strict_json_schema=False)`.
+    *   For full control, inherit `AgentOutputSchemaBase`. See [non_strict_output_type.py](mdc:openai-agents-python/examples/basic/non_strict_output_type.py).
+*   `tools: list[Tool | Callable]`: List of tools the agent can use. Tools are typically functions decorated with `@function_tool`. See [tools.py](mdc:openai-agents-python/examples/basic/tools.py).
+*   `model_settings: ModelSettings`: To specify OpenAI API params like `tool_choice="required"`. See [forcing_tool_use.py](mdc:openai-agents-python/examples/agent_patterns/forcing_tool_use.py).
+*   `handoffs: list[Agent]`: List of agents this agent can hand off control to. See [routing.py](mdc:openai-agents-python/examples/agent_patterns/routing.py).
+*   `handoff_description: str`: Description for the agent, useful when it's a handoff target or a tool.
+*   `tool_use_behavior: Literal["run_llm_again", "stop_on_first_tool"] | ToolsToFinalOutputFunction`: Controls post-tool execution flow. See [forcing_tool_use.py](mdc:openai-agents-python/examples/agent_patterns/forcing_tool_use.py).
+*   `input_guardrails: list[Callable]`: Functions (@input_guardrail) run before processing input. See [input_guardrails.py](mdc:openai-agents-python/examples/agent_patterns/input_guardrails.py).
+*   `output_guardrails: list[Callable]`: Functions (@output_guardrail) run on the final output. See [output_guardrails.py](mdc:openai-agents-python/examples/agent_patterns/output_guardrails.py).
+*   `hooks: AgentHooks`: Instance of a class inheriting `AgentHooks` for agent-specific lifecycle events. See [agent_lifecycle_example.py](mdc:openai-agents-python/examples/basic/agent_lifecycle_example.py).
+
+A minimal agent definition can be found in [hello_world.py](mdc:openai-agents-python/examples/basic/hello_world.py).
+
+### 1.2. `Runner` (`agents.Runner`)
+The execution engine for agents.
+
+*   `Runner.run(agent, input, previous_response_id=None, context=None, hooks=None) -> RunResult`:
+    *   Executes a single agent turn.
+    *   `input`: String or list of message objects (`TResponseInputItem`).
+    *   `previous_response_id`: For efficient conversation continuation (OpenAI Responses API specific). See [previous_response_id.py](mdc:openai-agents-python/examples/basic/previous_response_id.py).
+    *   `context`: Custom object for dynamic prompts/hooks.
+    *   `hooks`: Instance of `RunHooks` for run-level lifecycle events & usage tracking. See [lifecycle_example.py](mdc:openai-agents-python/examples/basic/lifecycle_example.py).
+    *   Returns `RunResult` (contains `final_output`, `new_items`, `last_response_id`, `current_agent`).
+*   `Runner.run_streamed(agent, input, ...) -> StreamingRunResult`:
+    *   Similar to `run` but for streaming responses.
+    *   `StreamingRunResult.stream_events()`: Async iterator for events like raw text deltas and structured run items. See [stream_text.py](mdc:openai-agents-python/examples/basic/stream_text.py) and [stream_items.py](mdc:openai-agents-python/examples/basic/stream_items.py).
+
+### 1.3. Tools (`@agents.function_tool`)
+Enable agents to interact with external systems or perform actions.
+
+*   Define a Python function (can be `async`).
+*   Use Pydantic models for arguments and especially the return type (forms the schema for the LLM).
+*   Decorate with `@function_tool`.
+*   Add the decorated function to an agent's `tools` list.
+*   The SDK manages the LLM's tool call, function execution, and result feedback.
+*   Example: [tools.py](mdc:openai-agents-python/examples/basic/tools.py).
+*   Pre-built tools like `WebSearchTool` are available. See [search_agent.py](mdc:openai-agents-python/examples/research_bot/agents/search_agent.py).
+
+## 2. Key Patterns and Capabilities
+
+### 2.1. Multi-Agent Systems
+*   **Routing/Handoffs:** A `triage_agent` directs tasks using `agent.handoffs`. The active agent is `result.current_agent`. Example: [routing.py](mdc:openai-agents-python/examples/agent_patterns/routing.py).
+*   **Agents as Tools:** An orchestrator agent uses other agents as tools via `sub_agent.as_tool(...)`. Example: [agents_as_tools.py](mdc:openai-agents-python/examples/agent_patterns/agents_as_tools.py) and [manager.py](mdc:openai-agents-python/examples/financial_research_agent/manager.py).
+
+### 2.2. Structured Output
+*   Crucial for reliable data extraction. Use `agent.output_type` with Pydantic models.
+*   The SDK auto-parses JSON output to Python objects in `result.final_output`.
+*   Example: `WebSearchPlan` in [planner_agent.py](mdc:openai-agents-python/examples/research_bot/agents/planner_agent.py).
+
+### 2.3. Guardrails
+*   **Input Guardrails (`@input_guardrail`):** Pre-process/validate input. Raise `InputGuardrailTripwireTriggered`. Example: [input_guardrails.py](mdc:openai-agents-python/examples/agent_patterns/input_guardrails.py).
+*   **Output Guardrails (`@output_guardrail`):** Validate final agent output. Raise `OutputGuardrailTripwireTriggered`. Example: [output_guardrails.py](mdc:openai-agents-python/examples/agent_patterns/output_guardrails.py).
+*   Guardrails return `GuardrailFunctionOutput`.
+
+### 2.4. Lifecycle Hooks & Observability
+*   **`AgentHooks`:** Agent-specific lifecycle events (start, end, tool_start, tool_end, handoff). Attached to `Agent` instance. Example: [agent_lifecycle_example.py](mdc:openai-agents-python/examples/basic/agent_lifecycle_example.py).
+*   **`RunHooks`:** Run-level lifecycle events, passed to `Runner.run`. Provides `context.usage` for token tracking. Example: [lifecycle_example.py](mdc:openai-agents-python/examples/basic/lifecycle_example.py).
+*   **Tracing (`trace`, `custom_span`, `gen_trace_id`):** For OpenAI platform observability. Example: [manager.py](mdc:openai-agents-python/examples/research_bot/manager.py).
+
+### 2.5. Streaming
+*   **Text Streaming:** `RawResponsesStreamEvent` with `ResponseTextDeltaEvent` for live text. Example: [stream_text.py](mdc:openai-agents-python/examples/basic/stream_text.py).
+*   **Item Streaming:** `RunItemStreamEvent` for tool calls, outputs, messages. Example: [stream_items.py](mdc:openai-agents-python/examples/basic/stream_items.py).
+
+### 2.6. Multimodal Input (Images)
+*   Provide image via `{"type": "input_image", "image_url": "<URL_or_DataURL>"}` in message content.
+*   Remote images: Use `http(s)://` URL. See [remote_image.py](mdc:openai-agents-python/examples/basic/remote_image.py).
+*   Local images: Base64 encode and use Data URL (`data:image/jpeg;base64,...`). See [local_image.py](mdc:openai-agents-python/examples/basic/local_image.py).
+
+### 2.7. Iterative Refinement & Evaluation
+*   **LLM as a Judge:** Iteratively refine content with a generator and an evaluator agent. Example: [llm_as_a_judge.py](mdc:openai-agents-python/examples/agent_patterns/llm_as_a_judge.py).
+*   **Parallelization:** Run agents concurrently (`asyncio.gather`) and synthesize results. Example: [parallelization.py](mdc:openai-agents-python/examples/agent_patterns/parallelization.py).
+
+### 2.8. Conversation Management
+*   Pass message history list (`list[TResponseInputItem]`) as `input`.
+*   Use `result.to_input_list()` to get updated history.
+*   Alternatively, `previous_response_id` for specific OpenAI API optimization. See [previous_response_id.py](mdc:openai-agents-python/examples/basic/previous_response_id.py).
+
+## 3. Project Structure Example
+A common way to organize an agent project:
+*   `main.py`: Entry point.
+*   `manager.py`: Orchestrates the agent(s) and workflow (e.g., [manager.py](mdc:openai-agents-python/examples/research_bot/manager.py)).
+*   `agents/`: Directory for individual agent definitions (e.g., [planner_agent.py](mdc:openai-agents-python/examples/research_bot/agents/planner_agent.py)).
+*   `tools/` (optional): Directory for custom tool definitions if they are complex or numerous.
+*   `prompts/` (optional): For storing complex prompt strings separately.
+
+This guide should serve as a strong foundation for understanding and utilizing the OpenAI Agents SDK effectively. Refer to the linked example files for practical implementations of these concepts.
+
+# OpenAI Agents SDK - Advanced Multi-Agent System Architecture
+
+## Overview
+This rule documents the sophisticated multi-agent system architecture developed for the campaign designer, demonstrating how to build complex AI workflows using OpenAI Agents SDK with proper orchestration, data flow, and Django integration.
+
+## Key Architecture Patterns
+
+### 1. Folder Structure Pattern
+```
+agents_sdk/
+├── [package_name]_agents/
+│   ├── __init__.py              # Package exports
+│   ├── advanced_manager.py      # Orchestrator class
+│   └── agents/
+│       ├── __init__.py
+│       ├── planning_agent.py    # Phase 1 agent
+│       ├── objectives_agent.py  # Phase 2 agent
+│       ├── strategy_agent.py    # Phase 3 agent
+│       └── channel_agent.py     # Phase 4 agent
+```
+
+**Best Practices:**
+- Use descriptive package names ending in `_agents`
+- Separate manager from individual agents
+- Order agents by execution sequence
+- Include comprehensive `__init__.py` exports
+
+### 2. Agent Architecture Pattern
+
+Each agent should follow this structure:
+
+```python
+from pydantic import BaseModel, Field
+from openai import OpenAI
+from agents import Agent
+
+# 1. Define Input/Output Models
+class AgentInput(BaseModel):
+    """Strongly typed input model"""
+    user_request: str
+    company_data: dict
+    # ... other fields
+
+class AgentOutput(BaseModel):
+    """Strongly typed output model"""
+    results: list
+    analysis: dict
+    # ... other fields
+
+# 2. Agent Class
+class SpecificAgent:
+    def __init__(self, client: OpenAI):
+        self.client = client
+        self.agent = Agent(
+            model="o4-mini",  # Use consistent model
+            instructions="""Clear, specific instructions...""",
+            client=client
+        )
+    
+    def process(self, input_data: AgentInput) -> AgentOutput:
+        """Main processing method"""
+        # Implementation
+        return AgentOutput(...)
+```
+
+**Key Principles:**
+- Use Pydantic models for all input/output
+- Consistent error handling
+- Clear method naming (`process`)
+- Comprehensive docstrings
+
+### 3. Manager Orchestration Pattern
+
+The manager coordinates multiple agents:
+
+```python
+class AdvancedSystemManager:
+    def __init__(self, client: OpenAI):
+        self.client = client
+        # Initialize all agents
+        self.planning_agent = PlanningAgent(client)
+        self.objectives_agent = ObjectivesAgent(client)
+        # ... more agents
+    
+    async def design_campaigns(
+        self, 
+        user_request: str,
+        progress_callback: Optional[Callable] = None
+    ) -> dict:
+        """Orchestrate multi-agent pipeline"""
+        
+        # Phase 1: Strategic Planning
+        if progress_callback:
+            progress_callback("Planning", 25, "Analyzing strategic approaches...")
+        planning_result = self.planning_agent.process(...)
+        
+        # Phase 2: Objectives (uses planning results)
+        if progress_callback:
+            progress_callback("Objectives", 50, "Defining campaign objectives...")
+        objectives_result = self.objectives_agent.process(
+            planning_results=planning_result
+        )
+        
+        # Continue pipeline...
+        
+        # Compile final results
+        return self._compile_results(...)
+```
+
+**Orchestration Best Practices:**
+- Sequential execution with dependency management
+- Progress tracking with callbacks
+- Error handling at each phase
+- Result compilation and transformation
+- Async/sync wrapper methods
+
+### 4. Pydantic Model Patterns
+
+For OpenAI Agents SDK compatibility, use structured models:
+
+```python
+# ❌ Avoid Dict fields (not strict mode compatible)
+class BadModel(BaseModel):
+    data: Dict[str, Any]
+
+# ✅ Use structured models instead
+class ContentFormats(BaseModel):
+    blog_posts: str
+    social_media_posts: str
+    videos: str
+    infographics: str
+
+class GoodModel(BaseModel):
+    formats: ContentFormats
+```
+
+**Model Design Principles:**
+- No `Dict` or `Any` types in strict mode
+- Use nested Pydantic models for complex data
+- Include helpful docstrings and examples
+- Use `Field()` for validation and descriptions
+
+### 5. Django Integration Pattern
+
+For web application integration:
+
+```python
+# Background processing function
+def run_agent_system(request_data, session_key):
+    """Background thread function"""
+    try:
+        session_store = SessionStore(session_key=session_key)
+        
+        def progress_callback(phase: str, progress: int, message: str):
+            # Store progress in session (avoid async context issues)
+            session_store['progress'] = progress
+            session_store['phase'] = phase
+            session_store['message'] = message
+            # Don't save here - save at completion
+        
+        # Run agent system
+        result = manager.design_campaigns(
+            user_request=request_data['user_request'],
+            progress_callback=progress_callback
+        )
+        
+        # Save results
+        session_store['result'] = result
+        session_store['status'] = 'completed'
+        session_store.save()
+        
+    except Exception as e:
+        session_store['status'] = 'failed'
+        session_store['error'] = str(e)
+        session_store.save()
+
+# Django view
+def process_request(request):
+    # Store request in session
+    request.session['request_data'] = {...}
+    
+    # Start background processing
+    thread = threading.Thread(
+        target=run_agent_system,
+        args=(request_data, request.session.session_key)
+    )
+    thread.daemon = True
+    thread.start()
+```
+
+**Integration Best Practices:**
+- Use background threads for long-running processes
+- Session-based progress tracking
+- Proper error handling and logging
+- Async context safety
+
+### 6. Data Flow Pattern
+
+Structure data flow between agents:
+
+```
+User Request → Planning Agent → Strategic Plans
+                     ↓
+Strategic Plans → Objectives Agent → Campaign Objectives
+                     ↓
+Objectives → Strategy Agent → Campaign Strategy
+                     ↓
+Strategy → Channel Agent → Channel Strategy
+                     ↓
+All Results → Manager → Compiled Campaign Options
+```
+
+**Data Flow Principles:**
+- Each agent builds on previous results
+- Clear input/output contracts
+- Immutable data passing
+- Comprehensive result compilation
+
+### 7. Error Handling Pattern
+
+Implement robust error handling:
+
+```python
+class AgentError(Exception):
+    """Custom agent exception"""
+    pass
+
+def process_with_error_handling(self, input_data):
+    try:
+        # Agent processing
+        result = self.agent.run(...)
+        
+        # Validate result
+        if not self._validate_result(result):
+            raise AgentError("Invalid result format")
+            
+        return result
+        
+    except Exception as e:
+        # Log error with context
+        logger.error(f"Agent {self.__class__.__name__} failed: {e}")
+        
+        # Re-raise with context
+        raise AgentError(f"Processing failed: {str(e)}") from e
+```
+
+### 8. Testing Pattern
+
+Create comprehensive tests:
+
+```python
+def test_agent_system():
+    """Test the complete agent pipeline"""
+    
+    # Test data
+    test_request = {
+        'user_request': 'Launch a math education platform',
+        'company_data': {...},
+        'selected_products': [...]
+    }
+    
+    # Run system
+    result = design_campaigns_sync(**test_request)
+    
+    # Validate results
+    assert result['success'] == True
+    assert len(result['campaign_options']) > 0
+    
+    # Validate structure
+    for option in result['campaign_options']:
+        assert 'name' in option
+        assert 'messaging_framework' in option
+        assert 'content_strategy' in option
+        assert 'channel_details' in option
+```
+
+## Implementation Checklist
+
+When building a new agent system:
+
+### Planning Phase
+- [ ] Define clear phases and agent responsibilities
+- [ ] Design data flow between agents
+- [ ] Plan Pydantic models structure
+- [ ] Define success metrics
+
+### Development Phase
+- [ ] Create folder structure
+- [ ] Implement individual agents
+- [ ] Build manager orchestrator
+- [ ] Add progress tracking
+- [ ] Implement error handling
+
+### Integration Phase
+- [ ] Create Django integration
+- [ ] Add background processing
+- [ ] Implement UI updates
+- [ ] Add comprehensive logging
+
+### Testing Phase
+- [ ] Unit tests for each agent
+- [ ] Integration tests for pipeline
+- [ ] Error handling tests
+- [ ] Performance testing
+
+## Key Learnings
+
+1. **Modular Design**: Keep agents focused on single responsibilities
+2. **Strong Typing**: Use Pydantic models for data validation
+3. **Progress Tracking**: Essential for user experience
+4. **Error Resilience**: Comprehensive error handling prevents cascading failures
+5. **Data Transformation**: Manager should handle result compilation
+6. **Async Safety**: Be careful with Django session handling in background threads
+
+## Examples
+
+Reference the campaign designer implementation:
+- [Advanced Manager](mdc:agents_sdk/campaign_designer_agents/advanced_manager.py)
+- [Planning Agent](mdc:agents_sdk/campaign_designer_agents/agents/planning_agent.py)
+- [Strategy Agent](mdc:agents_sdk/campaign_designer_agents/agents/strategy_agent.py)
+- [Django Integration](mdc:main/views.py)
+
+This architecture enables building sophisticated, professional-grade AI agent systems that can handle complex workflows with proper error handling, progress tracking, and seamless integration with web applications.
+
+
