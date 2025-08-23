@@ -34,6 +34,8 @@ wheels/
 *.egg
 MANIFEST
 
+/.cursor/
+
 # Django
 *.log
 local_settings.py
