@@ -82,7 +82,8 @@ import ImpactMap from '../components/ImpactMap'; // Import the new map component
 
 // Mock data, replace with API calls
 // Constants for API and Wallet
-const API_BASE_URL = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api'; // Backend API base URL
+const API_BASE_URL = 'http://127.0.0.1:8000/api'; // Local development backend
+// const API_BASE_URL = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api'; // Production // Backend API base URL
 const MODULE_ADDRESS = "0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011";
 const MODULE_NAME = "eunoia_foundation";
 const DONATE_FUNCTION_NAME = "donate";
