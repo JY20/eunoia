@@ -2,7 +2,7 @@ import subprocess
 import json
 from django.contrib import admin
 from django.contrib import messages
-from .models import Charity, Impact, MarketingCampaign, SocialPost
+from .models import Charity, Impact, MarketingCampaign, SocialPost, Movement
 
 @admin.register(Charity)
 class CharityAdmin(admin.ModelAdmin):
@@ -200,3 +200,30 @@ class SocialPostAdmin(admin.ModelAdmin):
     def campaign_name(self, obj):
         return obj.campaign.name
     campaign_name.short_description = 'Campaign'
+
+
+@admin.register(Movement)
+class MovementAdmin(admin.ModelAdmin):
+    list_display = ('title', 'charity_name', 'category', 'geography', 'is_active', 'confidence_score', 'created_at')
+    list_filter = ('is_active', 'category', 'geography', 'charity__name')
+    search_fields = ('title', 'summary', 'charity__name')
+    autocomplete_fields = ['charity']
+    readonly_fields = ('created_at', 'updated_at', 'last_seen')
+    fieldsets = (
+        (None, {
+            'fields': ('charity', 'title', 'slug', 'summary')
+        }),
+        ('Classification', {
+            'fields': ('category', 'geography', 'start_date', 'confidence_score', 'is_active')
+        }),
+        ('Sources', {
+            'fields': ('source_urls',)
+        }),
+        ('Tracking', {
+            'fields': ('last_seen', 'created_at', 'updated_at')
+        }),
+    )
+
+    def charity_name(self, obj):
+        return obj.charity.name
+    charity_name.short_description = 'Charity'

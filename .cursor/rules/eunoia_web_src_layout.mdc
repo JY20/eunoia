@@ -1,0 +1,23 @@
+---
+alwaysApply: true
+---
+# Summary of `eunoia_web/src` Directory Structure
+
+This directory is the primary source code folder for the React frontend application (`eunoia_web`).
+
+**Key Files and Subdirectories:**
+
+*   **`App.js`**: Likely the main application component where other components are composed and routing might be set up.
+*   **`App.css`**: CSS styles specifically for the `App.js` component.
+*   **`App.test.js`**: Tests for the `App.js` component.
+*   **`index.js`**: The entry point for the React application. It typically renders the root component (often `App`) into the DOM.
+*   **`index.css`**: Global CSS styles for the application.
+*   **`logo.svg`**: An SVG logo file, likely used within the application.
+*   **`reportWebVitals.js`**: A script for measuring and reporting web performance vitals.
+*   **`setupTests.js`**: Configuration file for setting up the testing environment (e.g., Jest).
+
+*   **`assets/` (directory)**: Expected to contain static assets like images, fonts, etc.
+*   **`components/` (directory)**: Expected to house reusable UI components that make up various parts of the application (e.g., buttons, cards, navigation bars).
+*   **`pages/` (directory)**: Likely contains components that represent different views or pages of the application (e.g., HomePage, CharityDetailPage, DonatePage).
+
+This structure is typical for a Create React App project, organizing code by function (components, pages) and type (JS, CSS, assets).

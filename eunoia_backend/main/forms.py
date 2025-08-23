@@ -1,5 +1,6 @@
 from django import forms
 from .models import Charity
+from agents_sdk import launch_charity_research_in_background
 
 class CharityRegistrationForm(forms.ModelForm):
     class Meta:
@@ -31,3 +32,12 @@ class CharityRegistrationForm(forms.ModelForm):
             'contact_email': 'Public Contact Email',
             'logo': 'Charity Logo (Optional)',
         } 
+
+    def save(self, commit=True):
+        charity = super().save(commit=commit)
+        if charity and charity.website_url:
+            try:
+                launch_charity_research_in_background(charity.id, max_pages=6)
+            except Exception:
+                pass
+        return charity

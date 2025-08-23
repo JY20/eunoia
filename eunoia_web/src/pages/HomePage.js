@@ -20,6 +20,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import CharitySearch from '../components/CharitySearch';
 
 // Import icons
@@ -33,8 +34,12 @@ import SecurityIcon from '@mui/icons-material/Security';
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
 
 // Constants
+<<<<<<< HEAD
 const API_BASE_URL = 'http://127.0.0.1:8000/api'; // Local development backend
 // const API_BASE_URL = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api'; // Production
+=======
+// const API_URL = 'http://localhost:8000/api'; // Commented out as API call is mocked
+>>>>>>> origin/P1
 
 // Styled Components
 const HeroSection = styled(Box)(({ theme }) => ({
