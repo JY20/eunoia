@@ -50,3 +50,4 @@ media/
 # Ignore target directories for Polkadot contracts
 polkadot_contracts/target/
 polkadot_contracts/*/target/
+polkadot-react-app/node_modules/

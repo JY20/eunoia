@@ -5,25 +5,47 @@ pub mod eunoia {
     use ink::prelude::string::String;
     use ink::primitives::U256;
     use core::u64;
-    use ink::primitives::Address as otherAddress;
-
-    #[ink(storage)]
-    pub struct Eunoia {
-        value: bool,
-    }
+    use ink::primitives::Address as address;
+    use ink::storage::Mapping;
+    use ink::env::Timestamp as timestamp;
+    use ink::prelude::vec::Vec;
 
     pub struct HistoryEntry{
         charity_name: String,
         coin_name: String, 
         amount_donated: U256,
-        donor_address: otherAddress,
-        timestamp: u64,
+        donor_address: address,
+        timestamp: timestamp,
+    }
+
+    pub struct Charity{
+        name: String,
+        description: String,
+        wallet_address: address,
+        total_donated: U256,
+        donation_history: Vec<HistoryEntry>,
+    }
+
+    #[ink(storage)]
+    pub struct Eunoia {
+        value: bool,
+        owner: address,
+        // histories: Mapping<(AccountId, u32), HistoryEntry>,
+        history_count: Mapping<AccountId, u32>,   
+        charity_wallets: Mapping<String, address>,
+        charity_raised_amounts: Mapping<(String, String), U256>,
     }
 
     impl Eunoia {
         #[ink(constructor)]
         pub fn new(init_value: bool) -> Self {
-            Self { value: init_value }
+            Self {
+                value: init_value,
+                owner: Self::env().caller(),
+                history_count: Mapping::default(),
+                charity_wallets: Mapping::default(),
+                charity_raised_amounts: Mapping::default(),
+            }
         }
 
         #[ink(constructor)]
@@ -55,7 +77,7 @@ pub mod eunoia {
         }
 
         #[ink(message)]
-        pub fn give_to(&mut self, to: otherAddress, value: U256) {
+        pub fn give_to(&mut self, to: address, value: U256) {
             assert!(value <= self.env().balance(), "insufficient funds!");
 
             if self.env().transfer(to, value).is_err() {

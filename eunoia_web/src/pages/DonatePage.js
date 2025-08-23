@@ -72,9 +72,9 @@ const MODULE_NAME = "eunoia_foundation";
 const DONATE_FUNCTION_NAME = "donate";
 
 // Polkadot Contract Constants
-const POLKADOT_CONTRACT_ADDRESS = "0xb1e581e1528A6f48D6F8040c146630eE853ac8c7"; // Deployed contract address
-const POLKADOT_MODULE_NAME = "eunoia_foundation";
-const POLKADOT_DONATE_FUNCTION_NAME = "donate";
+const POLKADOT_CONTRACT_ADDRESS = "0xFeDaF0b1500381F9EeEa77840cBC090C26CF63CA"; // Deployed contract address
+const POLKADOT_MODULE_NAME = "eunoia";
+const POLKADOT_DONATE_FUNCTION_NAME = "giveMe";
 
 // Balance checking constants
 const APTOS_NODE_URL = "https://fullnode.testnet.aptoslabs.com";
