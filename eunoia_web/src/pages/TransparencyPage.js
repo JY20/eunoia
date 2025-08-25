@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import axios from 'axios'; // Ensure axios is imported
+import { API_BASE_URL as API_BASE_URL_TRANSPARENCY } from '../config';
 
 // Context
 import { AppContext, CHAINS } from '../components/AppProvider';
@@ -45,7 +46,12 @@ const EXPLORERS = {
   POLKADOT: 'https://polkadot.subscan.io/extrinsic'
 };
 
-const API_BASE_URL_TRANSPARENCY = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api'; // Define for this page if not globally available
+<<<<<<< HEAD
+const API_BASE_URL_TRANSPARENCY = 'http://127.0.0.1:8000/api'; // Local development backend
+// const API_BASE_URL_TRANSPARENCY = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api'; // Production
+=======
+// API base URL is provided by config
+>>>>>>> origin/P1
 
 // Styled Components
 const PageHeader = styled(Box)(({ theme }) => ({

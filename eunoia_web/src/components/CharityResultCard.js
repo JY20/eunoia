@@ -121,7 +121,7 @@ const CharityResultCard = ({
           </Grid>
           <Grid item xs={9} sm={10} md={9}>
             <Typography variant="h6" fontWeight="bold" component="div" sx={{fontSize: '1.0rem', lineHeight: 1.3}}>
-              {`${charity?.name || 'Charity'} logo`}
+              {charity?.name || 'Charity'}
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5, mt: 0.5}}>
                 <Chip 
