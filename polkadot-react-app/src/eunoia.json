@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0xe4da5a0db2579168f40c0010a2629930ec4c3dbc26235387aae1fb57adfe80eb",
+    "hash": "0x7bed241cefc73917df94bce6edf27e58dbe8de823285636e438b84e72286e3b9",
     "language": "ink! 6.0.0-alpha.1",
     "compiler": "rustc 1.87.0",
     "build_info": {
@@ -539,13 +539,55 @@
     {
       "id": 27,
       "type": {
+        "path": [
+          "Result"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 16
+          },
+          {
+            "name": "E",
+            "type": 25
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "Ok",
+                "fields": [
+                  {
+                    "type": 16
+                  }
+                ],
+                "index": 0
+              },
+              {
+                "name": "Err",
+                "fields": [
+                  {
+                    "type": 25
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 28,
+      "type": {
         "def": {
           "primitive": "u128"
         }
       }
     },
     {
-      "id": 28,
+      "id": 29,
       "type": {
         "path": [
           "ink_primitives",
@@ -565,7 +607,7 @@
       }
     },
     {
-      "id": 29,
+      "id": 30,
       "type": {
         "path": [
           "ink_primitives",
@@ -790,6 +832,22 @@
         },
         "docs": [],
         "default": false
+      },
+      {
+        "label": "get_user_balance",
+        "selector": "0x70b9920b",
+        "mutates": false,
+        "payable": false,
+        "args": [],
+        "returnType": {
+          "type": 27,
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ]
+        },
+        "docs": [],
+        "default": false
       }
     ],
     "events": [],
@@ -809,13 +867,13 @@
         ]
       },
       "balance": {
-        "type": 27,
+        "type": 28,
         "displayName": [
           "Balance"
         ]
       },
       "hash": {
-        "type": 28,
+        "type": 29,
         "displayName": [
           "Hash"
         ]
@@ -833,7 +891,7 @@
         ]
       },
       "chainExtension": {
-        "type": 29,
+        "type": 30,
         "displayName": [
           "ChainExtension"
         ]

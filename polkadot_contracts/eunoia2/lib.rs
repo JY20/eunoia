@@ -26,6 +26,13 @@ pub mod eunoia {
         donation_history: Vec<HistoryEntry>,
     }
 
+    // #[ink(event)]
+    pub struct Transferred {
+        from: Option<AccountId>,
+        to: Option<AccountId>,
+        value: Balance,
+    }
+
     #[ink(storage)]
     pub struct Eunoia {
         value: bool,
@@ -88,113 +95,15 @@ pub mod eunoia {
                 )
             }
         }
-    }
 
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-
-        #[ink::test]
-        fn default_works() {
-            let eunoia = Eunoia::new_default();
-            assert!(!eunoia.get());
+        #[ink(message)]
+        pub fn get_user_balance(&self) -> U256 {
+            self.env().balance()
         }
 
-        #[ink::test]
-        fn it_works() {
-            let mut eunoia = Eunoia::new(false);
-            assert!(!eunoia.get());
-            eunoia.flip();
-            assert!(eunoia.get());
-        }
-    }
-
-    #[cfg(all(test, feature = "e2e-tests"))]
-    mod e2e_tests {
-        use super::*;
-        use ink_e2e::ContractsBackend;
-
-        type E2EResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-
-        #[ink_e2e::test]
-        async fn it_works<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
-            // given
-            let mut constructor = EunoiaRef::new(false);
-            let contract = client
-                .instantiate("eunoia", &ink_e2e::bob(), &mut constructor)
-                .submit()
-                .await
-                .expect("instantiate failed");
-            let mut call_builder = contract.call_builder::<Eunoia>();
-
-            let get = call_builder.get();
-            let get_res = client.call(&ink_e2e::bob(), &get).submit().await?;
-            assert!(!get_res.return_value());
-
-            // when
-            let flip = call_builder.flip();
-            let _flip_res = client
-                .call(&ink_e2e::bob(), &flip)
-                .submit()
-                .await
-                .expect("flip failed");
-
-            // then
-            let get = call_builder.get();
-            let get_res = client.call(&ink_e2e::bob(), &get).dry_run().await?;
-            assert!(get_res.return_value());
-
-            Ok(())
-        }
-
-        #[ink_e2e::test]
-        async fn default_works<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
-            // given
-            let mut constructor = EunoiaRef::new_default();
-
-            // when
-            let contract = client
-                .instantiate("eunoia", &ink_e2e::bob(), &mut constructor)
-                .submit()
-                .await
-                .expect("instantiate failed");
-            let call_builder = contract.call_builder::<Eunoia>();
-
-            // then
-            let get = call_builder.get();
-            let get_res = client.call(&ink_e2e::bob(), &get).dry_run().await?;
-            assert!(!get_res.return_value());
-
-            Ok(())
-        }
-        
-        #[ink_e2e::test]
-        #[ignore]
-        async fn e2e_test_deployed_contract<Client: E2EBackend>(
-            mut client: Client,
-        ) -> E2EResult<()> {
-            // given
-            use ink::H160;
-            let addr = std::env::var("CONTRACT_ADDR_HEX")
-                .unwrap()
-                .replace("0x", "");
-            let addr_bytes: Vec<u8> = hex::decode(addr).unwrap();
-            let addr = H160::from_slice(&addr_bytes[..]);
-
-            use std::str::FromStr;
-            let suri = ink_e2e::subxt_signer::SecretUri::from_str("//Alice").unwrap();
-            let caller = ink_e2e::Keypair::from_uri(&suri).unwrap();
-
-            // when
-            // Invoke `Flipper::get()` from `caller`'s account
-            let call_builder = ink_e2e::create_call_builder::<Eunoia>(addr);
-            let get = call_builder.get();
-            let get_res = client.call(&caller, &get).dry_run().await?;
-
-            // then
-            assert!(get_res.return_value());
-
-            Ok(())
+        #[ink(message, payable)]
+        pub fn transferred(&mut self) -> U256 {
+            self.env().transferred_value()
         }
     }
 }

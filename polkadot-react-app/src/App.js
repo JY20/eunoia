@@ -21,7 +21,10 @@ function App() {
   const [giveToAddress, setGiveToAddress] = useState('');
   const [giveToAmount, setGiveToAmount] = useState('');
 
-  const contractAddress = '0xFeDaF0b1500381F9EeEa77840cBC090C26CF63CA'; // replace with your deployed contract address
+  const [contractBalance, setContractBalance] = useState('0');
+  const [depositAmount, setDepositAmount] = useState('');
+
+  const contractAddress = '0x3ecabb141BA7dbb7bb8b2B67B7a60C17dC6edfE1'; // replace with your deployed contract address
 
   useEffect(() => {
     const connectToPolkadot = async () => {
@@ -208,27 +211,64 @@ function App() {
     }
   };
 
-  const transferTokens = async () => {
+  const getContractBalance = async () => {
     try {
-      if (!api || !accountAddress || !transferAddress || !transferAmount) {
-        alert("Missing inputs");
+      if (!contract || !accountAddress) return;
+
+      const gasLimit = api.registry.createType("WeightV2", {
+        refTime: 1_000_000_000,
+        proofSize: 1_000_000,
+      });
+
+      const { result, output } = await contract.query.getUserBalance(
+        accountAddress,
+        { value: 0, gasLimit }
+      );
+
+      if (result.isOk && output) {
+        const value = output.toHuman();
+        if (typeof value === "object" && "Ok" in value) {
+          setContractBalance(value.Ok.toString());
+        } else {
+          setContractBalance(value.toString());
+        }
+        console.log(value.Ok.toString());
+      }
+    } catch (err) {
+      console.error("get_total_balance failed:", err);
+      alert("Failed to fetch contract balance");
+    }
+  };
+
+  // Call contract deposit
+  const depositToContract = async () => {
+    try {
+      if (!contract || !accountAddress || !depositAmount) {
+        alert("Missing deposit amount");
         return;
       }
 
       const injector = await web3FromAddress(accountAddress);
 
-      const tx = api.tx.balances.transfer(transferAddress, transferAmount);
+      const gasLimit = api.registry.createType("WeightV2", {
+        refTime: 3_000_000_000,
+        proofSize: 1_000_000,
+      });
+
+      const tx = contract.tx.deposit({ value: depositAmount, gasLimit });
 
       await tx.signAndSend(accountAddress, { signer: injector.signer }, ({ status }) => {
         if (status.isInBlock) {
-          alert(`Transfer included at blockHash ${status.asInBlock.toHex()}`);
+          console.log("Deposit included in block:", status.asInBlock.toString());
         } else if (status.isFinalized) {
-          alert(`Transfer finalized at blockHash ${status.asFinalized.toHex()}`);
+          console.log("Deposit finalized:", status.asFinalized.toString());
+          alert(`Deposited ${depositAmount} to contract`);
+          getContractBalance(); // update contract balance
         }
       });
     } catch (err) {
-      console.error("Transfer failed:", err);
-      alert("Transfer failed: " + err.message);
+      console.error("Deposit failed:", err);
+      alert("Deposit failed: " + err.message);
     }
   };
 
@@ -298,6 +338,7 @@ function App() {
         <p style={{ marginTop: '15px' }}>Contract Result: {contractResult}</p>
       )}
 
+
       <h2 style={{ marginTop: '30px' }}>Contract Payout Methods</h2>
       <div style={{ marginBottom: '20px' }}>
         <input
@@ -351,6 +392,32 @@ function App() {
           Call giveTo
         </button>
       </div>
+
+      <h2 style={{ marginTop: '30px' }}>Contract Balance & Deposit</h2>
+      <div style={{ marginBottom: '20px' }}>
+        <button
+          onClick={getContractBalance}
+          style={{ padding: '10px 20px', backgroundColor: '#ffc107', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginBottom: '10px' }}
+        >
+          Get Contract Balance
+        </button>
+        <p>Contract Balance: {contractBalance}</p>
+
+        <input
+          type="number"
+          placeholder="Amount to deposit"
+          value={depositAmount}
+          onChange={(e) => setDepositAmount(e.target.value)}
+          style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
+        />
+        <button
+          onClick={depositToContract}
+          style={{ padding: '10px 20px', backgroundColor: '#fd7e14', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+        >
+          Deposit
+        </button>
+      </div>
+
     </div>
   );
 }
