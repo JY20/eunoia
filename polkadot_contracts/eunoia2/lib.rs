@@ -9,6 +9,7 @@ pub mod eunoia {
     use ink::storage::Mapping;
     use ink::env::Timestamp as timestamp;
     use ink::prelude::vec::Vec;
+    // use ink::primitives::AccountIdMapper;
 
     pub struct HistoryEntry{
         charity_name: String,
@@ -44,10 +45,10 @@ pub mod eunoia {
     }
 
     impl Eunoia {
-        #[ink(constructor)]
-        pub fn new(init_value: bool) -> Self {
+        #[ink(constructor, payable)]
+        pub fn new() -> Self {
             Self {
-                value: init_value,
+                value: false,
                 owner: Self::env().caller(),
                 history_count: Mapping::default(),
                 charity_wallets: Mapping::default(),
@@ -55,10 +56,21 @@ pub mod eunoia {
             }
         }
 
-        #[ink(constructor)]
-        pub fn new_default() -> Self {
-            Self::new(Default::default())
-        }
+        // #[ink(constructor)]
+        // pub fn new(init_value: bool) -> Self {
+        //     Self {
+        //         value: init_value,
+        //         owner: Self::env().caller(),
+        //         history_count: Mapping::default(),
+        //         charity_wallets: Mapping::default(),
+        //         charity_raised_amounts: Mapping::default(),
+        //     }
+        // }
+
+        // #[ink(constructor)]
+        // pub fn new_default() -> Self {
+        //     Self::new(Default::default())
+        // }
 
         #[ink(message)]
         pub fn flip(&mut self) {
@@ -83,27 +95,17 @@ pub mod eunoia {
             }
         }
 
-        #[ink(message)]
-        pub fn give_to(&mut self, to: address, value: U256) {
-            assert!(value <= self.env().balance(), "insufficient funds!");
+        // #[ink(message)]
+        // pub fn give_to(&mut self, from: AccountId, to: AccountId, value: U256) {
+        //     let toAddr = ink::primitives::AccountIdMapper::to_address(&to);
 
-            if self.env().transfer(to, value).is_err() {
-                panic!(
-                    "requested transfer failed. This can be the case if the contract does not \
-                    have sufficient free funds or if the transfer would have brought the \
-                    contract's balance below minimum balance."
-                )
-            }
-        }
-
-        #[ink(message)]
-        pub fn get_user_balance(&self) -> U256 {
-            self.env().balance()
-        }
-
-        #[ink(message, payable)]
-        pub fn transferred(&mut self) -> U256 {
-            self.env().transferred_value()
-        }
+        //     if self.env().transfer(toAddr, value).is_err() {
+        //         panic!(
+        //             "requested transfer failed. This can be the case if the contract does not \
+        //             have sufficient free funds or if the transfer would have brought the \
+        //             contract's balance below minimum balance."
+        //         )
+        //     }
+        // }
     }
 }

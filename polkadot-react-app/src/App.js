@@ -4,6 +4,7 @@ import { ContractPromise } from '@polkadot/api-contract';
 import Identicon from '@polkadot/react-identicon';
 import { web3Accounts, web3Enable, web3FromAddress } from '@polkadot/extension-dapp';
 import abiJson from './eunoia.json'; // your ABI JSON file
+import { BN } from "@polkadot/util";
 
 function App() {
   const [api, setApi] = useState(null);
@@ -13,18 +14,16 @@ function App() {
   const [balance, setBalance] = useState('0');
   const [contract, setContract] = useState(null);
   const [contractResult, setContractResult] = useState('');
-  const [transferAddress, setTransferAddress] = useState('');
-  const [transferAmount, setTransferAmount] = useState('');
 
   // extra state for contract payout methods
   const [giveMeAmount, setGiveMeAmount] = useState('');
   const [giveToAddress, setGiveToAddress] = useState('');
   const [giveToAmount, setGiveToAmount] = useState('');
 
-  const [contractBalance, setContractBalance] = useState('0');
-  const [depositAmount, setDepositAmount] = useState('');
+  const [transferAddress, setTransferAddress] = useState('');
+  const [transferAmount, setTransferAmount] = useState('');
 
-  const contractAddress = '0x3ecabb141BA7dbb7bb8b2B67B7a60C17dC6edfE1'; // replace with your deployed contract address
+  const contractAddress = '0x52F7605c1cb5A81FeB0843bBb1f0e7F562A272ed'; // replace with your deployed contract address
 
   useEffect(() => {
     const connectToPolkadot = async () => {
@@ -46,7 +45,9 @@ function App() {
     const fetchBalance = async () => {
       if (api && accountAddress) {
         const { data } = await api.query.system.account(accountAddress);
-        setBalance(data.free.toHuman());
+        const freeBalance = data.free.toBigInt(); // get BigInt
+        const formattedBalance = Number(freeBalance) / 100_000_000_00;
+        setBalance(formattedBalance.toLocaleString(undefined, { maximumFractionDigits: 8 }));
       }
     };
     fetchBalance();
@@ -76,6 +77,48 @@ function App() {
         console.error('Error connecting to wallet:', error);
         alert('Failed to connect to wallet. Please try again.');
       }
+    }
+  };
+
+  const transferNative = async () => {
+    try {
+      if (!api || !accountAddress || !transferAddress || !transferAmount) {
+        alert("Missing inputs");
+        return;
+      }
+
+      const injector = await web3FromAddress(accountAddress);
+
+      // amount must be in planck units (smallest unit)
+      // here we assume user enters whole tokens (PAS) -> convert to plancks
+      const amountInPlanck = new BN(Number(transferAmount) * 1e12);
+
+      const tx = api.tx.balances.transferAllowDeath(transferAddress, amountInPlanck);
+
+      await tx.signAndSend(
+        accountAddress,
+        { signer: injector.signer },
+        ({ status, dispatchError, events }) => {
+          if (dispatchError) {
+            console.error("Dispatch error:", dispatchError.toString());
+          }
+          if (status.isInBlock) {
+            console.log("Transfer included in blockHash:", status.asInBlock.toString());
+          } else if (status.isFinalized) {
+            console.log("Transfer finalized:", status.asFinalized.toString());
+            alert(`Transferred ${transferAmount} PAS to ${transferAddress}`);
+            // refresh balance
+            api.query.system.account(accountAddress).then(({ data }) => {
+              const freeBalance = data.free.toBigInt();
+              const formatted = Number(freeBalance) / 1e12;
+              setBalance(formatted.toLocaleString(undefined, { maximumFractionDigits: 8 }));
+            });
+          }
+        }
+      );
+    } catch (err) {
+      console.error("Transfer failed:", err);
+      alert("Transfer failed: " + err.message);
     }
   };
 
@@ -211,67 +254,6 @@ function App() {
     }
   };
 
-  const getContractBalance = async () => {
-    try {
-      if (!contract || !accountAddress) return;
-
-      const gasLimit = api.registry.createType("WeightV2", {
-        refTime: 1_000_000_000,
-        proofSize: 1_000_000,
-      });
-
-      const { result, output } = await contract.query.getUserBalance(
-        accountAddress,
-        { value: 0, gasLimit }
-      );
-
-      if (result.isOk && output) {
-        const value = output.toHuman();
-        if (typeof value === "object" && "Ok" in value) {
-          setContractBalance(value.Ok.toString());
-        } else {
-          setContractBalance(value.toString());
-        }
-        console.log(value.Ok.toString());
-      }
-    } catch (err) {
-      console.error("get_total_balance failed:", err);
-      alert("Failed to fetch contract balance");
-    }
-  };
-
-  // Call contract deposit
-  const depositToContract = async () => {
-    try {
-      if (!contract || !accountAddress || !depositAmount) {
-        alert("Missing deposit amount");
-        return;
-      }
-
-      const injector = await web3FromAddress(accountAddress);
-
-      const gasLimit = api.registry.createType("WeightV2", {
-        refTime: 3_000_000_000,
-        proofSize: 1_000_000,
-      });
-
-      const tx = contract.tx.deposit({ value: depositAmount, gasLimit });
-
-      await tx.signAndSend(accountAddress, { signer: injector.signer }, ({ status }) => {
-        if (status.isInBlock) {
-          console.log("Deposit included in block:", status.asInBlock.toString());
-        } else if (status.isFinalized) {
-          console.log("Deposit finalized:", status.asFinalized.toString());
-          alert(`Deposited ${depositAmount} to contract`);
-          getContractBalance(); // update contract balance
-        }
-      });
-    } catch (err) {
-      console.error("Deposit failed:", err);
-      alert("Deposit failed: " + err.message);
-    }
-  };
-
   if (!api) {
     return <div>Connecting to Polkadot...</div>;
   }
@@ -301,9 +283,10 @@ function App() {
           <h2>Account Identicon:</h2>
           <Identicon value={accountAddress} size={64} theme="polkadot" />
           <p>Address: {accountAddress}</p>
-          <p><b>Balance:</b> {balance}</p>
+          <p><b>Balance in PAS:</b> {balance}</p>
         </>
       )}
+      <br/>
 
       <button
         onClick={callContract}
@@ -392,32 +375,36 @@ function App() {
           Call giveTo
         </button>
       </div>
-
-      <h2 style={{ marginTop: '30px' }}>Contract Balance & Deposit</h2>
+      <h2 style={{ marginTop: '30px' }}>Native Token Transfer</h2>
       <div style={{ marginBottom: '20px' }}>
-        <button
-          onClick={getContractBalance}
-          style={{ padding: '10px 20px', backgroundColor: '#ffc107', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginBottom: '10px' }}
-        >
-          Get Contract Balance
-        </button>
-        <p>Contract Balance: {contractBalance}</p>
-
+        <input
+          type="text"
+          placeholder="Recipient Address"
+          value={transferAddress}
+          onChange={(e) => setTransferAddress(e.target.value)}
+          style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
+        />
         <input
           type="number"
-          placeholder="Amount to deposit"
-          value={depositAmount}
-          onChange={(e) => setDepositAmount(e.target.value)}
+          placeholder="Amount in PAS"
+          value={transferAmount}
+          onChange={(e) => setTransferAmount(e.target.value)}
           style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
         />
         <button
-          onClick={depositToContract}
-          style={{ padding: '10px 20px', backgroundColor: '#fd7e14', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+          onClick={transferNative}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+          }}
         >
-          Deposit
+          Send Transfer
         </button>
       </div>
-
     </div>
   );
 }

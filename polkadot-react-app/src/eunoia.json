@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0x7bed241cefc73917df94bce6edf27e58dbe8de823285636e438b84e72286e3b9",
+    "hash": "0x3aa95fb518433ef0e777f5e2b820c8bc7e7c1f4bdeba5f62c7d6f0659ad1ff15",
     "language": "ink! 6.0.0-alpha.1",
     "compiler": "rustc 1.87.0",
     "build_info": {
@@ -539,55 +539,13 @@
     {
       "id": 27,
       "type": {
-        "path": [
-          "Result"
-        ],
-        "params": [
-          {
-            "name": "T",
-            "type": 16
-          },
-          {
-            "name": "E",
-            "type": 25
-          }
-        ],
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "name": "Ok",
-                "fields": [
-                  {
-                    "type": 16
-                  }
-                ],
-                "index": 0
-              },
-              {
-                "name": "Err",
-                "fields": [
-                  {
-                    "type": 25
-                  }
-                ],
-                "index": 1
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": 28,
-      "type": {
         "def": {
           "primitive": "u128"
         }
       }
     },
     {
-      "id": 29,
+      "id": 28,
       "type": {
         "path": [
           "ink_primitives",
@@ -607,7 +565,7 @@
       }
     },
     {
-      "id": 30,
+      "id": 29,
       "type": {
         "path": [
           "ink_primitives",
@@ -701,32 +659,7 @@
       {
         "label": "new",
         "selector": "0x9bae9d5e",
-        "payable": false,
-        "args": [
-          {
-            "label": "init_value",
-            "type": {
-              "type": 0,
-              "displayName": [
-                "bool"
-              ]
-            }
-          }
-        ],
-        "returnType": {
-          "type": 24,
-          "displayName": [
-            "ink_primitives",
-            "ConstructorResult"
-          ]
-        },
-        "docs": [],
-        "default": false
-      },
-      {
-        "label": "new_default",
-        "selector": "0x61ef7e3e",
-        "payable": false,
+        "payable": true,
         "args": [],
         "returnType": {
           "type": 24,
@@ -797,57 +730,6 @@
         },
         "docs": [],
         "default": false
-      },
-      {
-        "label": "give_to",
-        "selector": "0x7c205f1c",
-        "mutates": true,
-        "payable": false,
-        "args": [
-          {
-            "label": "to",
-            "type": {
-              "type": 1,
-              "displayName": [
-                "address"
-              ]
-            }
-          },
-          {
-            "label": "value",
-            "type": {
-              "type": 16,
-              "displayName": [
-                "U256"
-              ]
-            }
-          }
-        ],
-        "returnType": {
-          "type": 24,
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ]
-        },
-        "docs": [],
-        "default": false
-      },
-      {
-        "label": "get_user_balance",
-        "selector": "0x70b9920b",
-        "mutates": false,
-        "payable": false,
-        "args": [],
-        "returnType": {
-          "type": 27,
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ]
-        },
-        "docs": [],
-        "default": false
       }
     ],
     "events": [],
@@ -867,13 +749,13 @@
         ]
       },
       "balance": {
-        "type": 28,
+        "type": 27,
         "displayName": [
           "Balance"
         ]
       },
       "hash": {
-        "type": 29,
+        "type": 28,
         "displayName": [
           "Hash"
         ]
@@ -891,7 +773,7 @@
         ]
       },
       "chainExtension": {
-        "type": 30,
+        "type": 29,
         "displayName": [
           "ChainExtension"
         ]
