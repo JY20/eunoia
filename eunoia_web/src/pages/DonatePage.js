@@ -1,70 +1,45 @@
 /* global BigInt */
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { 
   Box, 
   Container, 
   Typography, 
-  TextField, 
   Button, 
   Grid, 
   Divider, 
   Chip, 
-  Stack, 
-  FormControlLabel, 
-  Switch,
-  InputAdornment,
-  IconButton,
   useTheme,
   alpha,
   Paper,
-  CircularProgress,
-  LinearProgress,
-  Slider,
-  MenuItem,
-  Tooltip
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import SearchIcon from '@mui/icons-material/Search';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import TextsmsIcon from '@mui/icons-material/Textsms';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
-import { Link } from 'react-router-dom';
-import { List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
+
+// Import the new component views
+import CharityResultsView from '../components/donate/CharityResultsView';
+import VisionPromptView from '../components/donate/VisionPromptView';
+import AiProcessingView from '../components/donate/AiProcessingView';
+import AllocationWelcomeView from '../components/donate/AllocationWelcomeView';
+import DonationConfirmationView from '../components/donate/DonationConfirmationView';
+import ImpactTrackerView from '../components/donate/ImpactTrackerView';
 
 // Import Aptos libraries for balance checking
 import { AptosClient, CoinClient } from "aptos";
 // Import Polkadot contract interaction libraries
 import { ContractPromise } from '@polkadot/api-contract';
-import { createClient } from "polkadot-api";
-import { getSmProvider } from 'polkadot-api/sm-provider';
+import { ApiPromise, WsProvider } from '@polkadot/api';
+import { web3Accounts, web3Enable, web3FromAddress } from '@polkadot/extension-dapp';
+import { BN } from "@polkadot/util";
 import polkadotWallet from '../utils/polkadotWallet';
+// Import contract ABI
+import abiJson from '../eunoia.json';
 
 // New Icons for AI flow
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'; // For AI
-import InsightsIcon from '@mui/icons-material/Insights'; // For AI analysis
-import ReportProblemIcon from '@mui/icons-material/ReportProblem';
-import ExploreIcon from '@mui/icons-material/Explore'; // Placeholder for Compass
-
-// Icons for Moodboard (placeholders)
-
-import TwitterIcon from '@mui/icons-material/Twitter';
-import InstagramIcon from '@mui/icons-material/Instagram';
-import LinkedInIcon from '@mui/icons-material/LinkedIn';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight'; // For Next button
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'; 
 
 import { AppContext, CHAINS } from '../components/AppProvider';
-import { Connected } from '../components/Alert';
-import Loading from '../components/Loading';
-import { AppContract } from '../components/AppContract';
-import CompassAnimation from '../components/CompassAnimation'; // Import the new component
-import CharityResultCard from '../components/CharityResultCard'; // Import the new card component
-import ImpactMap from '../components/ImpactMap'; // Import the new map component
-
 
 const MODULE_ADDRESS = "0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011";
 const MODULE_NAME = "eunoia_foundation";
@@ -77,1036 +52,13 @@ const POLKADOT_DONATE_FUNCTION_NAME = "giveMe";
 
 // Balance checking constants
 const APTOS_NODE_URL = "https://fullnode.testnet.aptoslabs.com";
-const POLKADOT_NODE_URL = "wss://westend-rpc.polkadot.io";
+const POLKADOT_NODE_URL = "wss://testnet-passet-hub.polkadot.io";
 
 // Token type mapping
 const TOKEN_TYPES = {
   APT: "0x1::aptos_coin::AptosCoin",
   DOT: "DOT",
   USDC: "0x1::coin::CoinStore<0x8c805723ebc0a7fc5b7d3e7b75d567918e806b3461cb9fa21941a9edc0220bf::usdc::USDC>"
-};
-
-const StepContent = styled(Box)(({ theme }) => ({
-  paddingTop: theme.spacing(4),
-  paddingBottom: theme.spacing(4),
-  minHeight: '400px',
-}));
-
-const GlowButton = styled(Button)(({ theme }) => ({
-  background: 'linear-gradient(90deg, #4cc9f0 0%, #4361ee 100%)',
-  borderRadius: '50px',
-  padding: '12px 24px',
-  color: 'white',
-  fontWeight: 'bold',
-  textTransform: 'none',
-  fontSize: '1rem',
-  boxShadow: '0 8px 20px rgba(76, 201, 240, 0.3)',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    boxShadow: '0 12px 28px rgba(76, 201, 240, 0.5)',
-    transform: 'translateY(-3px)',
-  },
-  '&:disabled': {
-    background: '#e0e0e0',
-    color: '#a0a0a0',
-  },
-}));
-
-const BackButton = styled(Button)(({ theme }) => ({
-  color: theme.palette.text.secondary,
-  textTransform: 'none',
-  fontWeight: 'medium',
-  '&:hover': {
-    backgroundColor: alpha(theme.palette.primary.main, 0.08),
-  },
-}));
-
-const SidebarPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(2.5),
-  borderRadius: '16px',
-  background: alpha(theme.palette.background.default, 0.7),
-  backdropFilter: 'blur(8px)',
-  height: '100%',
-}));
-
-
-// Top-level CharityResultsView component
-const CharityResultsView = ({
-  aiMatchedCharities,
-  aiSuggestedAllocations,
-  setCurrentStage,
-  selectedCrypto,
-  platformFeeActive,
-  setPlatformFeeActive,
-  calculatePlatformFee,
-  totalDonationAmount,
-  visionPrompt,
-  theme,
-  semanticSearchLoading,
-  semanticSearchError,
-  selectedCharityIds,
-  handleToggleCharitySelection,
-  individualDonationAmounts,
-  handleIndividualAmountChange,
-  combinedMissionStatement,
-  compassRecommendations = [],
-  groupedMatches = {}
-}) => {
-  console.log('CharityResultsView render, charities:', aiMatchedCharities);
-  console.log('Selected IDs:', selectedCharityIds);
-  console.log('Individual Amounts:', individualDonationAmounts);
-
-  const extractUserInputs = () => {
-    const missionKeywords = visionPrompt.toLowerCase().match(/\b(empower|support|education|girls|africa|children|communities|health|environment|innovation|faith|art)\b/g) || [];
-    const uniqueMissionKeywords = [...new Set(missionKeywords)];
-    const valueKeywords = uniqueMissionKeywords.slice(0, 2);
-    return {
-      mission: visionPrompt || 'Not specified',
-      values: valueKeywords.length > 0 ? valueKeywords.join(', ') : 'General Impact',
-      region: visionPrompt.toLowerCase().includes('africa') ? 'Africa' : visionPrompt.toLowerCase().includes('uganda') ? 'Uganda' : 'Global/Not specified',
-      givingStyle: 'One-time (recurring can be an option)'
-    };
-  };
-
-  console.log('Individual Amounts:', aiSuggestedAllocations); // This was an old log, might be individualDonationAmounts now
-  console.log('CharityResultsView - received combinedMissionStatement prop:', combinedMissionStatement);
-
-  return (
-    <StepContent sx={{maxWidth: '1200px', mx: 'auto', py: {xs: 2, sm: 3}}}>
-      <Box sx={{ textAlign: 'center', mb: {xs: 3, sm: 4} }}>
-        <Typography variant="h3" fontWeight="bold" sx={{ fontFamily: "'Space Grotesk', sans-serif"}} gutterBottom>
-          Your Compass results here.
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ maxWidth: '700px', mx: 'auto' }}>
-          Backed by hundreds of data points.
-        </Typography>
-      </Box>
-
-      {/* Top 3 movement recommendations */}
-      {Array.isArray(compassRecommendations) && compassRecommendations.length > 0 && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>Top Picks For You</Typography>
-          <Grid container spacing={2}>
-            {compassRecommendations.slice(0,3).map((rec, idx) => {
-              const group = Object.values(groupedMatches || {}).find(g => g.charity_name === rec.charity_name);
-              const movement = group?.movements?.find(m => m.movement_id === rec.movement_id);
-              const charityId = group?.charity_id;
-              const summary = movement?.summary || '';
-              return (
-                <Grid item xs={12} md={4} key={`${rec.movement_id}-${idx}`}>
-                  <Paper sx={{ p: 2, borderRadius: '12px' }} elevation={3}>
-                    <Typography variant="subtitle2" color="text.secondary">{rec.charity_name}</Typography>
-                    <Typography variant="h6" fontWeight="bold" sx={{ mt: 0.5 }}>{rec.movement_title}</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      {summary ? `${summary.substring(0, 180)}${summary.length > 180 ? '…' : ''}` : 'No summary available.'}
-                    </Typography>
-                    {rec.reason && (
-                      <Typography variant="caption" color="primary" sx={{ display: 'block', mt: 1.5, fontStyle: 'italic' }}>
-                        {rec.reason}
-                      </Typography>
-                    )}
-                    {charityId && (
-                      <Button size="small" sx={{ mt: 1.5, borderRadius: '20px' }} variant={selectedCharityIds.has(charityId) ? 'contained' : 'outlined'} onClick={() => handleToggleCharitySelection(charityId)}>
-                        {selectedCharityIds.has(charityId) ? 'Selected' : 'Select Charity'}
-                      </Button>
-                    )}
-                  </Paper>
-                </Grid>
-              );
-            })}
-          </Grid>
-        </Box>
-      )}
-
-      <Grid container spacing={3}>
-        {/* Charity Results Feed - now a nested grid for 2 columns */}
-        <Grid item xs={12} md={8}>
-          <Grid container spacing={2}> {/* Nested grid for cards */}
-            {semanticSearchLoading && (
-              <Grid item xs={12} sx={{textAlign: 'center', my: 5}}>
-                <CircularProgress />
-                <Typography sx={{mt: 1}}>Finding your matches...</Typography>
-              </Grid>
-            )}
-            {!semanticSearchLoading && semanticSearchError && (
-              <Grid item xs={12} sx={{textAlign: 'center', my: 5}}>
-                <ReportProblemIcon color="error" sx={{fontSize: 40}}/>
-                <Typography color="error.main" sx={{mt: 1}}>{semanticSearchError}</Typography>
-                 <Button 
-                    variant="outlined" 
-                    onClick={() => setCurrentStage('visionPrompt')} 
-                    sx={{mt:2, borderRadius: '50px'}}
-                  >
-                    Try Adjusting Your Vision
-                  </Button>
-              </Grid>
-            )}
-            {!semanticSearchLoading && !semanticSearchError && aiMatchedCharities.length === 0 && (
-              <Grid item xs={12} sx={{textAlign: 'center', my: 5}}>
-                <Typography variant="h6" sx={{ mt: 3 }}>No charities matched your vision.</Typography>
-                <Typography color="text.secondary">Try adjusting your prompt or explore charities directly.</Typography>
-                 <Button 
-                    variant="outlined" 
-                    onClick={() => setCurrentStage('visionPrompt')} 
-                    sx={{mt:2, borderRadius: '50px', mr: 1}}
-                  >
-                    Edit My Compass
-                  </Button>
-                  <Button 
-                    component={Link} 
-                    to="/charities"
-                    variant="contained" 
-                    sx={{mt:2, borderRadius: '50px'}}
-                  >
-                    Explore All Charities
-                  </Button>
-              </Grid>
-            )}
-            {!semanticSearchLoading && !semanticSearchError && aiMatchedCharities.map(charity => (
-              <Grid item xs={12} sm={6} key={charity.id}> {/* Each card takes half width on sm and up */}
-                <CharityResultCard 
-                  charity={charity} 
-                  // suggestedAllocation={aiSuggestedAllocations[charity.id]} // Keeping for now, but individual amount will be primary
-                  currentAmount={individualDonationAmounts[charity.id] || 0}
-                  onAmountChange={(newAmount) => handleIndividualAmountChange(charity.id, newAmount)}
-                  isSelected={selectedCharityIds.has(charity.id)}
-                  onToggleSelect={() => handleToggleCharitySelection(charity.id)}
-                  selectedCrypto={selectedCrypto}
-                  theme={theme} // Pass theme if CharityResultCard uses it directly for styling
-                />
-              </Grid>
-            ))}
-          </Grid>
-        </Grid>
-
-        {/* Right Sidebar (Compass Summary) */}
-        <Grid item xs={12} md={4}>
-          <SidebarPaper>
-            <Typography variant="h6" fontWeight="bold" gutterBottom>How Compass found your matches:</Typography>
-
-            {/* Display Combined Mission Statement HERE */}
-            {combinedMissionStatement && (
-              <Box sx={{ my: 2, p: 1.5, backgroundColor: alpha(theme.palette.primary.main, 0.05), borderRadius: '8px', borderLeft: `4px solid ${theme.palette.primary.main}` }}>
-                <Typography variant="subtitle1" color="primary.dark" sx={{ fontStyle: 'italic', fontWeight: 'medium' }}>
-                  Mission 🎯: <Typography component="span" variant="subtitle1" sx={{ fontStyle: 'italic', fontWeight: 'normal', color: 'text.primary'}}>{combinedMissionStatement}</Typography>
-                </Typography>
-              </Box>
-            )}
-            
-            <Divider sx={{my: 2}} />
-            
-            {/* Impact Map Section */}
-            <Typography variant="subtitle1" fontWeight="medium" gutterBottom sx={{mt: 2}}>
-              Your Impact Area
-            </Typography>
-            {console.log('CharityResultsView - aiMatchedCharities for ImpactMap:', aiMatchedCharities)}
-            <ImpactMap charities={aiMatchedCharities} />
-            
-            <Divider sx={{my: 2}} />
-            <Typography variant="subtitle2" fontWeight="medium" gutterBottom>Match Score Legend:</Typography>
-            <Typography variant="caption" color="text.secondary" paragraph>
-              Our AI analyzes your inputs against detailed charity profiles. Higher scores indicate stronger alignment with your stated mission, values, and preferences.
-            </Typography>
-            <Button 
-              variant="outlined" 
-              fullWidth 
-              onClick={() => setCurrentStage('visionPrompt')} 
-              sx={{mt:1, borderRadius: '50px'}}
-            >
-              Edit My Compass
-            </Button>
-          </SidebarPaper>
-        </Grid>
-      </Grid>
-
-      {/* Donation Summary and Action */}
-      <Paper elevation={3} sx={{ mt: 4, p: {xs: 2, sm:3}, borderRadius: '16px', background: alpha(theme.palette.background.paper, 0.8), backdropFilter: 'blur(5px)' }}>
-        <FormControlLabel
-          control={
-            <Switch 
-              checked={platformFeeActive}
-              onChange={(e) => setPlatformFeeActive(e.target.checked)}
-              color="primary"
-            />
-          }
-          labelPlacement="start"
-          label={
-            <Box sx={{textAlign: 'left', flexGrow: 1}}>
-              <Typography variant="body1" fontWeight="medium">
-                Support Eunoia Platform (+0.20%)
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Helps us operate & grow! Fee: {calculatePlatformFee().toFixed(2)} {selectedCrypto}
-              </Typography>
-            </Box>
-          }
-          sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', ml:0 }}
-        />
-        <Divider sx={{ my: 2 }} />
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt:1 }}>
-          <Typography variant="h5" fontWeight="bold">Total Donation:</Typography>
-          <Typography variant="h5" fontWeight="bold" color="primary.main">
-            {(totalDonationAmount + calculatePlatformFee()).toFixed(2)} {selectedCrypto}
-          </Typography>
-        </Box>
-      </Paper>
-            
-      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Button onClick={() => setCurrentStage('visionPrompt')} sx={{color: theme.palette.text.secondary, textTransform: 'none'}}>Adjust Vision</Button>
-        <GlowButton 
-          onClick={() => setCurrentStage('donationConfirmation')}
-          disabled={selectedCharityIds.size === 0} // Disable if no charities are selected
-          size="large"
-          sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}
-        >
-          Confirm & Donate
-        </GlowButton>
-      </Box>
-    </StepContent>
-  );
-};
-
-// Define VisionPromptView as a top-level component
-const VisionPromptView = ({
-  visionPrompt,
-  setVisionPrompt,
-  setCurrentStage,
-  totalDonationAmount,
-  setTotalDonationAmount,
-  selectedCrypto,
-  setSelectedCrypto,
-  platformFeeActive,
-  setPlatformFeeActive,
-  calculatePlatformFee,
-  socialHandles,
-  setSocialHandles,
-  theme,
-  walletBalance,
-  loadingBalance,
-  balanceError,
-  setMaxDonationAmount,
-  activeChain,
-  handleConnectWallet,
-  walletAddress
-}) => {
-  // Define chain-specific cryptocurrency options
-  const aptosCryptoOptions = [
-    { value: 'APT', label: 'Aptos (APT)' },
-    { value: 'USDC', label: 'USD Coin (USDC)' }
-  ];
-  
-  const polkadotCryptoOptions = [
-    { value: 'DOT', label: 'Polkadot (DOT)' },
-    { value: 'WND', label: 'Westend (WND)' }
-  ];
-  
-  // Select the appropriate options based on the active chain
-  const cryptoOptions = activeChain === CHAINS.POLKADOT ? polkadotCryptoOptions : aptosCryptoOptions;
-
-  const handleSocialChange = (platform, value) => {
-    setSocialHandles(prev => ({ ...prev, [platform]: value }));
-  };
-
-  const isNextDisabled = 
-    !visionPrompt.trim() || 
-    totalDonationAmount <= 0;
-
-  const hasNavigatedRef = useRef(false);
-  
-  console.log('Standalone VisionPromptView render, visionPrompt:', visionPrompt);
-
-  return (
-    <StepContent sx={{maxWidth: '700px', mx: 'auto'}}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom align="center" sx={{ fontFamily: "'Space Grotesk', sans-serif", mb:1}}>
-        Define Your Impact
-      </Typography>
-      
-      <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
-        <Typography variant="h6" fontWeight="medium" gutterBottom>
-          What kind of change do you care about?
-        </Typography>
-        <TextField
-          fullWidth
-          multiline
-          rows={3}
-          variant="outlined"
-          placeholder="I want to support education for girls in rural communities."
-          value={visionPrompt}
-          onChange={(e) => setVisionPrompt(e.target.value)}
-          sx={{ 
-            mb: 1,
-            '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
-                backgroundColor: alpha(theme.palette.common.white, 0.5)
-            }
-          }}
-        />
-        <Button size="small" variant="text" sx={{textTransform: 'none'}}>
-          Let Compass help (Suggest ideas)
-        </Button>
-      </Paper>
-      
-      <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" fontWeight="medium">
-            Set Your Donation Amount
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {walletAddress ? (
-              <>
-                {loadingBalance ? (
-                  <CircularProgress size={16} sx={{ mr: 1 }} />
-                ) : (
-                  <AccountBalanceWalletIcon fontSize="small" sx={{ mr: 1, color: theme.palette.text.secondary }} />
-                )}
-                <Typography variant="body2" color={balanceError ? "error" : "text.secondary"}>
-                  {balanceError 
-                    ? "Error loading balance" 
-                    : `Balance: ${walletBalance.toFixed(4)} ${selectedCrypto}`}
-                </Typography>
-              </>
-            ) : (
-              <Button 
-                variant="outlined" 
-                size="small" 
-                startIcon={<AccountBalanceWalletIcon />}
-                onClick={handleConnectWallet}
-              >
-                Connect Wallet
-              </Button>
-            )}
-          </Box>
-        </Box>
-        <Box sx={{ display: 'flex', flexDirection: {xs: 'column', sm: 'row'}, gap: 2, my: 2 }}>
-            <TextField
-            label="Amount"
-            type="number"
-              variant="outlined"
-            value={totalDonationAmount}
-            onChange={(e) => setTotalDonationAmount(Number(e.target.value))}
-            InputProps={{
-              endAdornment: <InputAdornment position="end">
-                <IconButton size="small" onClick={() => setTotalDonationAmount(prev => Math.max(1, prev - 1))}>
-                  <RemoveCircleOutlineIcon />
-                </IconButton>
-                <IconButton size="small" onClick={() => setTotalDonationAmount(prev => prev + 1)}>
-                  <AddCircleOutlineIcon />
-                </IconButton>
-                <Tooltip title="Use maximum available balance">
-                  <Button 
-                    variant="outlined" 
-                    size="small" 
-                    onClick={setMaxDonationAmount}
-                    disabled={walletBalance <= 0}
-                    sx={{ ml: 1, minWidth: 'auto', height: 32, borderRadius: 1 }}
-                  >
-                    Max
-                  </Button>
-                </Tooltip>
-              </InputAdornment>,
-            }}
-              sx={{ 
-              flexGrow: 1,
-                '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
-                backgroundColor: alpha(theme.palette.common.white, 0.5)
-                }
-              }}
-            />
-          <TextField
-            select
-            label="Currency"
-            value={selectedCrypto}
-            onChange={(e) => setSelectedCrypto(e.target.value)}
-            sx={{
-              minWidth: '150px',
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
-                backgroundColor: alpha(theme.palette.common.white, 0.5)
-              }
-            }}
-          >
-            {cryptoOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </TextField>
-            </Box>
-        <Box sx={{ mt: 2 }}>
-          <Slider
-            value={totalDonationAmount}
-            min={1}
-            max={walletBalance > 0 ? walletBalance : 1} // Using wallet balance as max value
-            step={1}
-            onChange={(e, newValue) => setTotalDonationAmount(Number(newValue))}
-            aria-labelledby="donation-amount-slider"
-            sx={{color: 'primary.main'}}
-            valueLabelDisplay="auto"
-          />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', typography: 'caption', color: 'text.secondary' }}>
-            <span>1 {selectedCrypto}</span>
-            <span>{(walletBalance > 0 ? walletBalance : 1).toFixed(2)} {selectedCrypto}</span>
-          </Box>
-        </Box>
-      </Paper>
-      
-      <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
-        <Typography variant="h6" fontWeight="medium" gutterBottom>
-          Want smarter matches? Share your socials. <Chip label="Optional" size="small" variant="outlined"/>
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{mb:2}}>
-          We'll never post or share anything. This helps our AI understand your interests better.
-        </Typography>
-        <Stack spacing={2}>
-          <TextField 
-            label="Twitter / X Handle"
-            variant="outlined" 
-            size="small" 
-            value={socialHandles.twitter}
-            onChange={(e) => handleSocialChange('twitter', e.target.value)}
-            InputProps={{ startAdornment: <InputAdornment position="start"><TwitterIcon /></InputAdornment> }}
-            sx={{backgroundColor: alpha(theme.palette.common.white, 0.5), borderRadius: '8px'}}
-          />
-          <TextField 
-            label="Instagram Handle"
-            variant="outlined" 
-            size="small"
-            value={socialHandles.instagram}
-            onChange={(e) => handleSocialChange('instagram', e.target.value)}
-            InputProps={{ startAdornment: <InputAdornment position="start"><InstagramIcon /></InputAdornment> }}
-            sx={{backgroundColor: alpha(theme.palette.common.white, 0.5), borderRadius: '8px'}}
-          />
-          <TextField 
-            label="LinkedIn Profile URL"
-            variant="outlined" 
-            size="small"
-            value={socialHandles.linkedin}
-            onChange={(e) => handleSocialChange('linkedin', e.target.value)}
-            InputProps={{ startAdornment: <InputAdornment position="start"><LinkedInIcon /></InputAdornment> }}
-            sx={{backgroundColor: alpha(theme.palette.common.white, 0.5), borderRadius: '8px'}}
-          />
-        </Stack>
-      </Paper>
-
-      <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={platformFeeActive}
-              onChange={(e) => setPlatformFeeActive(e.target.checked)}
-              color="primary"
-            />
-          }
-          labelPlacement="start"
-          label={
-            <Box sx={{textAlign: 'left', flexGrow:1, mr:1}}>
-              <Typography variant="body1" fontWeight="medium">
-                Support Eunoia Platform (+0.20%)
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Helps us grow! Fee: {calculatePlatformFee().toFixed(2)} {selectedCrypto}
-              </Typography>
-            </Box>
-          }
-          sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', ml:0 }}
-        />
-      </Paper>
-      
-      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <BackButton onClick={() => setCurrentStage('welcomeAI')}>Back</BackButton>
-        <GlowButton 
-            onClick={() => {
-              if (!hasNavigatedRef.current) {
-                hasNavigatedRef.current = true;
-                // If wallet not connected, try to connect first
-                if (!walletAddress) {
-                  handleConnectWallet().then(success => {
-                    if (success) {
-                      setCurrentStage('aiProcessing');
-                    }
-                  });
-                } else {
-                  setCurrentStage('aiProcessing');
-                }
-                setTimeout(() => { hasNavigatedRef.current = false; }, 1000); 
-              }
-            }} 
-            disabled={isNextDisabled}
-            sx={{py: 1.5, fontSize: '1.1rem'}}
-            endIcon={<ChevronRightIcon />}
-        >
-          {walletAddress ? 'Continue' : 'Connect Wallet & Continue'}
-        </GlowButton>
-      </Box>
-      <Typography variant="caption" display="block" sx={{mt:2, textAlign: 'center', color: 'text.secondary'}}>
-          Your data stays private. We only use it to guide your giving journey.
-      </Typography>
-    </StepContent>
-  );
-};
-
-// AiProcessingView is now defined globally
-const AiProcessingView = ({
-  visionPrompt,
-  totalDonationAmount,
-  setCurrentStage,
-  setAiMatchedCharities,
-  setAiSuggestedAllocations,
-  setSemanticSearchLoading,
-  setSemanticSearchError,
-  semanticSearchLoading,
-  semanticSearchError,
-  setCombinedMissionStatement, // New prop for setting combined mission
-  setCompassRecommendations,
-  setGroupedMatches
-}) => { 
-  console.log('AiProcessingView render');
-  
-  useEffect(() => {
-    const performSemanticSearch = async () => {
-      if (!visionPrompt.trim()) {
-        setSemanticSearchError("Please enter your vision before searching.");
-        setCurrentStage('visionPrompt');
-        return;
-      }
-
-      setSemanticSearchLoading(true);
-      setSemanticSearchError(null);
-      setAiMatchedCharities([]);
-      setAiSuggestedAllocations({});
-
-      // // Artificial delay for testing animation visibility
-      // await new Promise(resolve => setTimeout(resolve, 5000)); // 5-second delay
-
-      try {
-        console.log(`Compass matching for: "${visionPrompt}"`);
-        const response = await axios.post(`${API_BASE_URL}/compass/match/`, {
-          query: visionPrompt,
-          top_k: 10,
-        });
-
-        console.log("Compass response:", response.data);
-
-        const grouped = response.data?.grouped_matches || {};
-        const recommendations = response.data?.recommendations?.top_recommendations || [];
-
-        const byCharityId = new Map();
-        const priorityIds = [];
-
-        // Prioritize charities present in recommendations first
-        recommendations.forEach(rec => {
-          const group = Object.values(grouped).find(g => g.charity_name === rec.charity_name);
-          if (group && !byCharityId.has(group.charity_id)) {
-            byCharityId.set(group.charity_id, group);
-            priorityIds.push(group.charity_id);
-          }
-        });
-
-        // Add remaining groups ordered by highest movement score
-        const remaining = Object.values(grouped)
-          .filter(g => !byCharityId.has(g.charity_id))
-          .sort((a,b) => {
-            const atop = Math.max(...a.movements.map(m => m.score || 0), 0);
-            const btop = Math.max(...b.movements.map(m => m.score || 0), 0);
-            return btop - atop;
-          });
-        remaining.forEach(g => {
-          byCharityId.set(g.charity_id, g);
-          priorityIds.push(g.charity_id);
-        });
-
-        if (priorityIds.length === 0) {
-          setSemanticSearchError("No strong matches were found for your vision.");
-          setCombinedMissionStatement("");
-          setCurrentStage('charityResults');
-          return;
-        }
-
-        // Fetch full charity details for each id
-        const detailResponses = await Promise.all(
-          priorityIds.map(id => axios.get(`${API_BASE_URL}/charities/${id}/`).catch(() => null))
-        );
-
-        const detailsById = new Map();
-        detailResponses.forEach((res, idx) => {
-          const id = priorityIds[idx];
-          if (res && res.data) detailsById.set(id, res.data);
-        });
-
-        // Build cards data
-        const charities = priorityIds.map((id, index) => {
-          const group = byCharityId.get(id);
-          const detail = detailsById.get(id) || {};
-          const topScore = Math.max(...(group.movements || []).map(m => m.score || 0), 0);
-          const reasonForThisCharity = recommendations.find(r => r.charity_name === group.charity_name)?.reason || '';
-
-          return {
-            id: id,
-            name: detail.name || group.charity_name,
-            description: detail.description || group.charity_description || "No description available.",
-            logo: (detail.logo_url || detail.logo) || 'https://via.placeholder.com/300x200.png?text=No+Logo',
-            aptos_wallet_address: detail.aptos_wallet_address || "N/A",
-            category: detail.category_display || detail.category || "Other",
-            match_score_percent: topScore ? Math.round(topScore * 100) : (95 - (index * 5)),
-            trust_score_grade: 'A',
-            ai_explanation: reasonForThisCharity || `Top movements from ${group.charity_name} align with your vision.`,
-            // Extra data (not used directly by cards but handy)
-            movements: group.movements || [],
-          };
-        });
-
-        setAiMatchedCharities(charities);
-
-        // Compute allocations from match scores
-        const totalScore = charities.reduce((sum, c) => sum + (c.match_score_percent || 0), 0);
-        const allocations = {};
-        let cumulativeAllocation = 0;
-        if (totalScore > 0) {
-          charities.forEach((charity, index) => {
-            let rawAllocation;
-            if (index === charities.length - 1) {
-              rawAllocation = totalDonationAmount - cumulativeAllocation;
-            } else {
-              rawAllocation = ((charity.match_score_percent || 0) / totalScore) * totalDonationAmount;
-            }
-            const finalAllocation = Math.max(0, parseFloat(rawAllocation.toFixed(2)));
-            allocations[charity.id] = finalAllocation;
-            cumulativeAllocation += finalAllocation;
-          });
-          const sumOfAllocations = Object.values(allocations).reduce((s,v)=>s+v,0);
-          if (sumOfAllocations !== totalDonationAmount && charities.length > 0) {
-            const lastId = charities[charities.length - 1].id;
-            const diff = totalDonationAmount - sumOfAllocations;
-            allocations[lastId] = Math.max(0, parseFloat((allocations[lastId] + diff).toFixed(2)));
-          }
-        } else if (charities.length > 0) {
-          const equalShare = parseFloat((totalDonationAmount / charities.length).toFixed(2));
-          charities.forEach(c => allocations[c.id] = equalShare);
-          const sumOfAllocations = Object.values(allocations).reduce((s,v)=>s+v,0);
-          if (sumOfAllocations !== totalDonationAmount && charities.length > 0) {
-            const lastId = charities[charities.length - 1].id;
-            const diff = totalDonationAmount - sumOfAllocations;
-            allocations[lastId] = Math.max(0, parseFloat((allocations[lastId] + diff).toFixed(2)));
-          }
-        }
-        setAiSuggestedAllocations(allocations);
-        setCombinedMissionStatement(""); // We no longer use combined mission; Compass provides recs
-        setCompassRecommendations(recommendations);
-        setGroupedMatches(grouped);
-        setCurrentStage('charityResults');
-      } catch (error) {
-        console.error('Error during semantic search:', error);
-        let detailedError = "Failed to fetch charity recommendations. Please try again later.";
-        if (error.response) {
-          detailedError += ` (Server responded with ${error.response.status})`;
-          console.error("Error response data:", error.response.data);
-        } else if (error.request) {
-          detailedError += " (No response from server)";
-        }
-        setSemanticSearchError(detailedError);
-        setCombinedMissionStatement(""); // Clear combined mission on error
-        setCurrentStage('charityResults');
-      } finally {
-        setSemanticSearchLoading(false);
-      }
-    };
-
-    performSemanticSearch();
-  }, [visionPrompt, totalDonationAmount, setCurrentStage, setAiMatchedCharities, setAiSuggestedAllocations, setSemanticSearchLoading, setSemanticSearchError, setCombinedMissionStatement]);
-
-  const keywords = visionPrompt.split(' ').filter(k => k.length > 3);
-  if(keywords.length === 0) keywords.push(...['Impact', 'Faith', 'Children', 'Education', 'Africa']);
-
-  if (semanticSearchLoading) {
-      return (
-          <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-              <Box sx={{ mb: 4 }}> 
-                  <CompassAnimation />
-              </Box>
-              <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
-                  Finding the causes that truly fit you…
-              </Typography>
-              <Box sx={{my:3, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 1}}>
-                  {keywords.slice(0,5).map(kw => <Chip key={kw} label={kw} variant="outlined" />)}
-              </Box>
-              <LinearProgress sx={{my:2, maxWidth: 300, mx:'auto'}}/> 
-              <Typography variant="body2" color="text.secondary">
-                  <i>Consulting the Eunoia Compass...</i>
-              </Typography>
-          </StepContent>
-      );
-  }
-  
-  return (
-    <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-      <CircularProgress sx={{mb:2}} />
-      <Typography variant="h6" fontWeight="medium">Processing your vision...</Typography>
-      {semanticSearchError && <Typography color="error" sx={{mt:1}}>{semanticSearchError}</Typography>}
-    </StepContent>
-  );
-};
-
-// AllocationWelcomeView is now defined globally
-const AllocationWelcomeView = ({ setCurrentStage }) => { 
-  console.log('AllocationWelcomeView render');
-      return (
-    <StepContent sx={{ textAlign: 'center', py: {xs: 4, sm: 6} }}>
-      <Box mb={4}>
-        <ExploreIcon sx={{ fontSize: 90, color: 'primary.main', mb:1 }} />
-      </Box>
-      <Typography variant="h3" fontWeight="bold" gutterBottom sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
-        Find Your Compass.
-          </Typography>
-      <Typography variant="h6" color="text.secondary" paragraph sx={{ mb: 5, maxWidth: '600px', mx: 'auto' }}>
-        Giving guided by your values.
-          </Typography>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" alignItems="center">
-        <GlowButton 
-          onClick={() => setCurrentStage('visionPrompt')} 
-          size="large" 
-          sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}
-          startIcon={<AutoAwesomeIcon />}
-        >
-          Use Eunoia Compass
-        </GlowButton>
-            <Button 
-          variant="outlined" 
-          color="primary"
-          component={Link} 
-          to="/charities"
-          size="large" 
-          sx={{py: 1.5, px: 5, fontSize: '1.1rem', borderRadius: '50px'}}
-              startIcon={<SearchIcon />}
-            >
-          Donate Directly
-            </Button>
-      </Stack>
-      <Typography variant="body1" sx={{ mt: 6, fontStyle: 'italic', color: 'text.secondary' }}>
-        Unchained Giving. Borderless Impact.
-      </Typography>
-    </StepContent>
-  );
-};
-
-// DonationConfirmationView is now defined globally
-const DonationConfirmationView = ({
-  currentStage,
-  transactionPending,
-  donationComplete,
-  transactionError,
-  walletAddress,
-  handleDonate,
-  setCurrentStage,
-  handleReset,
-  setTransactionError,
-  currentProcessingCharityIndex,
-  aiMatchedCharities,
-  aiSuggestedAllocations,
-  selectedCrypto,
-  selectedCharityIds,
-  handleToggleCharitySelection,
-  individualDonationAmounts,
-  handleIndividualAmountChange
-}) => { 
-  console.log('DonationConfirmationView render, index:', currentProcessingCharityIndex);
-  
-  // Get the current charity and amount for display
-  const charityToDisplay = aiMatchedCharities && aiMatchedCharities[currentProcessingCharityIndex];
-  const amountToDisplay = charityToDisplay && aiSuggestedAllocations && aiSuggestedAllocations[charityToDisplay.id];
-
-  useEffect(() => {
-      // Ensure charityToDisplay is valid before attempting to donate
-      if (currentStage === 'donationConfirmation' && charityToDisplay && !transactionPending && !donationComplete && !transactionError) {
-          if (!walletAddress) {
-                setTransactionError("Wallet not connected. Please connect your wallet first.");
-                return;
-          }
-          // Check if we are ready to process this specific charity (e.g. not already completed/failed *for this specific one*)
-          // This check might be redundant if handleDonate correctly manages global state per step.
-          console.log(`DonationConfirmationView useEffect: Triggering handleDonate for ${charityToDisplay.name}`);
-          handleDonate(); 
-      }
-  // Added currentProcessingCharityIndex to ensure effect re-runs for new charity.
-  // Also added charityToDisplay to re-evaluate if it changes (e.g. aiMatchedCharities updates).
-  }, [currentStage, transactionPending, donationComplete, transactionError, walletAddress, handleDonate, setTransactionError, setCurrentStage, currentProcessingCharityIndex, charityToDisplay]);
-
-  if (!charityToDisplay) {
-    // This case might occur if the index is out of bounds or charities array is empty.
-    // It could indicate all donations are processed or an error in logic.
-    // Parent (DonatePage) should ideally handle stage transition before this view renders without a valid charity.
-    return (
-        <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-            <Typography variant="h6">Preparing next donation or finalizing...</Typography>
-            <CircularProgress sx={{my: 2}}/>
-        </StepContent>
-    );
-  }
-
-  // Display information for the current charity being confirmed
-  const displayCharityName = charityToDisplay.name || "Selected Charity";
-  const displayAmount = amountToDisplay || "N/A";
-
-  if (transactionPending) {
-      return (
-          <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-              <CircularProgress sx={{ mb: 3, width: '60px !important', height: '60px !important' }}/>
-              <Typography variant="h5" fontWeight="bold" gutterBottom>Processing Your Donation</Typography>
-              <Typography variant="body1" color="text.secondary">To: {displayCharityName}</Typography>
-              <Typography variant="body1" color="text.secondary">Amount: {displayAmount} {selectedCrypto /* prop needed */}</Typography>
-              <Typography variant="body1" color="text.secondary" sx={{mt:1}}>Please confirm the transaction in your wallet.</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{mt:1}}><i>(This may take a moment)</i></Typography>
-          </StepContent>
-      );
-  }
-  if (transactionError) {
-      return (
-          <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-              <ReportProblemIcon color="error" sx={{ fontSize: 60, mb: 2 }} />
-              <Typography variant="h5" color="error" fontWeight="bold" gutterBottom>Donation Failed</Typography>
-              <Typography color="error" paragraph>{transactionError}</Typography>
-              <GlowButton variant="outlined" onClick={() => setCurrentStage('charityResults')} sx={{background: 'transparent', color: 'primary.main', mr:1}}>Try Again</GlowButton>
-              <Button variant="text" onClick={handleReset}>Start Over</Button>
-          </StepContent>
-      );
-  }
-          
-  if (donationComplete) {
-      return (
-          <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-              <CheckCircleIcon sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
-              <Typography variant="h4" gutterBottom fontWeight="bold" color="success.main" sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
-                Donation Successful!
-              </Typography>
-              <Typography variant="h6" color="text.secondary" sx={{mb:3}}>
-                  Thank you for your generosity and trust in Eunoia.
-              </Typography>
-              <GlowButton onClick={() => setCurrentStage('impactTracker')} size="large" sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}>
-                Track Your Impact
-              </GlowButton>
-              <Button sx={{ml: 2, textTransform:'none'}} variant="text" onClick={handleReset}>Make Another Donation</Button>
-        </StepContent>
-      );
-  }
-    
-      return (
-    <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-      <Typography variant="h5" fontWeight="bold">Preparing your donation...</Typography>
-      <CircularProgress sx={{my: 3, width: '50px !important', height: '50px !important'}} />
-    </StepContent>
-  );
-};
-
-// ImpactTrackerView is now defined globally
-const ImpactTrackerView = ({ 
-  aiSuggestedAllocations, 
-  aiMatchedCharities, 
-  selectedCrypto, 
-  setImpactActivities,
-  impactActivities,
-  setCurrentStage,
-  platformFeeActive,
-  setPlatformFeeActive,
-  calculatePlatformFee,
-  totalDonationAmount,
-  visionPrompt,
-  theme,
-  semanticSearchLoading,
-  semanticSearchError,
-  selectedCharityIds,
-  handleToggleCharitySelection,
-  individualDonationAmounts,
-  handleIndividualAmountChange,
-  handleReset
-}) => { 
-  console.log('ImpactTrackerView render');
-  useEffect(() => {
-      const baseDonationAmount = aiMatchedCharities[0] && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? aiSuggestedAllocations[aiMatchedCharities[0]?.id] : 0;
-      const charityName = aiMatchedCharities[0]?.name || 'the selected cause';
-
-      const initialActivities = [
-          { id: 1, text: `✅ ${(baseDonationAmount).toFixed(2)} ${selectedCrypto} sent to ${charityName} Wallet`, time: "Just now", type: "transfer" },
-      ];
-      
-      setImpactActivities(initialActivities);
-
-      let currentDelay = 0;
-      const activityTimeouts = [];
-
-      const scheduleActivity = (text, time, type, delay) => {
-          currentDelay += delay;
-          const timeoutId = setTimeout(() => {
-              setImpactActivities(prev => [...prev, {id: prev.length + Date.now(), text, time, type}])
-          }, currentDelay);
-          activityTimeouts.push(timeoutId);
-      }
-
-      if (baseDonationAmount > 0) {
-          scheduleActivity(`📬 Confirmation received from ${charityName}`, "Moments ago", "confirmation", 1500);
-
-          const books = Math.floor(baseDonationAmount / 5); 
-          if (books > 0) {
-              scheduleActivity(`📘 ${books} book${books > 1 ? 's' : ''} being prepared for distribution`, "Updates soon", "action", 2000);
-          }
-          const meals = Math.floor(baseDonationAmount / 2);
-          if (meals > 0) {
-              scheduleActivity(`🍲 ${meals} meal${meals > 1 ? 's' : ''} funding allocated to kitchen partners`, "Updates soon", "action", 2500);
-          }
-            if (baseDonationAmount > 10) {
-              scheduleActivity(`🤝 Community outreach program benefiting from your support`, "In progress", "action", 3000);
-          }
-      }
-      return () => {
-        activityTimeouts.forEach(clearTimeout);
-      };
-
-  }, [aiSuggestedAllocations, aiMatchedCharities, selectedCrypto, setImpactActivities]);
-
-  const totalImpactStats = {
-      mealsFunded: aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? Math.floor(aiSuggestedAllocations[aiMatchedCharities[0].id] / 2) : 0,
-      booksProvided: aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? Math.floor(aiSuggestedAllocations[aiMatchedCharities[0].id] / 5) : 0,
-      childrenHelped: aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] ? Math.floor(aiSuggestedAllocations[aiMatchedCharities[0].id] / 1.5) : 0, 
-  };
-
-  const getSocialPostText = () => { 
-    const charityName = aiMatchedCharities[0]?.name || 'a great cause';
-    let impactHighlights = [];
-    if (totalImpactStats.childrenHelped > 0) impactHighlights.push(`${totalImpactStats.childrenHelped} children helped`);
-    if (totalImpactStats.mealsFunded > 0) impactHighlights.push(`${totalImpactStats.mealsFunded} meals funded`);
-    if (totalImpactStats.booksProvided > 0) impactHighlights.push(`${totalImpactStats.booksProvided} books provided`);
-    
-    if (impactHighlights.length === 0 && aiMatchedCharities.length > 0 && aiSuggestedAllocations[aiMatchedCharities[0]?.id] > 0) {
-        return `Supported ${charityName} with a donation of ${(aiSuggestedAllocations[aiMatchedCharities[0]?.id]).toFixed(2)} ${selectedCrypto}.`
-    }
-    return impactHighlights.join(', ') || `Made a contribution to ${charityName}.`;
-  };
-
-  return (
-    <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-      <Typography variant="h5" fontWeight="bold">Your Impact</Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mt: 2, mb: 3 }}>
-        {getSocialPostText()}
-      </Typography>
-       <Typography variant="subtitle1" sx={{mb:1, fontWeight:'medium'}}>Transaction Journey:</Typography>
-        <List dense sx={{maxWidth: 400, margin: 'auto', textAlign: 'left'}}>
-            {impactActivities.map((activity) => (
-                <ListItem key={activity.id}>
-                    <ListItemIcon sx={{minWidth: '30px'}}>
-                        {activity.type === 'transfer' && <CheckCircleIcon fontSize="small" color="success"/>}
-                        {activity.type === 'confirmation' && <TextsmsIcon fontSize="small" color="info"/>}
-                        {activity.type === 'action' && <InsightsIcon fontSize="small" color="secondary"/>}
-                    </ListItemIcon>
-                    <ListItemText primary={activity.text} secondary={activity.time} />
-                </ListItem>
-            ))}
-        </List>
-        {/* <Button component={Link} to="/profile" variant="contained" sx={{mt:3, mr:1, borderRadius: '50px'}}>View My Profile</Button> */}
-        <Button onClick={handleReset} variant="outlined" sx={{mt:3, borderRadius: '50px'}}>
-          Make Another Donation
-        </Button>
-
-    </StepContent>
-  );
 };
 
 const DonatePage = () => {
@@ -1129,7 +81,7 @@ const DonatePage = () => {
   const [aiSuggestedAllocations, setAiSuggestedAllocations] = useState({});
   const [socialHandles, setSocialHandles] = useState({ twitter: '', instagram: '', linkedin: '' });
   // Set default cryptocurrency based on active chain
-  const getDefaultCrypto = () => activeChain === CHAINS.POLKADOT ? 'WND' : 'APT';
+  const getDefaultCrypto = () => activeChain === CHAINS.POLKADOT ? 'DOT' : 'APT';
   const [selectedCrypto, setSelectedCrypto] = useState(getDefaultCrypto());
   const [searchValue, setSearchValue] = useState(initialSearchValue);
   const [needsDescription, setNeedsDescription] = useState(initialSearchMode === 'needs' ? initialSearchValue : '');
@@ -1171,53 +123,53 @@ const DonatePage = () => {
     'Confirm & Donate'
   ];
 
-  // Initialize Polkadot API and update selected crypto when chain changes
-  useEffect(() => {
-    // Update selected cryptocurrency when chain changes
-    setSelectedCrypto(activeChain === CHAINS.POLKADOT ? 'WND' : 'APT');
-    
-    const setupPolkadotApi = async () => {
-      if (activeChain === CHAINS.POLKADOT) {
-        try {
-          // Import the required modules dynamically
-          const { ApiPromise, WsProvider } = await import('@polkadot/api');
-          
-          // Create a WebSocket provider
-          const wsProvider = new WsProvider(POLKADOT_NODE_URL);
-          
-          // Create the API instance
-          const api = await ApiPromise.create({ provider: wsProvider });
-          
-          // Wait for the API to be ready
-          await api.isReady;
-          
-          setPolkadotApi(api);
-          console.log('Polkadot API initialized with @polkadot/api');
-        } catch (error) {
-          console.error('Failed to initialize Polkadot API:', error);
-          setBalanceError("Failed to initialize Polkadot connection");
-        }
+  const connectToPolkadot = async () => {
+    if (activeChain === CHAINS.POLKADOT) {
+      try {
+        // Create a WebSocket provider
+        const provider = new WsProvider(POLKADOT_NODE_URL);
+        
+        // Create the API instance
+        const polkadotApi = await ApiPromise.create({ provider });
+        
+        setPolkadotApi(polkadotApi);
+        
+        // Get chain name for logging
+        const chain = await polkadotApi.rpc.system.chain();
+        console.log(`Connected to Polkadot chain: ${chain.toString()}`);
+        
+        // Create contract instance
+        const c = new ContractPromise(polkadotApi, abiJson, POLKADOT_CONTRACT_ADDRESS);
+        console.log('Contract instance created successfully');
+      } catch (error) {
+        console.error('Failed to initialize Polkadot API:', error);
+        setBalanceError("Failed to initialize Polkadot connection");
       }
-    };
-    
-    setupPolkadotApi();
-    
-    return () => {
-      // Clean up Polkadot API connection on unmount
-      if (polkadotApi && polkadotApi.disconnect) {
-        polkadotApi.disconnect();
-      }
-    };
-  }, [activeChain]);
-
-  // Check wallet balance whenever wallet address or selected crypto changes
-  useEffect(() => {
-    if (walletAddress) {
-      checkWalletBalance();
-    } else {
-      setWalletBalance(0);
     }
-  }, [walletAddress, selectedCrypto, activeChain]);
+  };
+
+  // Fetch balance function similar to App.js
+  const fetchBalance = async () => {
+    if (polkadotApi && walletAddress) {
+      try {
+        const { data } = await polkadotApi.query.system.account(walletAddress);
+        const freeBalance = data.free.toBigInt(); // get BigInt
+        const formattedBalance = Number(freeBalance) / 100_000_000_00;
+        console.log(`Polkadot balance for ${selectedCrypto}: ${formattedBalance}`);
+        
+        // Convert from string to number for display
+        const balanceNumber = parseFloat(formattedBalance);
+        setWalletBalance(balanceNumber);
+        
+        // Get chain information for logging
+        const chain = await polkadotApi.rpc.system.chain();
+        console.log(`Connected to chain: ${chain.toString()}`);
+      } catch (error) {
+        console.error("Error fetching Polkadot balance:", error);
+        setBalanceError("Failed to fetch balance");
+      }
+    }
+  };
 
   // Function to check wallet balance
   const checkWalletBalance = async () => {
@@ -1251,7 +203,7 @@ const DonatePage = () => {
       setLoadingBalance(false);
     }
   };
-
+  
   // Get balance for Aptos
   const getAptosBalance = async (address, tokenSymbol) => {
     try {
@@ -1289,26 +241,20 @@ const DonatePage = () => {
     }
   };
 
-  // Get balance for Polkadot/Westend
+  // Get balance for Polkadot/Westend using the same approach as App.js
   const getPolkadotBalance = async (address) => {
     try {
-      // Get network based on selected cryptocurrency
-      let network = polkadotWallet.POLKADOT_NETWORKS.WESTEND; // Default to Westend
-      if (selectedCrypto === 'DOT') {
-        network = polkadotWallet.POLKADOT_NETWORKS.POLKADOT;
-      } else if (selectedCrypto === 'KSM') {
-        network = polkadotWallet.POLKADOT_NETWORKS.KUSAMA;
+      if (!polkadotApi) {
+        console.error("Polkadot API not initialized");
+        return 5; // Default value for testing
       }
+
+      const { data } = await polkadotApi.query.system.account(address);
+      const freeBalance = data.free.toBigInt(); // get BigInt
       
-      // Initialize API if needed
-      await polkadotWallet.initApi(network.endpoint);
-      
-      // Use polkadotWallet utility to get account balance
-      const formattedBalance = await polkadotWallet.getBalance({ address }, network);
-      
-      // Extract numeric value from formatted balance (e.g., "5.0000 WND" -> 5.0000)
-      const balanceNumber = parseFloat(formattedBalance.split(' ')[0]);
-      return balanceNumber;
+      // Convert from smallest unit (plancks) to DOT/WND (12 decimal places)
+      const formattedBalance = Number(freeBalance) / 100_000_000_00;
+      return formattedBalance;
     } catch (error) {
       console.error(`Error fetching ${selectedCrypto} balance:`, error);
       // For testing, return a mock balance
@@ -1325,6 +271,34 @@ const DonatePage = () => {
     const maxAmount = Math.max(0, walletBalance - 0.1);
     setTotalDonationAmount(Number(maxAmount.toFixed(2)));
   };
+
+  // Initialize Polkadot API and update selected crypto when chain changes
+  useEffect(() => {
+    // Update selected cryptocurrency when chain changes
+    setSelectedCrypto(activeChain === CHAINS.POLKADOT ? 'DOT' : 'APT');
+    
+    connectToPolkadot();
+    
+    return () => {
+      // Clean up Polkadot API connection on unmount
+      if (polkadotApi && polkadotApi.disconnect) {
+        polkadotApi.disconnect();
+      }
+    };
+  }, [activeChain]);
+
+  // Check wallet balance whenever wallet address or selected crypto changes
+  useEffect(() => {
+    if (walletAddress) {
+      if (activeChain === CHAINS.POLKADOT && polkadotApi) {
+        fetchBalance();
+      } else {
+        checkWalletBalance();
+      }
+    } else {
+      setWalletBalance(0);
+    }
+  }, [walletAddress, selectedCrypto, activeChain, polkadotApi]);
 
   useEffect(() => {
     if (initialSearchValue && currentStage === 'traditionalSearch') {
@@ -1364,42 +338,31 @@ const DonatePage = () => {
           return false;
         }
       } else if (activeChain === CHAINS.POLKADOT) {
-        // Connect Polkadot wallet
+        // Connect Polkadot wallet using the approach from App.js
         try {
-          // Import from polkadot extension
-          const { web3Enable, web3Accounts } = await import('@polkadot/extension-dapp');
-          
-          // Enable all extensions
           const extensions = await web3Enable('Eunoia Donation Platform');
-          
-          if (!extensions.length) {
-            console.error("No Polkadot extension found");
-            setTransactionError("No Polkadot extension found. Please install a wallet like SubWallet.");
+          if (extensions.length === 0) {
+            alert('Polkadot{.js} extension not found. Please install it.');
             return false;
           }
           
-          // Get all accounts
           const accounts = await web3Accounts();
-          
-          if (!accounts.length) {
-            console.error("No accounts found in the Polkadot wallet");
-            setTransactionError("No accounts found in your Polkadot wallet.");
+          if (accounts.length === 0) {
+            alert('No accounts found in the Polkadot{.js} extension.');
             return false;
           }
           
-          // Use the first account
-          const address = accounts[0].address;
-          setWalletAddress(address);
-          
-          // Store address for later use
-          localStorage.setItem('polkadotAddress', address);
-          
+          setWalletAddress(accounts[0].address);
           // Get balance after connecting
-          await checkWalletBalance();
+          if (polkadotApi) {
+            await fetchBalance();
+          } else {
+            await checkWalletBalance();
+          }
           return true;
         } catch (error) {
-          console.error("Error connecting to Polkadot wallet:", error);
-          setTransactionError("Failed to connect to Polkadot wallet. Please try again.");
+          console.error('Error connecting to wallet:', error);
+          alert('Failed to connect to wallet. Please try again.');
           return false;
         }
       } else {
@@ -1656,7 +619,7 @@ const DonatePage = () => {
     }
   };
   
-  // Handle Polkadot donation
+  // Handle Polkadot donation using the approach from App.js
   const handlePolkadotDonation = async (charity, amount) => {
     try {
       if (!polkadotApi) {
@@ -1668,84 +631,85 @@ const DonatePage = () => {
         throw new Error(`Invalid donation amount: ${amount}`);
       }
 
-      // Hardcode for WND (Westend) with 12 decimals
-      const decimals = 12;
-      const amountInSmallestUnit = BigInt(Math.round(numericAmount * Math.pow(10, decimals)));
-
       // Ensure we're signed in
       if (!walletAddress) {
         throw new Error("Polkadot wallet not connected. Please connect your wallet.");
       }
 
-      console.log(`Preparing Westend donation of ${amount} WND (${amountInSmallestUnit} plancks) to ${charity.name}`);
+      // Convert amount to planck units (smallest unit)
+      const amountInPlanck = new BN(Number(numericAmount) * 1e12);
 
-      // Create a transaction to interact with the EunoiaFoundation contract
-      const charityName = charity.name;
-      const tokenName = 'WND'; // Hardcode to WND
+      console.log(`Preparing Westend donation of ${amount} DOT (${amountInPlanck.toString()} plancks) to ${charity.name}`);
 
-      // Load contract ABI from the optimized contract
-      let contractAbi;
-      try {
-        contractAbi = await import('../../polkadot_contracts/westend/eunoia_optimized_abi.json');
-      } catch (error) {
-        console.warn('Could not load contract ABI, falling back to direct call:', error);
-        contractAbi = null;
-      }
+      // Get the injector for the current address
+      const injector = await web3FromAddress(walletAddress);
 
-      // Create the contract call
-      let tx;
-
-      try {
-        if (contractAbi && contractAbi.default) {
-          // Use the contract instance with ABI
+      // Use the giveTo function from the contract if available
+      if (POLKADOT_MODULE_NAME === 'eunoia' && POLKADOT_DONATE_FUNCTION_NAME === 'giveMe') {
+        // Create contract instance
           const contract = new ContractPromise(
             polkadotApi,
-            contractAbi.default,
+          abiJson, // This should be imported at the top of the file like in App.js
             POLKADOT_CONTRACT_ADDRESS
           );
 
-          console.log("Creating contract call with ABI");
+        // Set gas limit
+        const gasLimit = polkadotApi.registry.createType("WeightV2", {
+          refTime: 3_000_000_000,
+          proofSize: 1_000_000,
+        });
 
-          // Get the gas estimate
-          const gasLimit = polkadotApi.registry.createType('WeightV2', {
-            refTime: 1000000000,
-            proofSize: 50000,
-          });
+        // Call the giveMe function
+        const tx = contract.tx.giveMe({ value: 0, gasLimit }, numericAmount);
 
-          // Execute the actual transaction
-          tx = contract.tx.donate(
-            { value: amountInSmallestUnit.toString(), gasLimit },
-            charityName,
-            tokenName
-          );
-
-          console.log("Contract transaction created successfully");
-        } else {
-          console.log("Using fallback direct contract call");
-          // Fallback to simple transfer if ABI is not available
-          tx = polkadotApi.tx.balances.transferKeepAlive(
-            POLKADOT_CONTRACT_ADDRESS,
-            amountInSmallestUnit.toString()
-          );
-        }
-      } catch (error) {
-        console.error("Error creating contract transaction:", error);
-        // Ultimate fallback - simple transfer
-        tx = polkadotApi.tx.balances.transferKeepAlive(
-          POLKADOT_CONTRACT_ADDRESS,
-          amountInSmallestUnit.toString()
+        // Sign and send the transaction
+        const result = await tx.signAndSend(
+          walletAddress, 
+          { signer: injector.signer },
+          ({ status, dispatchError }) => {
+            if (dispatchError) {
+              console.error("Dispatch error:", dispatchError.toString());
+            }
+            if (status.isInBlock) {
+              console.log("giveMe included in blockHash:", status.asInBlock.toString());
+            } else if (status.isFinalized) {
+              console.log("giveMe finalized:", status.asFinalized.toString());
+              console.log(`giveMe executed: received ${numericAmount}`);
+            }
+          }
         );
-      }
 
-      // Sign and send the transaction using the browser extension
-      const { web3FromAddress } = await import('@polkadot/extension-dapp');
-      const injector = await web3FromAddress(walletAddress);
+        return result;
+      } else {
+        // Fallback to simple transfer if contract is not available
+        const tx = polkadotApi.tx.balances.transferAllowDeath(POLKADOT_CONTRACT_ADDRESS, amountInPlanck);
 
-      const result = await tx.signAndSend(walletAddress, { signer: injector.signer });
-
-      console.log("Westend transaction submitted:", result.hash);
+        // Sign and send the transaction
+        const result = await tx.signAndSend(
+          walletAddress,
+          { signer: injector.signer },
+          ({ status, dispatchError, events }) => {
+            if (dispatchError) {
+              console.error("Dispatch error:", dispatchError.toString());
+            }
+            if (status.isInBlock) {
+              console.log("Transfer included in blockHash:", status.asInBlock.toString());
+            } else if (status.isFinalized) {
+              console.log("Transfer finalized:", status.asFinalized.toString());
+              console.log(`Transferred ${numericAmount} ${selectedCrypto} to ${POLKADOT_CONTRACT_ADDRESS}`);
+              
+              // Refresh balance after transfer
+              polkadotApi.query.system.account(walletAddress).then(({ data }) => {
+                const freeBalance = data.free.toBigInt();
+                const formatted = Number(freeBalance) / 1e12;
+                setWalletBalance(formatted);
+              });
+            }
+          }
+        );
 
       return result;
+      }
     } catch (error) {
       console.error("Westend donation error:", error);
       throw error;
@@ -1769,7 +733,9 @@ const DonatePage = () => {
   const renderCurrentStage = () => {
     switch (currentStage) {
       case 'welcomeAI':
-        return <AllocationWelcomeView setCurrentStage={setCurrentStage} />;
+        return <AllocationWelcomeView 
+          setCurrentStage={setCurrentStage} 
+        />;
       case 'visionPrompt':
         return <VisionPromptView 
           visionPrompt={visionPrompt}
@@ -1804,7 +770,7 @@ const DonatePage = () => {
           setSemanticSearchError={setSemanticSearchError}
           semanticSearchLoading={semanticSearchLoading}
           semanticSearchError={semanticSearchError}
-          setCombinedMissionStatement={setCombinedMissionStatement} // Pass setter to AiProcessingView
+          setCombinedMissionStatement={setCombinedMissionStatement}
           setCompassRecommendations={setCompassRecommendations}
           setGroupedMatches={setGroupedMatches}
         />;
@@ -1826,7 +792,7 @@ const DonatePage = () => {
           handleToggleCharitySelection={handleToggleCharitySelection}
           individualDonationAmounts={individualDonationAmounts}
           handleIndividualAmountChange={handleIndividualAmountChange}
-          combinedMissionStatement={combinedMissionStatement} // Pass statement to CharityResultsView
+          combinedMissionStatement={combinedMissionStatement}
           compassRecommendations={compassRecommendations}
           groupedMatches={groupedMatches}
         />;
@@ -1860,8 +826,8 @@ const DonatePage = () => {
           setCurrentStage={setCurrentStage}
           platformFeeActive={platformFeeActive}
           setPlatformFeeActive={setPlatformFeeActive}
-          calculatePlatformFee={calculatePlatformFee} // This will now use actualTotalDonation
-          totalDonationAmount={actualTotalDonation} // Pass the dynamically calculated total
+          calculatePlatformFee={calculatePlatformFee}
+          totalDonationAmount={actualTotalDonation}
           visionPrompt={visionPrompt}
           theme={theme}
           semanticSearchLoading={semanticSearchLoading}
@@ -1870,7 +836,7 @@ const DonatePage = () => {
           handleToggleCharitySelection={handleToggleCharitySelection}
           individualDonationAmounts={individualDonationAmounts}
           handleIndividualAmountChange={handleIndividualAmountChange}
-          handleReset={handleReset} // Pass handleReset for the button
+          handleReset={handleReset}
         />;
       default:
         return <AllocationWelcomeView setCurrentStage={setCurrentStage} />;
