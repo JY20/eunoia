@@ -93,7 +93,7 @@ const VisionPromptView = ({
   ];
   
   // Select the appropriate options based on the active chain
-  const cryptoOptions = activeChain === 'POLKADOT' ? polkadotCryptoOptions : aptosCryptoOptions;
+  const cryptoOptions = activeChain === 'polkadot' ? polkadotCryptoOptions : aptosCryptoOptions;
 
   const handleSocialChange = (platform, value) => {
     setSocialHandles(prev => ({ ...prev, [platform]: value }));
@@ -153,11 +153,11 @@ const VisionPromptView = ({
                 )}
                 <Box>
                   <Typography variant="body2" fontWeight="medium">
-                    Balance: {walletBalance.toFixed(4)} {activeChain === 'POLKADOT' ? 'DOT' : 'APT'}
+                    Balance: {walletBalance.toFixed(4)} {cryptoOptions[0].value}
                   </Typography>
                   {!balanceError && walletBalance > 0 && (
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      {activeChain === 'POLKADOT' ? 'Connected to Polkadot' : 'Connected to Aptos'}
+                      {activeChain === 'polkadot' ? 'Connected to Polkadot' : 'Connected to Aptos'}
                     </Typography>
                   )}
                 </Box>
@@ -242,8 +242,8 @@ const VisionPromptView = ({
             valueLabelDisplay="auto"
           />
           <Box sx={{ display: 'flex', justifyContent: 'space-between', typography: 'caption', color: 'text.secondary' }}>
-            <span>1 {selectedCrypto}</span>
-            <span>{(walletBalance > 0 ? walletBalance : 1).toFixed(2)} {selectedCrypto}</span>
+            <span>1 {cryptoOptions[0].value}</span>
+            <span>{(walletBalance > 0 ? walletBalance : 1).toFixed(2)} {cryptoOptions[0].value}</span>
           </Box>
         </Box>
       </Paper>
@@ -302,7 +302,7 @@ const VisionPromptView = ({
                 Support Eunoia Platform (+0.20%)
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Helps us grow! Fee: {calculatePlatformFee().toFixed(2)} {selectedCrypto}
+                Helps us grow! Fee: {calculatePlatformFee().toFixed(2)} {cryptoOptions[0].value}
               </Typography>
             </Box>
           }

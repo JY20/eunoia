@@ -66,9 +66,6 @@ const DonatePage = () => {
   const location = useLocation();
   const { walletAddress, setWalletAddress, activeChain } = useContext(AppContext) || {};
   
-  // Debug: Log on every render
-  // console.log('DonatePage render, currentStage:', currentStage); // Keep this or remove if not debugging
-  
   const initialState = location.state || {};
   const initialSearchValue = initialState.searchValue || '';
   const initialSearchMode = initialState.searchMode || 'direct';

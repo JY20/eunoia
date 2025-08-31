@@ -72,14 +72,9 @@ const DonationConfirmationView = ({
       console.log(`DonationConfirmationView useEffect: Triggering handleDonate for ${charityToDisplay.name}`);
       handleDonate(); 
     }
-  // Added currentProcessingCharityIndex to ensure effect re-runs for new charity.
-  // Also added charityToDisplay to re-evaluate if it changes (e.g. aiMatchedCharities updates).
   }, [currentStage, transactionPending, donationComplete, transactionError, walletAddress, handleDonate, setTransactionError, setCurrentStage, currentProcessingCharityIndex, charityToDisplay]);
 
   if (!charityToDisplay) {
-    // This case might occur if the index is out of bounds or charities array is empty.
-    // It could indicate all donations are processed or an error in logic.
-    // Parent (DonatePage) should ideally handle stage transition before this view renders without a valid charity.
     return (
       <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
         <Typography variant="h6">Preparing next donation or finalizing...</Typography>
@@ -89,6 +84,7 @@ const DonationConfirmationView = ({
   }
 
   // Display information for the current charity being confirmed
+  
   const displayCharityName = charityToDisplay.name || "Selected Charity";
   const displayAmount = amountToDisplay || "N/A";
 
@@ -144,4 +140,3 @@ const DonationConfirmationView = ({
 };
 
 export default DonationConfirmationView;
-

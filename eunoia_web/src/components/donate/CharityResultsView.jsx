@@ -138,7 +138,7 @@ const CharityResultsView = ({
         </Box>
       )}
 
-      <Grid container spacing={3}>
+      <Grid container spacing={3} justifyContent="center">
         {/* Charity Results Feed - now a nested grid for 2 columns */}
         <Grid item xs={12} md={8}>
           <Grid container spacing={2}> {/* Nested grid for cards */}
