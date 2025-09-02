@@ -41,11 +41,6 @@ import ImageIcon from '@mui/icons-material/Image';
 // import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow } from '@vis.gl/react-google-maps';
 
 // Constants
-<<<<<<< HEAD
-const API_BASE_URL = 'http://127.0.0.1:8000/api'; // Local development backend
-// const API_BASE_URL = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api'; // Production
-=======
->>>>>>> origin/P1
 
 // Styled components
 const PageWrapper = styled(Box)(({ theme }) => ({

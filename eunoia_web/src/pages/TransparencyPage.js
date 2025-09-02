@@ -66,13 +66,6 @@ const EXPLORERS = {
   POLKADOT: 'https://polkadot.subscan.io/extrinsic'
 };
 
-<<<<<<< HEAD
-const API_BASE_URL_TRANSPARENCY = 'http://127.0.0.1:8000/api'; // Local development backend
-// const API_BASE_URL_TRANSPARENCY = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api'; // Production
-=======
-// API base URL is provided by config
->>>>>>> origin/P1
-
 // Styled Components
 const PageHeader = styled(Box)(({ theme }) => ({
   background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
