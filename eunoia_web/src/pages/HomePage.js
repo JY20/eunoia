@@ -227,8 +227,8 @@ const HomePage = () => {
     const fetchCharities = async () => {
       try {
         setLoading(true);
-        // Fetch from the new DRF endpoint
-        const response = await axios.get(`${API_BASE_URL}/charities/?is_verified=true`); // Fetch verified charities
+        // Fetch from the new DRF endpoint - get all verified charities
+        const response = await axios.get(`${API_BASE_URL}/charities/?is_verified=true&page_size=100`); // Fetch verified charities
 
         // Temporarily mock data until our API is ready (Comment out or remove)
         /*
@@ -746,12 +746,27 @@ const HomePage = () => {
               {featuredCharities.map((charity) => (
                 <Grid item xs={12} sm={6} md={4} key={charity.id}>
                   <CharityCard>
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      image={charity.logo}
-                      alt={charity.name}
-                    />
+                    {charity.logo ? (
+                      <CardMedia
+                        component="img"
+                        height="200"
+                        image={charity.logo}
+                        alt={charity.name}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          height: 200,
+                          backgroundColor: '#f5f5f5',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#666'
+                        }}
+                      >
+                        <Typography variant="body2">No Logo</Typography>
+                      </Box>
+                    )}
                     <CardContent sx={{ flexGrow: 1 }}>
                       <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                         <Typography gutterBottom variant="h6" component="div" fontWeight="bold">

@@ -14,7 +14,6 @@ import {
   InputAdornment,
   CircularProgress,
   Chip,
-  alpha,
   useTheme
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -26,7 +25,7 @@ import { API_BASE_URL } from '../config';
 import { Link, useNavigate } from 'react-router-dom';
 import CharitySearch from '../components/CharitySearch';
 // import CharityFilter from '../components/CharityFilter'; // Removed as file not found and component unused
-import CharityResultCard from '../components/CharityResultCard'; // Assuming this was the intended component
+// import CharityResultCard from '../components/CharityResultCard'; // Not needed for this page
 
 // Constants
 const PageHeader = styled(Box)(({ theme }) => ({
@@ -94,8 +93,8 @@ const CharitiesPage = () => {
       try {
         setLoading(true);
         
-        // Fetch from the new DRF endpoint
-        const response = await axios.get(`${API_BASE_URL}/charities/`);
+        // Fetch from the new DRF endpoint - get all charities in one request
+        const response = await axios.get(`${API_BASE_URL}/charities/?page_size=100`);
         
         // Mock data (remove or comment out)
         /*
@@ -227,13 +226,28 @@ const CharitiesPage = () => {
             <Grid container spacing={4}>
               {paginatedCharities.map((charity) => (
                 <Grid item xs={12} sm={6} md={4} key={charity.id}>
-                  <CharityResultCard>
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      image={charity.logo}
-                      alt={charity.name}
-                    />
+                  <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 2, boxShadow: 3, '&:hover': { boxShadow: 6, transform: 'translateY(-4px)' }, transition: 'all 0.3s ease' }}>
+                    {charity.logo ? (
+                      <CardMedia
+                        component="img"
+                        height="200"
+                        image={charity.logo}
+                        alt={charity.name}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          height: 200,
+                          backgroundColor: '#f5f5f5',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#666'
+                        }}
+                      >
+                        <Typography variant="body2">No Logo</Typography>
+                      </Box>
+                    )}
                     <CardContent sx={{ flexGrow: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                         <Typography gutterBottom variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -286,7 +300,7 @@ const CharitiesPage = () => {
                         Donate
                       </DonateButton>
                     </CardActions>
-                  </CharityResultCard>
+                  </Card>
                 </Grid>
               ))}
             </Grid>

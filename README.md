@@ -255,9 +255,6 @@ We've been supported by communities like **EasyA**, **Aptos Foundation**, **Polk
 
 ![image](https://github.com/user-attachments/assets/7331b5ad-cc48-419c-98bd-be60b9999260)
 
-**Semantic Search Architecture**
-
-![image]eunoia_web\src\assets\team_consensus_photo.jpg)
 ---
 
 ## 🔍 Smart Contracts Overview
