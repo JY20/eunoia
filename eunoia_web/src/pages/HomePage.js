@@ -33,6 +33,9 @@ import PaidIcon from '@mui/icons-material/Paid';
 import SecurityIcon from '@mui/icons-material/Security';
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
 
+// Constants
+// const API_URL = 'http://localhost:8000/api'; // Commented out as API call is mocked
+
 // Styled Components
 const HeroSection = styled(Box)(({ theme }) => ({
   background: 'linear-gradient(135deg, #7209b7 0%, #3f37c9 100%)',

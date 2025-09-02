@@ -40,7 +40,15 @@ import abiJson from '../eunoia.json';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'; 
 
 import { AppContext, CHAINS } from '../components/AppProvider';
+import { Connected } from '../components/Alert';
+import Loading from '../components/Loading';
+import { AppContract } from '../components/AppContract';
+import CompassAnimation from '../components/CompassAnimation'; // Import the new component
+import CharityResultCard from '../components/CharityResultCard'; // Import the new card component
+import ImpactMap from '../components/ImpactMap'; // Import the new map component
 
+// Mock data, replace with API calls
+// Constants for API and Wallet
 const MODULE_ADDRESS = "0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011";
 const MODULE_NAME = "eunoia_foundation";
 const DONATE_FUNCTION_NAME = "donate";

@@ -35,6 +35,8 @@ import LinkIcon from '@mui/icons-material/Link';
 import ImageIcon from '@mui/icons-material/Image';
 // import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow } from '@vis.gl/react-google-maps';
 
+// Constants
+
 // Styled components
 const PageWrapper = styled(Box)(({ theme }) => ({
   background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',

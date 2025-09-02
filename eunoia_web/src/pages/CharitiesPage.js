@@ -28,6 +28,7 @@ import CharitySearch from '../components/CharitySearch';
 // import CharityFilter from '../components/CharityFilter'; // Removed as file not found and component unused
 import CharityResultCard from '../components/CharityResultCard'; // Assuming this was the intended component
 
+// Constants
 const PageHeader = styled(Box)(({ theme }) => ({
   background: 'linear-gradient(135deg, #7E57C2 0%, #B39DDB 100%)',
   padding: theme.spacing(6, 2, 8),
