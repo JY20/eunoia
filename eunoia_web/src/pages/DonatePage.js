@@ -61,6 +61,7 @@ const POLKADOT_DONATE_FUNCTION_NAME = "giveMe";
 // Balance checking constants
 const APTOS_NODE_URL = "https://fullnode.testnet.aptoslabs.com";
 const POLKADOT_NODE_URL = "wss://testnet-passet-hub.polkadot.io";
+// const POLKADOT_NODE_URL = "wss://polkadot-rpc.publicnode.com";
 
 // Token type mapping
 const TOKEN_TYPES = {

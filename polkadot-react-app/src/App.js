@@ -28,7 +28,8 @@ function App() {
   useEffect(() => {
     const connectToPolkadot = async () => {
       // const provider = new WsProvider('wss://testnet-passet-hub.polkadot.io');
-      const provider = new WsProvider('wss://rpc.dot.polkadot.network');
+      // const provider = new WsProvider('wss://rpc.dot.polkadot.network');
+      const provider = new WsProvider('wss://polkadot-rpc.publicnode.com');
       const polkadotApi = await ApiPromise.create({ provider });
       setApi(polkadotApi);
 
