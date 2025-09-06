@@ -47,22 +47,19 @@ const DonationConfirmationView = ({
   setTransactionError,
   currentProcessingCharityIndex,
   aiMatchedCharities,
-  aiSuggestedAllocations,
   selectedCrypto,
   selectedCharityIds,
-  handleToggleCharitySelection,
-  individualDonationAmounts,
-  handleIndividualAmountChange
+  totalDonationAmount
 }) => { 
   console.log('DonationConfirmationView render, index:', currentProcessingCharityIndex);
   
   const [localTransactionPending, setLocalTransactionPending] = useState(false);
   
-  // Get the current charity and amount for display
+  // Get the current charity for display
   const charityToDisplay = aiMatchedCharities && aiMatchedCharities[currentProcessingCharityIndex];
-  const amountToDisplay = charityToDisplay && individualDonationAmounts && individualDonationAmounts[charityToDisplay.id] 
-    ? individualDonationAmounts[charityToDisplay.id] 
-    : (aiSuggestedAllocations && aiSuggestedAllocations[charityToDisplay?.id]);
+  
+  // Use the total donation amount passed from DonatePage
+  const amountToDisplay = totalDonationAmount;
 
   // We'll use a manual trigger button instead of automatic useEffect
 
@@ -93,17 +90,17 @@ const DonationConfirmationView = ({
     );
   }
   
-  // if (transactionError) {
-  //   return (
-  //     <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-  //       <ReportProblemIcon color="error" sx={{ fontSize: 60, mb: 2 }} />
-  //       <Typography variant="h5" color="error" fontWeight="bold" gutterBottom>Donation Failed</Typography>
-  //       <Typography color="error" paragraph>{transactionError}</Typography>
-  //       <GlowButton variant="outlined" onClick={() => setCurrentStage('charityResults')} sx={{background: 'transparent', color: 'primary.main', mr:1}}>Try Again</GlowButton>
-  //       <Button variant="text" onClick={handleReset}>Start Over</Button>
-  //     </StepContent>
-  //   );
-  // }
+  if (transactionError) {
+    return (
+      <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+        <ReportProblemIcon color="error" sx={{ fontSize: 60, mb: 2 }} />
+        <Typography variant="h5" color="error" fontWeight="bold" gutterBottom>Donation Failed</Typography>
+        <Typography color="error" paragraph>{transactionError}</Typography>
+        <GlowButton variant="outlined" onClick={() => setCurrentStage('charityResults')} sx={{background: 'transparent', color: 'primary.main', mr:1}}>Try Again</GlowButton>
+        <Button variant="text" onClick={handleReset}>Start Over</Button>
+      </StepContent>
+    );
+  }
       
   if (donationComplete) {
     return (

@@ -80,10 +80,10 @@ const DonatePage = () => {
   const initialSelectedCharities = initialState.selectedCharities || [];
   const isDirectDonation = initialState.directDonation || false;
   
-  // If direct donation, go straight to donation confirmation
+  // If direct donation, go to charity results first
   const [currentStage, setCurrentStage] = useState(() => {
     if (isDirectDonation && initialSelectedCharities.length > 0) {
-      return 'donationConfirmation'; // Skip AI processing for direct donations
+      return 'charityResults'; // Go to charity results first for direct donations
     } else if (initialSearchValue) {
       return 'visionPrompt';
     } else {
@@ -91,7 +91,7 @@ const DonatePage = () => {
     }
   });
   const [visionPrompt, setVisionPrompt] = useState(initialSearchValue || ''); // Use initialSearchValue here
-  const [totalDonationAmount, setTotalDonationAmount] = useState(50);
+  const [totalDonationAmount, setTotalDonationAmount] = useState(20);
   const [aiMatchedCharities, setAiMatchedCharities] = useState(
     isDirectDonation && initialSelectedCharities.length > 0 ? initialSelectedCharities : []
   );
@@ -139,6 +139,7 @@ const DonatePage = () => {
   const [compassRecommendations, setCompassRecommendations] = useState([]);
   const [groupedMatches, setGroupedMatches] = useState({});
   const [shouldRefreshBalance, setShouldRefreshBalance] = useState(false);
+  const [lastTransactionBlockHash, setLastTransactionBlockHash] = useState(null);
   
   // New state for selectable charities and individual amounts
   const [selectedCharityIds, setSelectedCharityIds] = useState(() => {
@@ -304,7 +305,7 @@ const DonatePage = () => {
       // await connectToPolkadot();
       
       // If this is a direct donation, ensure wallet is connected and prepare for payment
-      if (isDirectDonation && initialSelectedCharities.length > 0 && currentStage === 'donationConfirmation') {
+      if (isDirectDonation && initialSelectedCharities.length > 0 && (currentStage === 'charityResults' || currentStage === 'donationConfirmation')) {
         console.log("Direct donation detected: preparing for payment processing");
         
         // Connect wallet automatically for direct donations
@@ -343,12 +344,6 @@ const DonatePage = () => {
       setWalletBalance(0);
     }
   }, [walletAddress, shouldRefreshBalance, activeChain, polkadotApi]);
-  
-  useEffect(() => {
-    if (initialSearchValue && currentStage === 'traditionalSearch') {
-      // handleManualSearch(); 
-    }
-  }, [initialSearchValue, currentStage]); // Added currentStage to dependencies
 
 
   const handleConnectWallet = async () => {
@@ -462,12 +457,17 @@ const DonatePage = () => {
   const actualTotalDonation = Array.from(selectedCharityIds).reduce((sum, id) => {
     return sum + (individualDonationAmounts[id] || 0);
   }, 0);
+  
+  // Update the totalDonationAmount whenever the calculated amount changes
+  useEffect(() => {
+    // Include platform fee in the total amount
+    const totalWithFee = actualTotalDonation + calculatePlatformFee();
+    setTotalDonationAmount(parseFloat(totalWithFee.toFixed(2)));
+  }, [actualTotalDonation, platformFeeActive, calculatePlatformFee]);
 
   // Add the handleDonate function with multi-chain support
   const handleDonate = async () => {
     console.log("handleDonate function");
-    // For direct donations, we want to use the selected charities from initialSelectedCharities
-    // For AI-processed donations, we use the filtered aiMatchedCharities
     const charitiesToProcess = isDirectDonation && initialSelectedCharities.length > 0
       ? initialSelectedCharities.filter(c => selectedCharityIds.has(c.id))
       : aiMatchedCharities.filter(c => selectedCharityIds.has(c.id));
@@ -501,8 +501,9 @@ const DonatePage = () => {
       return;
     }
 
-    // Use individual amount for the current charity
-    const amountToDonate = individualDonationAmounts[charityToDonate.id];
+    // Use total donation amount instead of individual amounts
+    const amountToDonate = totalDonationAmount;
+    console.log("Amount to donate:", amountToDonate);
 
     if (!charityToDonate.name) {
       setTransactionError(`Selected charity (index ${currentProcessingCharityIndex}) is missing a name.`);
@@ -526,11 +527,15 @@ const DonatePage = () => {
       let txResult;
       let txHashForBackend;
       let blockchainForBackend;
+      let blockHash;
 
       if (activeChain === CHAINS.POLKADOT) {
-        txResult = await handlePolkadotDonation(charityToDonate, amountToDonate);
-        txHashForBackend = txResult ? txResult.toHex() : null;
-        blockchainForBackend = 'POL'; // Matches model choice
+        // For Polkadot, handlePolkadotDonation now returns the block hash directly
+        blockHash = await handlePolkadotDonation(charityToDonate, amountToDonate);
+        txHashForBackend = blockHash; // Use block hash as transaction identifier
+        blockchainForBackend = 'DOT'; // Matches model choice
+        console.log("Polkadot transaction block hash:", blockHash);
+        setLastTransactionBlockHash(blockHash);
       } else {
         txResult = await handleAptosDonation(charityToDonate, amountToDonate);
         txHashForBackend = txResult ? (txResult.hash || txResult) : null; 
@@ -556,15 +561,12 @@ const DonatePage = () => {
 
         try {
           console.log("Sending donation data to backend:", donationDataForBackend);
-          // API_BASE_URL is 'http://localhost:8000/api'
           const response = await axios.post(`${API_BASE_URL}/donation-transactions/`, donationDataForBackend);
           console.log("Backend response for saving transaction:", response.data);
         } catch (backendError) {
           console.error("Error saving transaction to backend:", backendError.response ? backendError.response.data : backendError.message);
-          // Non-critical error, don't block user flow
         }
       }
-      // ---- END SAVE TRANSACTION TO BACKEND ----
 
       // Logic for advancing to the next charity or completing the process
       if (currentProcessingCharityIndex < charitiesToProcess.length - 1) {
@@ -672,29 +674,45 @@ const DonatePage = () => {
       const amountInPlanck = new BN(Number(amountTransfer) * 1e10);
       const tx = api.tx.balances.transferAllowDeath(toAddress, amountInPlanck);
       
-      const result = await tx.signAndSend(
-        fromAddress,
-        { signer: injector.signer },
-        ({ status, dispatchError, events }) => {
-          if (dispatchError) {
-            console.error("Dispatch error:", dispatchError.toString());
+      // Create a promise to handle the transaction status
+      return new Promise((resolve, reject) => {
+        let blockHash = null;
+        
+        tx.signAndSend(
+          fromAddress,
+          { signer: injector.signer },
+          ({ status, dispatchError, events }) => {
+            if (dispatchError) {
+              console.error("Dispatch error:", dispatchError.toString());
+              reject(new Error(`Transaction failed: ${dispatchError.toString()}`));
+            }
+            
+            if (status.isInBlock) {
+              blockHash = status.asInBlock.toString();
+              console.log("Transfer included in blockHash:", blockHash);
+              // Store the block hash in a state variable or context if needed
+              // You can access it here
+            } else if (status.isFinalized) {
+              const finalizedBlockHash = status.asFinalized.toString();
+              console.log("Transfer finalized in blockHash:", finalizedBlockHash);
+              alert(`Transferred ${amountTransfer} PAS to ${toAddress}`);
+              
+              // refresh balance
+              api.query.system.account(fromAddress).then(({ data }) => {
+                const freeBalance = data.free.toBigInt();
+                const formatted = Number(freeBalance) / 1e10;
+                setWalletBalance(formatted.toLocaleString(undefined, { maximumFractionDigits: 8 }));
+              });
+              
+              // Resolve with the block hash
+              resolve(blockHash || finalizedBlockHash);
+            }
           }
-          if (status.isInBlock) {
-            console.log("Transfer included in blockHash:", status.asInBlock.toString());
-          } else if (status.isFinalized) {
-            console.log("Transfer finalized:", status.asFinalized.toString());
-            alert(`Transferred ${amountTransfer} PAS to ${toAddress}`);
-            // refresh balance
-            api.query.system.account(fromAddress).then(({ data }) => {
-              const freeBalance = data.free.toBigInt();
-              const formatted = Number(freeBalance) / 1e10;
-              setWalletBalance(formatted.toLocaleString(undefined, { maximumFractionDigits: 8 }));
-            });
-          }
-        }
-      );
-      console.log("Polkadot donation result:", result);
-      return result;
+        ).catch(error => {
+          console.error("Transaction submission error:", error);
+          reject(error);
+        });
+      });
     } catch (error) {
       console.error("Polkadot donation error:", error);
       throw error;
@@ -795,12 +813,9 @@ const DonatePage = () => {
           setTransactionError={setTransactionError}
           currentProcessingCharityIndex={currentProcessingCharityIndex}
           aiMatchedCharities={aiMatchedCharities}
-          aiSuggestedAllocations={aiSuggestedAllocations}
           selectedCrypto={selectedCrypto}
           selectedCharityIds={selectedCharityIds}
-          handleToggleCharitySelection={handleToggleCharitySelection}
-          individualDonationAmounts={individualDonationAmounts}
-          handleIndividualAmountChange={handleIndividualAmountChange}
+          totalDonationAmount={totalDonationAmount}
         />;
       case 'impactTracker':
         return <ImpactTrackerView 
@@ -809,20 +824,8 @@ const DonatePage = () => {
           selectedCrypto={selectedCrypto}
           setImpactActivities={setImpactActivities}
           impactActivities={impactActivities}
-          setCurrentStage={setCurrentStage}
-          platformFeeActive={platformFeeActive}
-          setPlatformFeeActive={setPlatformFeeActive}
-          calculatePlatformFee={calculatePlatformFee}
-          totalDonationAmount={actualTotalDonation}
-          visionPrompt={visionPrompt}
-          theme={theme}
-          semanticSearchLoading={semanticSearchLoading}
-          semanticSearchError={semanticSearchError}
-          selectedCharityIds={selectedCharityIds}
-          handleToggleCharitySelection={handleToggleCharitySelection}
-          individualDonationAmounts={individualDonationAmounts}
-          handleIndividualAmountChange={handleIndividualAmountChange}
           handleReset={handleReset}
+          lastTransactionBlockHash={lastTransactionBlockHash}
         />;
       default:
         return <AllocationWelcomeView setCurrentStage={setCurrentStage} />;

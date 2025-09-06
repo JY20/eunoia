@@ -25,20 +25,8 @@ const ImpactTrackerView = ({
   selectedCrypto, 
   setImpactActivities,
   impactActivities,
-  setCurrentStage,
-  platformFeeActive,
-  setPlatformFeeActive,
-  calculatePlatformFee,
-  totalDonationAmount,
-  visionPrompt,
-  theme,
-  semanticSearchLoading,
-  semanticSearchError,
-  selectedCharityIds,
-  handleToggleCharitySelection,
-  individualDonationAmounts,
-  handleIndividualAmountChange,
-  handleReset
+  handleReset,
+  lastTransactionBlockHash
 }) => { 
   console.log('ImpactTrackerView render');
   useEffect(() => {
@@ -108,6 +96,28 @@ const ImpactTrackerView = ({
       <Typography variant="body1" color="text.secondary" sx={{ mt: 2, mb: 3 }}>
         {getSocialPostText()}
       </Typography>
+      
+      {lastTransactionBlockHash && (
+        <Box sx={{ mb: 3, mt: 2, p: 2, bgcolor: 'rgba(0,0,0,0.03)', borderRadius: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
+            Transaction Block Hash:
+          </Typography>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              wordBreak: 'break-all', 
+              fontFamily: 'monospace',
+              bgcolor: 'background.paper',
+              p: 1,
+              borderRadius: 1,
+              mt: 1
+            }}
+          >
+            {lastTransactionBlockHash}
+          </Typography>
+        </Box>
+      )}
+      
       <Typography variant="subtitle1" sx={{mb:1, fontWeight:'medium'}}>Transaction Journey:</Typography>
       <List dense sx={{maxWidth: 400, margin: 'auto', textAlign: 'left'}}>
         {impactActivities.map((activity) => (
