@@ -67,7 +67,6 @@ const POLKADOT_NODE_URL = "wss://testnet-passet-hub.polkadot.io";
 const TOKEN_TYPES = {
   APT: "0x1::aptos_coin::AptosCoin",
   DOT: "DOT",
-  USDC: "0x1::coin::CoinStore<0x8c805723ebc0a7fc5b7d3e7b75d567918e806b3461cb9fa21941a9edc0220bf::usdc::USDC>"
 };
 
 const DonatePage = () => {
@@ -139,6 +138,7 @@ const DonatePage = () => {
   const [combinedMissionStatement, setCombinedMissionStatement] = useState(''); // New state
   const [compassRecommendations, setCompassRecommendations] = useState([]);
   const [groupedMatches, setGroupedMatches] = useState({});
+  const [shouldRefreshBalance, setShouldRefreshBalance] = useState(false);
   
   // New state for selectable charities and individual amounts
   const [selectedCharityIds, setSelectedCharityIds] = useState(() => {
@@ -160,24 +160,12 @@ const DonatePage = () => {
     }
     return {};
   });
-  
-  const steps = [
-    'Find Charities',
-    'Select & Allocate',
-    'Connect Wallet',
-    'Confirm & Donate'
-  ];
+
 
   const connectToPolkadot = async () => {
     if (activeChain === CHAINS.POLKADOT) {
       try {
         console.log("Initializing Polkadot API connection...");
-        
-        // Check if we already have a valid connection
-        if (polkadotApi && polkadotApi.isConnected) {
-          console.log("Polkadot API already connected");
-          return polkadotApi;
-        }
         
         const provider = new WsProvider(POLKADOT_NODE_URL);
         const api = await ApiPromise.create({ provider });
@@ -187,13 +175,9 @@ const DonatePage = () => {
         const chain = await api.rpc.system.chain();
         console.log(`Connected to Polkadot chain: ${chain.toString()}`);
         
-        // Create contract instance - wrap in try/catch to handle potential errors
-        try {
-          const c = new ContractPromise(api, abiJson, POLKADOT_CONTRACT_ADDRESS);
-          console.log('Contract instance created successfully');
-        } catch (contractError) {
-          console.warn('Note: Contract instance creation failed, but continuing with direct transfers:', contractError);
-        }
+        // Create contract instance 
+        const c = new ContractPromise(api, abiJson, POLKADOT_CONTRACT_ADDRESS);
+        console.log('Contract instance created successfully');
         
         return api;
       } catch (error) {
@@ -205,28 +189,9 @@ const DonatePage = () => {
     return null;
   };
 
-  // Fetch balance function similar to App.js
-  const fetchBalance = async () => {
-    if (polkadotApi && walletAddress) {
-      try {
-        const { data } = await polkadotApi.query.system.account(walletAddress);
-        const freeBalance = data.free.toBigInt(); // get BigInt
-        const formattedBalance = Number(freeBalance) / 100_000_000_00;
-        console.log(`Polkadot balance for ${selectedCrypto}: ${formattedBalance}`);
-        
-        // Convert from string to number for display
-        const balanceNumber = parseFloat(formattedBalance);
-        setWalletBalance(balanceNumber);
-        
-        // Get chain information for logging
-        const chain = await polkadotApi.rpc.system.chain();
-        console.log(`Connected to chain: ${chain.toString()}`);
-      } catch (error) {
-        console.error("Error fetching Polkadot balance:", error);
-        setBalanceError("Failed to fetch balance");
-      }
-    }
-  };
+  useEffect(() => {
+    connectToPolkadot();
+  }, []);
 
   // Function to check wallet balance
   const checkWalletBalance = async () => {
@@ -336,7 +301,7 @@ const DonatePage = () => {
     
     // Initialize Polkadot API
     const initPolkadot = async () => {
-      await connectToPolkadot();
+      // await connectToPolkadot();
       
       // If this is a direct donation, ensure wallet is connected and prepare for payment
       if (isDirectDonation && initialSelectedCharities.length > 0 && currentStage === 'donationConfirmation') {
@@ -365,20 +330,13 @@ const DonatePage = () => {
       }
     };
   }, [activeChain, isDirectDonation, currentStage]);
-
-  // Track if we need to refresh wallet balance
-  const [shouldRefreshBalance, setShouldRefreshBalance] = useState(false);
   
   // Check wallet balance only when necessary
   useEffect(() => {
     // Only refresh when wallet address changes or when explicitly requested
     if (walletAddress && (shouldRefreshBalance || !walletBalance)) {
       console.log("Refreshing wallet balance...");
-      if (activeChain === CHAINS.POLKADOT && polkadotApi) {
-        fetchBalance();
-      } else {
-        checkWalletBalance();
-      }
+      checkWalletBalance();
       // Reset the refresh flag after checking
       setShouldRefreshBalance(false);
     } else if (!walletAddress) {
@@ -435,12 +393,7 @@ const DonatePage = () => {
           }
           
           setWalletAddress(accounts[0].address);
-          // Get balance after connecting
-          if (polkadotApi) {
-            await fetchBalance();
-          } else {
-            await checkWalletBalance();
-          }
+          await checkWalletBalance();
           return true;
         } catch (error) {
           console.error('Error connecting to wallet:', error);
@@ -527,25 +480,11 @@ const DonatePage = () => {
     }
     
     // Ensure wallet is connected before proceeding
-    if (!walletAddress) {
-      console.log("Wallet not connected. Attempting to connect...");
-      const connected = await handleConnectWallet();
-      if (!connected) {
-        setTransactionError("Please connect your wallet to continue.");
-        setTransactionPending(false);
-        return;
-      }
-    }
-    
-    // For Polkadot, ensure API is initialized
-    if (activeChain === CHAINS.POLKADOT && !polkadotApi) {
-      console.log("Polkadot API not initialized. Attempting to initialize...");
-      const api = await connectToPolkadot();
-      if (!api) {
-        setTransactionError("Failed to initialize blockchain connection. Please try again.");
-        setTransactionPending(false);
-        return;
-      }
+    if (!walletAddress || !polkadotApi) {
+      console.log("Wallet not connected.");
+      setTransactionError("Please connect your wallet to continue.");
+      setTransactionPending(false);
+      return;
     }
     
     console.log(`Processing donation for ${charitiesToProcess.length} charities:`, 
@@ -594,8 +533,6 @@ const DonatePage = () => {
         blockchainForBackend = 'POL'; // Matches model choice
       } else {
         txResult = await handleAptosDonation(charityToDonate, amountToDonate);
-        // Aptos SDK v2+ returns an object with a `hash` property for pendingTransaction
-        // For older SDK that returns just the hash string, it would be `txResult` directly
         txHashForBackend = txResult ? (txResult.hash || txResult) : null; 
         blockchainForBackend = 'APT'; // Matches model choice
       }
@@ -665,8 +602,6 @@ const DonatePage = () => {
       setTransactionError(errorMessage);
       setDonationComplete(false);
       setTransactionPending(false);
-      // Do not advance index on error, user might want to retry this specific one.
-      // The UI in DonationConfirmationView will show the error.
     }
   };
   
@@ -721,10 +656,7 @@ const DonatePage = () => {
       let api = polkadotApi;
       if (!api) {
         console.log("Polkadot API not initialized. Attempting to initialize...");
-        api = await connectToPolkadot();
-        if (!api) {
-          throw new Error("Failed to initialize Polkadot API. Please try again.");
-        }
+        throw new Error("Failed to initialize Polkadot API. Please try again.");
       }
 
       const numericAmount = Number(amount);
@@ -735,12 +667,12 @@ const DonatePage = () => {
       const fromAddress = walletAddress;
       const toAddress = charity.aptos_wallet_address;
       const amountTransfer = amount;
-      
+
       const injector = await web3FromAddress(fromAddress);
       const amountInPlanck = new BN(Number(amountTransfer) * 1e10);
       const tx = api.tx.balances.transferAllowDeath(toAddress, amountInPlanck);
       
-      await tx.signAndSend(
+      const result = await tx.signAndSend(
         fromAddress,
         { signer: injector.signer },
         ({ status, dispatchError, events }) => {
@@ -761,8 +693,6 @@ const DonatePage = () => {
           }
         }
       );
-
-      const result = [];
       console.log("Polkadot donation result:", result);
       return result;
     } catch (error) {
