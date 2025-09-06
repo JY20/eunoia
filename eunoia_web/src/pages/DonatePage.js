@@ -79,12 +79,34 @@ const DonatePage = () => {
   const initialSearchValue = initialState.searchValue || '';
   const initialSearchMode = initialState.searchMode || 'direct';
   const initialSelectedCharities = initialState.selectedCharities || [];
+  const isDirectDonation = initialState.directDonation || false;
   
-  const [currentStage, setCurrentStage] = useState(initialSearchValue ? 'visionPrompt' : 'welcomeAI'); // Updated this line
+  // If direct donation, go straight to donation confirmation
+  const [currentStage, setCurrentStage] = useState(() => {
+    if (isDirectDonation && initialSelectedCharities.length > 0) {
+      return 'donationConfirmation'; // Skip AI processing for direct donations
+    } else if (initialSearchValue) {
+      return 'visionPrompt';
+    } else {
+      return 'welcomeAI';
+    }
+  });
   const [visionPrompt, setVisionPrompt] = useState(initialSearchValue || ''); // Use initialSearchValue here
   const [totalDonationAmount, setTotalDonationAmount] = useState(50);
-  const [aiMatchedCharities, setAiMatchedCharities] = useState([]);
-  const [aiSuggestedAllocations, setAiSuggestedAllocations] = useState({});
+  const [aiMatchedCharities, setAiMatchedCharities] = useState(
+    isDirectDonation && initialSelectedCharities.length > 0 ? initialSelectedCharities : []
+  );
+  const [aiSuggestedAllocations, setAiSuggestedAllocations] = useState(() => {
+    // For direct donations, set default allocations
+    if (isDirectDonation && initialSelectedCharities.length > 0) {
+      const allocations = {};
+      initialSelectedCharities.forEach(charity => {
+        allocations[charity.id] = 10; // Default allocation amount
+      });
+      return allocations;
+    }
+    return {};
+  });
   const [socialHandles, setSocialHandles] = useState({ twitter: '', instagram: '', linkedin: '' });
   // Set default cryptocurrency based on active chain
   const getDefaultCrypto = () => activeChain === CHAINS.POLKADOT ? 'DOT' : 'APT';
@@ -119,8 +141,25 @@ const DonatePage = () => {
   const [groupedMatches, setGroupedMatches] = useState({});
   
   // New state for selectable charities and individual amounts
-  const [selectedCharityIds, setSelectedCharityIds] = useState(new Set());
-  const [individualDonationAmounts, setIndividualDonationAmounts] = useState({});
+  const [selectedCharityIds, setSelectedCharityIds] = useState(() => {
+    // For direct donations, pre-select the charity
+    if (isDirectDonation && initialSelectedCharities.length > 0) {
+      return new Set(initialSelectedCharities.map(charity => charity.id));
+    }
+    return new Set();
+  });
+  
+  const [individualDonationAmounts, setIndividualDonationAmounts] = useState(() => {
+    // For direct donations, set default amount for the charity
+    if (isDirectDonation && initialSelectedCharities.length > 0) {
+      const amounts = {};
+      initialSelectedCharities.forEach(charity => {
+        amounts[charity.id] = 10; // Default amount
+      });
+      return amounts;
+    }
+    return {};
+  });
   
   const steps = [
     'Find Charities',
@@ -132,26 +171,38 @@ const DonatePage = () => {
   const connectToPolkadot = async () => {
     if (activeChain === CHAINS.POLKADOT) {
       try {
-        // Create a WebSocket provider
+        console.log("Initializing Polkadot API connection...");
+        
+        // Check if we already have a valid connection
+        if (polkadotApi && polkadotApi.isConnected) {
+          console.log("Polkadot API already connected");
+          return polkadotApi;
+        }
+        
         const provider = new WsProvider(POLKADOT_NODE_URL);
-        
-        // Create the API instance
-        const polkadotApi = await ApiPromise.create({ provider });
-        
-        setPolkadotApi(polkadotApi);
+        const api = await ApiPromise.create({ provider });
+        setPolkadotApi(api);
         
         // Get chain name for logging
-        const chain = await polkadotApi.rpc.system.chain();
+        const chain = await api.rpc.system.chain();
         console.log(`Connected to Polkadot chain: ${chain.toString()}`);
         
-        // Create contract instance
-        const c = new ContractPromise(polkadotApi, abiJson, POLKADOT_CONTRACT_ADDRESS);
-        console.log('Contract instance created successfully');
+        // Create contract instance - wrap in try/catch to handle potential errors
+        try {
+          const c = new ContractPromise(api, abiJson, POLKADOT_CONTRACT_ADDRESS);
+          console.log('Contract instance created successfully');
+        } catch (contractError) {
+          console.warn('Note: Contract instance creation failed, but continuing with direct transfers:', contractError);
+        }
+        
+        return api;
       } catch (error) {
         console.error('Failed to initialize Polkadot API:', error);
         setBalanceError("Failed to initialize Polkadot connection");
+        return null;
       }
     }
+    return null;
   };
 
   // Fetch balance function similar to App.js
@@ -283,7 +334,29 @@ const DonatePage = () => {
     // Update selected cryptocurrency when chain changes
     setSelectedCrypto(activeChain === CHAINS.POLKADOT ? 'DOT' : 'APT');
     
-    connectToPolkadot();
+    // Initialize Polkadot API
+    const initPolkadot = async () => {
+      await connectToPolkadot();
+      
+      // If this is a direct donation, ensure wallet is connected and prepare for payment
+      if (isDirectDonation && initialSelectedCharities.length > 0 && currentStage === 'donationConfirmation') {
+        console.log("Direct donation detected: preparing for payment processing");
+        
+        // Connect wallet automatically for direct donations
+        if (!walletAddress) {
+          console.log("Direct donation: attempting to connect wallet");
+          await handleConnectWallet();
+        }
+        
+        // Make sure the selected charity is properly set in state
+        if (initialSelectedCharities.length > 0 && selectedCharityIds.size === 0) {
+          console.log("Setting up selected charity for direct donation");
+          setSelectedCharityIds(new Set(initialSelectedCharities.map(charity => charity.id)));
+        }
+      }
+    };
+    
+    initPolkadot();
     
     return () => {
       // Clean up Polkadot API connection on unmount
@@ -291,32 +364,35 @@ const DonatePage = () => {
         polkadotApi.disconnect();
       }
     };
-  }, [activeChain]);
+  }, [activeChain, isDirectDonation, currentStage]);
 
-  // Check wallet balance whenever wallet address or selected crypto changes
+  // Track if we need to refresh wallet balance
+  const [shouldRefreshBalance, setShouldRefreshBalance] = useState(false);
+  
+  // Check wallet balance only when necessary
   useEffect(() => {
-    if (walletAddress) {
+    // Only refresh when wallet address changes or when explicitly requested
+    if (walletAddress && (shouldRefreshBalance || !walletBalance)) {
+      console.log("Refreshing wallet balance...");
       if (activeChain === CHAINS.POLKADOT && polkadotApi) {
         fetchBalance();
       } else {
         checkWalletBalance();
       }
-    } else {
+      // Reset the refresh flag after checking
+      setShouldRefreshBalance(false);
+    } else if (!walletAddress) {
       setWalletBalance(0);
     }
-  }, [walletAddress, selectedCrypto, activeChain, polkadotApi]);
-
+  }, [walletAddress, shouldRefreshBalance, activeChain, polkadotApi]);
+  
   useEffect(() => {
     if (initialSearchValue && currentStage === 'traditionalSearch') {
       // handleManualSearch(); 
     }
   }, [initialSearchValue, currentStage]); // Added currentStage to dependencies
 
-  const handleManualSearch = async () => { /* ... */ };
-  const handleFindMatches = async () => { /* ... */ };
-  const handleSelectCharity = (charity) => { /* ... */ };
-  const handleDonationAmountChange = (charityId, amount) => { /* ... */ };
-  
+
   const handleConnectWallet = async () => {
     try {
       if (activeChain === CHAINS.APTOS || !activeChain) {
@@ -382,8 +458,7 @@ const DonatePage = () => {
       return false;
     }
   };
-  
-  const calculateTotal = () => { /* ... */ };
+
   const calculatePlatformFee = () => {
     if (!platformFeeActive) return 0;
     return totalDonationAmount * 0.002;
@@ -392,19 +467,6 @@ const DonatePage = () => {
   // Initialize/update selectedCharityIds and individualDonationAmounts when AI results are processed
   useEffect(() => {
     if (currentStage === 'charityResults' && aiMatchedCharities.length > 0) {
-      // const initialSelectedIds = new Set(); // No longer select all by default
-      // const initialAmounts = {};
-      // // By default, select all matched charities and use AI suggested allocations
-      // aiMatchedCharities.forEach(charity => {
-      //   initialSelectedIds.add(charity.id);
-      //   initialAmounts[charity.id] = aiSuggestedAllocations[charity.id] || 10; // Default to 10 if no suggestion
-      // });
-      // setSelectedCharityIds(initialSelectedIds);
-      // setIndividualDonationAmounts(initialAmounts);
-
-      // Instead, initialize with no charities selected, 
-      // but still prepare individual amounts based on AI suggestions if they exist, 
-      // so if a user *does* select a charity, its amount input is pre-filled reasonably.
       const initialAmounts = {};
       aiMatchedCharities.forEach(charity => {
         initialAmounts[charity.id] = aiSuggestedAllocations[charity.id] || 10; 
@@ -413,10 +475,6 @@ const DonatePage = () => {
       setSelectedCharityIds(new Set()); // Start with an empty set of selected IDs
 
     } else if (currentStage !== 'charityResults') {
-        // Clear selections if we navigate away from results page, 
-        // or if there are no charities (handled in performSemanticSearch as well)
-        // setSelectedCharityIds(new Set()); 
-        // setIndividualDonationAmounts({});
     }
   }, [aiMatchedCharities, aiSuggestedAllocations, currentStage]);
 
@@ -454,7 +512,12 @@ const DonatePage = () => {
 
   // Add the handleDonate function with multi-chain support
   const handleDonate = async () => {
-    const charitiesToProcess = aiMatchedCharities.filter(c => selectedCharityIds.has(c.id));
+    console.log("handleDonate function");
+    // For direct donations, we want to use the selected charities from initialSelectedCharities
+    // For AI-processed donations, we use the filtered aiMatchedCharities
+    const charitiesToProcess = isDirectDonation && initialSelectedCharities.length > 0
+      ? initialSelectedCharities.filter(c => selectedCharityIds.has(c.id))
+      : aiMatchedCharities.filter(c => selectedCharityIds.has(c.id));
 
     // Ensure we are in the correct stage and have charities to process
     if (currentStage !== 'donationConfirmation' || charitiesToProcess.length === 0) {
@@ -462,6 +525,31 @@ const DonatePage = () => {
       setTransactionPending(false);
       return;
     }
+    
+    // Ensure wallet is connected before proceeding
+    if (!walletAddress) {
+      console.log("Wallet not connected. Attempting to connect...");
+      const connected = await handleConnectWallet();
+      if (!connected) {
+        setTransactionError("Please connect your wallet to continue.");
+        setTransactionPending(false);
+        return;
+      }
+    }
+    
+    // For Polkadot, ensure API is initialized
+    if (activeChain === CHAINS.POLKADOT && !polkadotApi) {
+      console.log("Polkadot API not initialized. Attempting to initialize...");
+      const api = await connectToPolkadot();
+      if (!api) {
+        setTransactionError("Failed to initialize blockchain connection. Please try again.");
+        setTransactionPending(false);
+        return;
+      }
+    }
+    
+    console.log(`Processing donation for ${charitiesToProcess.length} charities:`, 
+      charitiesToProcess.map(c => c.name).join(", "));
 
     const charityToDonate = charitiesToProcess[currentProcessingCharityIndex];
     if (!charityToDonate) {
@@ -560,6 +648,8 @@ const DonatePage = () => {
     } catch (err) {
       console.error(`Donation to ${charityToDonate.name} failed:`, err);
       let errorMessage = "Donation failed. Please try again.";
+      
+      // Extract the most useful error message
       if (typeof err === 'string') {
         errorMessage = err;
       } else if (err.message) {
@@ -568,11 +658,10 @@ const DonatePage = () => {
         errorMessage = `Error: ${err.name}`;
       }
       
-      if (errorMessage.toLowerCase().includes("user rejected") || 
-          errorMessage.toLowerCase().includes("declined") || 
-          (err.code && err.code === 4001)) {
-        errorMessage = "Transaction rejected by user.";
-      }
+      // Log detailed error for debugging
+      console.log("Formatted error message:", errorMessage);
+      console.log("Original error:", err);
+      
       setTransactionError(errorMessage);
       setDonationComplete(false);
       setTransactionPending(false);
@@ -625,11 +714,17 @@ const DonatePage = () => {
     }
   };
   
-  // Handle Polkadot donation using the approach from App.js
+  // Handle Polkadot donation using the simplified approach from App.js
   const handlePolkadotDonation = async (charity, amount) => {
     try {
-      if (!polkadotApi) {
-        throw new Error("Polkadot API not initialized. Please try again.");
+      // If API is not initialized, try to initialize it
+      let api = polkadotApi;
+      if (!api) {
+        console.log("Polkadot API not initialized. Attempting to initialize...");
+        api = await connectToPolkadot();
+        if (!api) {
+          throw new Error("Failed to initialize Polkadot API. Please try again.");
+        }
       }
 
       const numericAmount = Number(amount);
@@ -637,90 +732,45 @@ const DonatePage = () => {
         throw new Error(`Invalid donation amount: ${amount}`);
       }
 
-      // Ensure we're signed in
-      if (!walletAddress) {
-        throw new Error("Polkadot wallet not connected. Please connect your wallet.");
-      }
-
-      // Convert amount to planck units (smallest unit)
-      const amountInPlanck = new BN(Number(numericAmount) * 1e12);
-
-      console.log(`Preparing Westend donation of ${amount} DOT (${amountInPlanck.toString()} plancks) to ${charity.name}`);
-
-      // Get the injector for the current address
-      const injector = await web3FromAddress(walletAddress);
-
-      // Use the giveTo function from the contract if available
-      if (POLKADOT_MODULE_NAME === 'eunoia' && POLKADOT_DONATE_FUNCTION_NAME === 'giveMe') {
-        // Create contract instance
-          const contract = new ContractPromise(
-            polkadotApi,
-          abiJson, // This should be imported at the top of the file like in App.js
-            POLKADOT_CONTRACT_ADDRESS
-          );
-
-        // Set gas limit
-        const gasLimit = polkadotApi.registry.createType("WeightV2", {
-          refTime: 3_000_000_000,
-          proofSize: 1_000_000,
-        });
-
-        // Call the giveMe function
-        const tx = contract.tx.giveMe({ value: 0, gasLimit }, numericAmount);
-
-        // Sign and send the transaction
-        const result = await tx.signAndSend(
-          walletAddress, 
-          { signer: injector.signer },
-          ({ status, dispatchError }) => {
-            if (dispatchError) {
-              console.error("Dispatch error:", dispatchError.toString());
-            }
-            if (status.isInBlock) {
-              console.log("giveMe included in blockHash:", status.asInBlock.toString());
-            } else if (status.isFinalized) {
-              console.log("giveMe finalized:", status.asFinalized.toString());
-              console.log(`giveMe executed: received ${numericAmount}`);
-            }
+      const fromAddress = walletAddress;
+      const toAddress = charity.aptos_wallet_address;
+      const amountTransfer = amount;
+      
+      const injector = await web3FromAddress(fromAddress);
+      const amountInPlanck = new BN(Number(amountTransfer) * 1e10);
+      const tx = api.tx.balances.transferAllowDeath(toAddress, amountInPlanck);
+      
+      await tx.signAndSend(
+        fromAddress,
+        { signer: injector.signer },
+        ({ status, dispatchError, events }) => {
+          if (dispatchError) {
+            console.error("Dispatch error:", dispatchError.toString());
           }
-        );
-
-        return result;
-      } else {
-        // Fallback to simple transfer if contract is not available
-        const tx = polkadotApi.tx.balances.transferAllowDeath(POLKADOT_CONTRACT_ADDRESS, amountInPlanck);
-
-        // Sign and send the transaction
-        const result = await tx.signAndSend(
-          walletAddress,
-          { signer: injector.signer },
-          ({ status, dispatchError, events }) => {
-            if (dispatchError) {
-              console.error("Dispatch error:", dispatchError.toString());
-            }
-            if (status.isInBlock) {
-              console.log("Transfer included in blockHash:", status.asInBlock.toString());
-            } else if (status.isFinalized) {
-              console.log("Transfer finalized:", status.asFinalized.toString());
-              console.log(`Transferred ${numericAmount} ${selectedCrypto} to ${POLKADOT_CONTRACT_ADDRESS}`);
-              
-              // Refresh balance after transfer
-              polkadotApi.query.system.account(walletAddress).then(({ data }) => {
-                const freeBalance = data.free.toBigInt();
-                const formatted = Number(freeBalance) / 1e12;
-                setWalletBalance(formatted);
-              });
-            }
+          if (status.isInBlock) {
+            console.log("Transfer included in blockHash:", status.asInBlock.toString());
+          } else if (status.isFinalized) {
+            console.log("Transfer finalized:", status.asFinalized.toString());
+            alert(`Transferred ${amountTransfer} PAS to ${toAddress}`);
+            // refresh balance
+            api.query.system.account(fromAddress).then(({ data }) => {
+              const freeBalance = data.free.toBigInt();
+              const formatted = Number(freeBalance) / 1e10;
+              setWalletBalance(formatted.toLocaleString(undefined, { maximumFractionDigits: 8 }));
+            });
           }
-        );
+        }
+      );
 
+      const result = [];
+      console.log("Polkadot donation result:", result);
       return result;
-      }
     } catch (error) {
-      console.error("Westend donation error:", error);
+      console.error("Polkadot donation error:", error);
       throw error;
     }
   };
+  
   // Add the missing handleReset function
   const handleReset = () => {
     setCurrentStage('welcomeAI');

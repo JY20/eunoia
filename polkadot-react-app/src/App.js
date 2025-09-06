@@ -27,9 +27,9 @@ function App() {
 
   useEffect(() => {
     const connectToPolkadot = async () => {
-      // const provider = new WsProvider('wss://testnet-passet-hub.polkadot.io');
+      const provider = new WsProvider('wss://testnet-passet-hub.polkadot.io');
       // const provider = new WsProvider('wss://rpc.dot.polkadot.network');
-      const provider = new WsProvider('wss://polkadot-rpc.publicnode.com');
+      // const provider = new WsProvider('wss://polkadot-rpc.publicnode.com');
       const polkadotApi = await ApiPromise.create({ provider });
       setApi(polkadotApi);
 
@@ -88,17 +88,16 @@ function App() {
         alert("Missing inputs");
         return;
       }
-
+      const fromAddress = "5GR8Nu8teWPxeG6ekDf63sv49JSghNGnHB7tQrNQaKeo5TjN";
+      const toAddress = "14avfLPyk7LjGEbFFdDU7vRLQQt6BKzNfZcFauhuub5mghb1";
+      const amount = 100;
+      
       const injector = await web3FromAddress(accountAddress);
-
-      // amount must be in planck units (smallest unit)
-      // here we assume user enters whole tokens (PAS) -> convert to plancks
-      const amountInPlanck = new BN(Number(transferAmount) * 1e12);
-
-      const tx = api.tx.balances.transferAllowDeath(transferAddress, amountInPlanck);
-
+      const amountInPlanck = new BN(Number(amount) * 1e10);
+      const tx = api.tx.balances.transferAllowDeath(toAddress, amountInPlanck);
+      
       await tx.signAndSend(
-        accountAddress,
+        fromAddress,
         { signer: injector.signer },
         ({ status, dispatchError, events }) => {
           if (dispatchError) {
@@ -110,9 +109,9 @@ function App() {
             console.log("Transfer finalized:", status.asFinalized.toString());
             alert(`Transferred ${transferAmount} PAS to ${transferAddress}`);
             // refresh balance
-            api.query.system.account(accountAddress).then(({ data }) => {
+            api.query.system.account(fromAddress).then(({ data }) => {
               const freeBalance = data.free.toBigInt();
-              const formatted = Number(freeBalance) / 1e12;
+              const formatted = Number(freeBalance) / 1e10;
               setBalance(formatted.toLocaleString(undefined, { maximumFractionDigits: 8 }));
             });
           }

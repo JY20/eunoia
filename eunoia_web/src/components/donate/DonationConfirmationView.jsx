@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Box, 
   Typography, 
@@ -56,23 +56,15 @@ const DonationConfirmationView = ({
 }) => { 
   console.log('DonationConfirmationView render, index:', currentProcessingCharityIndex);
   
+  const [localTransactionPending, setLocalTransactionPending] = useState(false);
+  
   // Get the current charity and amount for display
   const charityToDisplay = aiMatchedCharities && aiMatchedCharities[currentProcessingCharityIndex];
-  const amountToDisplay = charityToDisplay && aiSuggestedAllocations && aiSuggestedAllocations[charityToDisplay.id];
+  const amountToDisplay = charityToDisplay && individualDonationAmounts && individualDonationAmounts[charityToDisplay.id] 
+    ? individualDonationAmounts[charityToDisplay.id] 
+    : (aiSuggestedAllocations && aiSuggestedAllocations[charityToDisplay?.id]);
 
-  useEffect(() => {
-    // Ensure charityToDisplay is valid before attempting to donate
-    if (currentStage === 'donationConfirmation' && charityToDisplay && !transactionPending && !donationComplete && !transactionError) {
-      if (!walletAddress) {
-        setTransactionError("Wallet not connected. Please connect your wallet first.");
-        return;
-      }
-      // Check if we are ready to process this specific charity (e.g. not already completed/failed *for this specific one*)
-      // This check might be redundant if handleDonate correctly manages global state per step.
-      console.log(`DonationConfirmationView useEffect: Triggering handleDonate for ${charityToDisplay.name}`);
-      handleDonate(); 
-    }
-  }, [currentStage, transactionPending, donationComplete, transactionError, walletAddress, handleDonate, setTransactionError, setCurrentStage, currentProcessingCharityIndex, charityToDisplay]);
+  // We'll use a manual trigger button instead of automatic useEffect
 
   if (!charityToDisplay) {
     return (
@@ -88,7 +80,7 @@ const DonationConfirmationView = ({
   const displayCharityName = charityToDisplay.name || "Selected Charity";
   const displayAmount = amountToDisplay || "N/A";
 
-  if (transactionPending) {
+  if (transactionPending || localTransactionPending) {
     return (
       <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
         <CircularProgress sx={{ mb: 3, width: '60px !important', height: '60px !important' }}/>
@@ -101,17 +93,17 @@ const DonationConfirmationView = ({
     );
   }
   
-  if (transactionError) {
-    return (
-      <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-        <ReportProblemIcon color="error" sx={{ fontSize: 60, mb: 2 }} />
-        <Typography variant="h5" color="error" fontWeight="bold" gutterBottom>Donation Failed</Typography>
-        <Typography color="error" paragraph>{transactionError}</Typography>
-        <GlowButton variant="outlined" onClick={() => setCurrentStage('charityResults')} sx={{background: 'transparent', color: 'primary.main', mr:1}}>Try Again</GlowButton>
-        <Button variant="text" onClick={handleReset}>Start Over</Button>
-      </StepContent>
-    );
-  }
+  // if (transactionError) {
+  //   return (
+  //     <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
+  //       <ReportProblemIcon color="error" sx={{ fontSize: 60, mb: 2 }} />
+  //       <Typography variant="h5" color="error" fontWeight="bold" gutterBottom>Donation Failed</Typography>
+  //       <Typography color="error" paragraph>{transactionError}</Typography>
+  //       <GlowButton variant="outlined" onClick={() => setCurrentStage('charityResults')} sx={{background: 'transparent', color: 'primary.main', mr:1}}>Try Again</GlowButton>
+  //       <Button variant="text" onClick={handleReset}>Start Over</Button>
+  //     </StepContent>
+  //   );
+  // }
       
   if (donationComplete) {
     return (
@@ -133,8 +125,24 @@ const DonationConfirmationView = ({
     
   return (
     <StepContent sx={{ textAlign: 'center', py: {xs:4, sm:6}}}>
-      <Typography variant="h5" fontWeight="bold">Preparing your donation...</Typography>
-      <CircularProgress sx={{my: 3, width: '50px !important', height: '50px !important'}} />
+      <Typography variant="h5" fontWeight="bold" gutterBottom>Confirm Your Donation</Typography>
+      <Typography variant="body1" color="text.secondary" sx={{mb: 2}}>To: {displayCharityName}</Typography>
+      <Typography variant="body1" color="text.secondary" sx={{mb: 3}}>Amount: {displayAmount} {selectedCrypto}</Typography>
+      {!walletAddress ? (
+        <Typography color="error" sx={{mb: 2}}>Wallet not connected. Please connect your wallet first.</Typography>
+      ) : null}
+      
+      <GlowButton 
+        onClick={() => {
+          console.log('Donation button clicked');
+          handleDonate();
+        }} 
+        disabled={!walletAddress}
+        size="large" 
+        sx={{py: 1.5, px: 5, fontSize: '1.1rem'}}
+      >
+        Confirm Donation
+      </GlowButton>
     </StepContent>
   );
 };

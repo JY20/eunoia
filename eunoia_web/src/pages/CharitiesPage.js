@@ -96,28 +96,6 @@ const CharitiesPage = () => {
         // Fetch from the new DRF endpoint - get all charities in one request
         const response = await axios.get(`${API_BASE_URL}/charities/?page_size=100`);
         
-        // Mock data (remove or comment out)
-        /*
-        setTimeout(() => {
-          const mockCharities = [
-            {
-              id: 1,
-              name: 'Ocean Cleanup Foundation',
-              description: "Working to rid the world's oceans of plastic pollution through innovative technologies.",
-              logo: 'https://via.placeholder.com/300x200?text=Ocean+Cleanup',
-              aptos_wallet_address: '0x123...abc',
-              website_url: 'https://example.com/oceancleanup',
-              category: 'Environment'
-            },
-            // ... other mock charities ...
-          ];
-          
-          setCharities(mockCharities);
-          setFilteredCharities(mockCharities);
-          setLoading(false);
-        }, 1000);
-        */
-        
         // When API is ready, use:
         setCharities(response.data.results); // DRF pagination wraps results in a 'results' key
         setFilteredCharities(response.data.results); // Adjust if your API doesn't paginate or has a different structure
@@ -158,7 +136,8 @@ const CharitiesPage = () => {
     navigate('/donate', { 
       state: { 
         selectedCharities: [charity],
-        startStep: 1
+        startStep: 1,
+        directDonation: true  // Flag to indicate direct donation without AI processing
       } 
     });
   };
