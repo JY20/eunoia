@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import logo from './logo.svg';
 import './App.css';
-import { MultiAddress, dot } from "@polkadot-api/descriptors"
-import { createClient } from "polkadot-api"
+import { MultiAddress, dot } from "@polkadot-api/descriptors";
+import { createClient } from "polkadot-api";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import { web3Accounts, web3Enable, web3FromAddress, web3FromSource } from '@polkadot/extension-dapp';
+import { getInjectedExtensions, connectInjectedExtension } from "polkadot-api/pjs-signer";
 
 // Helper function to convert BigInt values to strings for display
 const formatBalanceData = (data) => {
@@ -53,118 +53,6 @@ const formatBalanceDisplay = (balance) => {
   return `${dotValue.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })} DOT`;
 };
 
-function TokenTransfer({ selectedAccount, url }) {
-  const [recipientAddress, setRecipientAddress] = useState('');
-  const [amount, setAmount] = useState('');
-  const [isTransferring, setIsTransferring] = useState(false);
-  const [transferStatus, setTransferStatus] = useState('');
-
-  const handleTransfer = async () => {
-    if (!recipientAddress || !amount || !selectedAccount) {
-      setTransferStatus('Please fill in all fields');
-      return;
-    }
-
-    try {
-      setIsTransferring(true);
-      setTransferStatus('Preparing transaction...');
-
-      // Create client
-      const client = createClient(
-        withPolkadotSdkCompat(
-          getWsProvider(url)
-        )
-      );
-
-      // Get the typed API
-      const api = client.getTypedApi(dot);
-
-      // Convert amount to planck (1 DOT = 10^10 planck)
-      // const amountInPlanck = BigInt(parseFloat(amount) * Math.pow(10, 10));
-
-      // Get the injector for the selected account
-      // const injector = await web3FromSource(selectedAccount.meta.source);
-
-      // Create and send the transaction
-      console.log(selectedAccount);
-      setTransferStatus('Sending transaction...');
-      
-      const fromAddress = "5GR8Nu8teWPxeG6ekDf63sv49JSghNGnHB7tQrNQaKeo5TjN";
-      const toAddress = "14avfLPyk7LjGEbFFdDU7vRLQQt6BKzNfZcFauhuub5mghb1";
-      const amount = 100;
-      
-      const injector = await web3FromAddress(fromAddress);
-      const amountInPlanck = BigInt(parseFloat(amount) * Math.pow(10, 10));
-      const transfer = api.tx.Balances.transfer_allow_death({
-        dest: MultiAddress.Id(toAddress),
-        value: 12345n,
-      })
-
-      transfer.signSubmitAndWatch(selectedAccount).subscribe({
-        next: (event) => {
-          console.log("Tx event: ", event.type)
-          if (event.type === "txBestBlocksState") {
-            console.log("The tx is now in a best block, check it out:")
-            console.log(`https://westend.subscan.io/extrinsic/${event.txHash}`)
-          }
-        },
-        error: console.error,
-        complete() {
-          client.destroy()
-        },
-      })
-      
-    } catch (error) {
-      console.error('Transfer setup error:', error);
-      setTransferStatus(`Error setting up transaction: ${error.message}`);
-      setIsTransferring(false);
-    }
-  };
-
-  return (
-    <div className="token-transfer">
-      <h3>Send Tokens</h3>
-      <div className="transfer-form">
-        <div className="form-group">
-          <label htmlFor="recipient-address">Recipient Address:</label>
-          <input
-            id="recipient-address"
-            type="text"
-            value={recipientAddress}
-            onChange={(e) => setRecipientAddress(e.target.value)}
-            placeholder="Enter recipient address"
-            disabled={isTransferring}
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="amount">Amount (DOT):</label>
-          <input
-            id="amount"
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="Enter amount to send"
-            step="0.0001"
-            min="0"
-            disabled={isTransferring}
-          />
-        </div>
-        <button
-          onClick={handleTransfer}
-          disabled={isTransferring || !selectedAccount}
-          className="transfer-button"
-        >
-          {isTransferring ? 'Sending...' : 'Send Tokens'}
-        </button>
-      </div>
-      {transferStatus && (
-        <div className={`transfer-status ${transferStatus.includes('Error') ? 'error' : ''}`}>
-          {transferStatus}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function WalletConnector() {
   const [accounts, setAccounts] = useState([]);
@@ -172,39 +60,58 @@ function WalletConnector() {
   const [balance, setBalance] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [extension, setExtension] = useState(null);
   const url = "wss://testnet-passet-hub.polkadot.io";
 
   const connectWallet = async () => {
     setIsLoading(true);
     try {
-      // Enable the extension
-      const extensions = await web3Enable('Polkadot Balance App');
+      // Get the list of installed extensions
+      const availableExtensions = getInjectedExtensions();
       
-      if (extensions.length === 0) {
+      if (availableExtensions.length === 0) {
         alert('No extension found! Please install the Polkadot.js extension and try again.');
         setIsLoading(false);
         return;
       }
       
-      // Get all accounts from the extension
-      const allAccounts = await web3Accounts();
+      console.log('Available extensions:', availableExtensions);
       
-      if (allAccounts.length === 0) {
+      // Connect to the first available extension
+      const selectedExtension = await connectInjectedExtension(availableExtensions[0]);
+      setExtension(selectedExtension);
+      
+      // Get accounts registered in the extension
+      const extensionAccounts = await selectedExtension.getAccounts();
+      
+      if (extensionAccounts.length === 0) {
         alert('No accounts found in the Polkadot.js extension. Please create or import an account first.');
         setIsLoading(false);
         return;
       }
       
-      setAccounts(allAccounts);
-      setSelectedAccount(allAccounts[0]);
+      console.log('Extension accounts:', extensionAccounts);
+      
+      // Format accounts to include necessary properties
+      const formattedAccounts = extensionAccounts.map(acc => ({
+        address: acc.address,
+        meta: {
+          name: acc.name,
+          source: availableExtensions[0]
+        },
+        polkadotSigner: acc.polkadotSigner
+      }));
+      
+      setAccounts(formattedAccounts);
+      setSelectedAccount(formattedAccounts[0]);
       setIsConnected(true);
       
       // Get balance for the first account
-      await getBalance(allAccounts[0]);
+      await getBalance(formattedAccounts[0]);
       
     } catch (error) {
       console.error('Error connecting wallet:', error);
-      alert('Failed to connect wallet: ' + error.message);
+      alert('Failed to connect wallet: ' + (error.message || String(error)));
     } finally {
       setIsLoading(false);
     }
@@ -310,13 +217,147 @@ function WalletConnector() {
           )}
           
           {/* Token Transfer Component */}
-          <TokenTransfer selectedAccount={selectedAccount} url={url} />
+          <TokenTransferComponent 
+            selectedAccount={selectedAccount} 
+            polkadotSigner={selectedAccount?.polkadotSigner}
+            url={url} 
+          />
         </div>
       )}
     </div>
   );
 }
  
+// Type declarations for transaction events
+const TokenTransferComponent = ({ selectedAccount, polkadotSigner, url }) => {
+  const [recipientAddress, setRecipientAddress] = useState('');
+  const [amount, setAmount] = useState('');
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [transferStatus, setTransferStatus] = useState('');
+
+  const handleTransfer = async () => {
+    if (!recipientAddress || !amount || !selectedAccount) {
+      setTransferStatus('Please fill in all fields');
+      return;
+    }
+
+    try {
+      setIsTransferring(true);
+      setTransferStatus('Preparing transaction...');
+
+      // Create client using web provider - same as in App.js
+      const client = createClient(
+        withPolkadotSdkCompat(
+          getWsProvider(url)
+        )
+      );
+
+      // Subscribe to finalized blocks - same as in App.js
+      client.finalizedBlock$.subscribe((finalizedBlock) =>
+        console.log("Finalized block:", finalizedBlock.number, finalizedBlock.hash),
+      );
+
+      // Get the typed API
+      const api = client.getTypedApi(dot);
+      
+      // Convert amount to planck (1 DOT = 10^10 planck)
+      const amountValue = parseFloat(amount);
+      const amountInPlanck = BigInt(Math.floor(amountValue * 10000000000));
+      
+      setTransferStatus('Sending transaction...');
+      console.log("Selected account:", selectedAccount);
+      console.log("Recipient address:", recipientAddress);
+      console.log("Amount:", amount, "DOT (", amountInPlanck.toString(), "planck)");
+      
+      // Use the polkadotSigner from props or from the selectedAccount
+      const signer = polkadotSigner || selectedAccount.polkadotSigner;
+      
+      if (!signer) {
+        throw new Error("No signer available for this account");
+      }
+      
+      // Create the transaction
+      const defaultRecipient = "16JcMT4nuL5vYc14Z2remxS8X1oJxa5r3Ho99uoCVKpW9zXX";
+      const transfer = api.tx.Balances.transfer_allow_death({
+        dest: MultiAddress.Id(recipientAddress || defaultRecipient),
+        value: amountInPlanck,
+      });
+      
+      // Sign and submit the transaction while looking at the
+      // different events that will be emitted
+      transfer.signSubmitAndWatch(signer).subscribe({
+        next: (event) => {
+          console.log("Tx event: ", event.type);
+          if (event.type === "txBestBlocksState" && event.txHash) {
+            setTransferStatus(`Transaction included in block! Check it out: https://assethub-paseo.subscan.io/extrinsic/${event.txHash}`);
+            console.log("The tx is now in a best block, check it out:");
+            console.log(`https://assethub-paseo.subscan.io/extrinsic/${event.txHash}`);
+          }
+        },
+        error: (err) => {
+          console.error("Transaction error:", err);
+          setTransferStatus(`Error: ${err.message}`);
+          setIsTransferring(false);
+        },
+        complete() {
+          setTransferStatus('Transaction process completed!');
+          setIsTransferring(false);
+          client.destroy();
+        },
+      });
+      
+    } catch (error) {
+      console.error('Transfer setup error:', error);
+      setTransferStatus(`Error setting up transaction: ${error.message || String(error)}`);
+      setIsTransferring(false);
+    }
+  };
+
+  return (
+    <div className="token-transfer">
+      <h3>Send Tokens</h3>
+      <div className="transfer-form">
+        <div className="form-group">
+          <label htmlFor="recipient-address">Recipient Address:</label>
+          <input
+            id="recipient-address"
+            type="text"
+            value={recipientAddress}
+            onChange={(e) => setRecipientAddress(e.target.value)}
+            placeholder="Enter recipient address"
+            disabled={isTransferring}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="amount">Amount (DOT):</label>
+          <input
+            id="amount"
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Enter amount to send"
+            step="0.0001"
+            min="0"
+            disabled={isTransferring}
+          />
+        </div>
+        <button
+          onClick={handleTransfer}
+          disabled={isTransferring || !selectedAccount}
+          className="transfer-button"
+        >
+          {isTransferring ? 'Sending...' : 'Send Tokens'}
+        </button>
+      </div>
+      {transferStatus && (
+        <div className={`transfer-status ${transferStatus.includes('Error') ? 'error' : ''}`}>
+          {transferStatus}
+        </div>
+      )}
+    </div>
+  );
+};
+
 function App() {
   return (
     <div className="App">
