@@ -28,12 +28,7 @@ import ImpactTrackerView from '../components/donate/ImpactTrackerView';
 // Import Aptos libraries for balance checking
 import { AptosClient, CoinClient } from "aptos";
 // Import Polkadot contract interaction libraries
-import { ContractPromise } from '@polkadot/api-contract';
-import { ApiPromise, WsProvider } from '@polkadot/api';
-import { web3Accounts, web3Enable, web3FromAddress } from '@polkadot/extension-dapp';
-import { BN } from "@polkadot/util";
-import polkadotWallet from '../utils/polkadotWallet';
-// Import contract ABI
+import { useWalletConnector } from '../components/WalletConnector';
 import abiJson from '../eunoia.json';
 
 // New Icons for AI flow
@@ -70,6 +65,8 @@ const TOKEN_TYPES = {
 };
 
 const DonatePage = () => {
+  // Use the wallet connector
+  const walletConnector = useWalletConnector();
   const theme = useTheme();
   const location = useLocation();
   const { walletAddress, setWalletAddress, activeChain } = useContext(AppContext) || {};
@@ -166,21 +163,23 @@ const DonatePage = () => {
   const connectToPolkadot = async () => {
     if (activeChain === CHAINS.POLKADOT) {
       try {
-        console.log("Initializing Polkadot API connection...");
+        console.log("Using wallet connector for Polkadot API connection");
         
-        const provider = new WsProvider(POLKADOT_NODE_URL);
-        const api = await ApiPromise.create({ provider });
-        setPolkadotApi(api);
+        // The wallet connector already initializes the API
+        // We just need to make sure it's connected
+        if (!walletConnector.isConnected) {
+          const result = await walletConnector.connectWallet();
+          if (result.success) {
+            // Set polkadotApi to a non-null value to indicate successful connection
+            setPolkadotApi({}); // Just a placeholder value
+          }
+        } else {
+          // If already connected, still set polkadotApi to indicate connection
+          setPolkadotApi({});
+        }
         
-        // Get chain name for logging
-        const chain = await api.rpc.system.chain();
-        console.log(`Connected to Polkadot chain: ${chain.toString()}`);
-        
-        // Create contract instance 
-        const c = new ContractPromise(api, abiJson, POLKADOT_CONTRACT_ADDRESS);
-        console.log('Contract instance created successfully');
-        
-        return api;
+        console.log('Polkadot API connection initialized successfully');
+        return true;
       } catch (error) {
         console.error('Failed to initialize Polkadot API:', error);
         setBalanceError("Failed to initialize Polkadot connection");
@@ -264,20 +263,26 @@ const DonatePage = () => {
     }
   };
 
-  // Get balance for Polkadot/Westend using the same approach as App.js
+  // Get balance for Polkadot using our wallet connector
   const getPolkadotBalance = async (address) => {
     try {
-      if (!polkadotApi) {
-        console.error("Polkadot API not initialized");
+      if (walletConnector.selectedAccount) {
+        const balanceData = await walletConnector.getBalance(walletConnector.selectedAccount);
+        
+        if (!balanceData || !balanceData.data) {
+          console.error("No account data returned");
+          return 5; // Default value for testing
+        }
+        
+        const freeBalance = BigInt(balanceData.data.free.toString());
+        
+        // Convert from smallest unit (plancks) to DOT (10 decimal places)
+        const formattedBalance = Number(freeBalance) / 10000000000;
+        return formattedBalance;
+      } else {
+        console.error("No selected account in wallet connector");
         return 5; // Default value for testing
       }
-
-      const { data } = await polkadotApi.query.system.account(address);
-      const freeBalance = data.free.toBigInt(); // get BigInt
-      
-      // Convert from smallest unit (plancks) to DOT/WND (12 decimal places)
-      const formattedBalance = Number(freeBalance) / 100_000_000_00;
-      return formattedBalance;
     } catch (error) {
       console.error(`Error fetching ${selectedCrypto} balance:`, error);
       // For testing, return a mock balance
@@ -373,21 +378,16 @@ const DonatePage = () => {
           return false;
         }
       } else if (activeChain === CHAINS.POLKADOT) {
-        // Connect Polkadot wallet using the approach from App.js
+        // Connect Polkadot wallet using our wallet connector
         try {
-          const extensions = await web3Enable('Eunoia Donation Platform');
-          if (extensions.length === 0) {
-            alert('Polkadot{.js} extension not found. Please install it.');
+          const result = await walletConnector.connectWallet();
+          
+          if (!result.success) {
+            alert(result.error || 'Failed to connect to wallet. Please try again.');
             return false;
           }
           
-          const accounts = await web3Accounts();
-          if (accounts.length === 0) {
-            alert('No accounts found in the Polkadot{.js} extension.');
-            return false;
-          }
-          
-          setWalletAddress(accounts[0].address);
+          // Balance will be updated by the wallet connector
           await checkWalletBalance();
           return true;
         } catch (error) {
@@ -480,7 +480,7 @@ const DonatePage = () => {
     }
     
     // Ensure wallet is connected before proceeding
-    if (!walletAddress || !polkadotApi) {
+    if (!walletAddress || (activeChain === CHAINS.POLKADOT && !walletConnector.isConnected)) {
       console.log("Wallet not connected.");
       setTransactionError("Please connect your wallet to continue.");
       setTransactionPending(false);
@@ -651,68 +651,35 @@ const DonatePage = () => {
     }
   };
   
-  // Handle Polkadot donation using the simplified approach from App.js
+  // Handle Polkadot donation using our wallet connector
   const handlePolkadotDonation = async (charity, amount) => {
     try {
-      // If API is not initialized, try to initialize it
-      let api = polkadotApi;
-      if (!api) {
-        console.log("Polkadot API not initialized. Attempting to initialize...");
-        throw new Error("Failed to initialize Polkadot API. Please try again.");
-      }
-
       const numericAmount = Number(amount);
       if (isNaN(numericAmount) || numericAmount <= 0) {
         throw new Error(`Invalid donation amount: ${amount}`);
       }
 
-      const fromAddress = walletAddress;
       const toAddress = charity.aptos_wallet_address;
-      const amountTransfer = amount;
-
-      const injector = await web3FromAddress(fromAddress);
-      const amountInPlanck = new BN(Number(amountTransfer) * 1e10);
-      const tx = api.tx.balances.transferAllowDeath(toAddress, amountInPlanck);
       
-      // Create a promise to handle the transaction status
-      return new Promise((resolve, reject) => {
-        let blockHash = null;
-        
-        tx.signAndSend(
-          fromAddress,
-          { signer: injector.signer },
-          ({ status, dispatchError, events }) => {
-            if (dispatchError) {
-              console.error("Dispatch error:", dispatchError.toString());
-              reject(new Error(`Transaction failed: ${dispatchError.toString()}`));
-            }
-            
-            if (status.isInBlock) {
-              blockHash = status.asInBlock.toString();
-              console.log("Transfer included in blockHash:", blockHash);
-              // Store the block hash in a state variable or context if needed
-              // You can access it here
-            } else if (status.isFinalized) {
-              const finalizedBlockHash = status.asFinalized.toString();
-              console.log("Transfer finalized in blockHash:", finalizedBlockHash);
-              alert(`Transferred ${amountTransfer} PAS to ${toAddress}`);
-              
-              // refresh balance
-              api.query.system.account(fromAddress).then(({ data }) => {
-                const freeBalance = data.free.toBigInt();
-                const formatted = Number(freeBalance) / 1e10;
-                setWalletBalance(formatted.toLocaleString(undefined, { maximumFractionDigits: 8 }));
-              });
-              
-              // Resolve with the block hash
-              resolve(blockHash || finalizedBlockHash);
-            }
-          }
-        ).catch(error => {
-          console.error("Transaction submission error:", error);
-          reject(error);
-        });
-      });
+      // Use wallet connector to create and send the transaction
+      if (!walletConnector.selectedAccount) {
+        throw new Error("No account selected in wallet connector");
+      }
+      
+      // Create the transaction
+      const transfer = walletConnector.createTransfer(toAddress, numericAmount);
+      
+      if (!transfer) {
+        throw new Error("Failed to create transfer transaction");
+      }
+      
+      // Sign and submit the transaction
+      const txHash = await walletConnector.signAndSubmitTransaction(transfer);
+      
+      // Refresh balance after transaction
+      await checkWalletBalance();
+      
+      return txHash;
     } catch (error) {
       console.error("Polkadot donation error:", error);
       throw error;
