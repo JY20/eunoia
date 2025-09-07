@@ -15,7 +15,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, POLKADOT_NODE_URL } from '../config';
 
 // Import the new component views
 import CharityResultsView from '../components/donate/CharityResultsView';
@@ -55,8 +55,6 @@ const POLKADOT_DONATE_FUNCTION_NAME = "giveMe";
 
 // Balance checking constants
 const APTOS_NODE_URL = "https://fullnode.testnet.aptoslabs.com";
-const POLKADOT_NODE_URL = "wss://testnet-passet-hub.polkadot.io";
-// const POLKADOT_NODE_URL = "wss://polkadot-rpc.publicnode.com";
 
 // Token type mapping
 const TOKEN_TYPES = {

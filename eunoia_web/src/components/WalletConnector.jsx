@@ -6,6 +6,7 @@ import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getInjectedExtensions, connectInjectedExtension } from "polkadot-api/pjs-signer";
 import { AppContext, CHAINS } from './AppProvider';
+import { POLKADOT_NODE_URL } from '../config';
 
 // Create a context for the wallet connector
 const WalletConnectorContext = createContext(null);
@@ -62,7 +63,7 @@ export function WalletConnectorProvider({ children }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [extension, setExtension] = useState(null);
-  const url = "wss://testnet-passet-hub.polkadot.io";
+  const url = POLKADOT_NODE_URL;
   const [client, setClient] = useState(null);
   const [dotApi, setDotApi] = useState(null);
 
