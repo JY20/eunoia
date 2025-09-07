@@ -182,3 +182,88 @@
   background-color: #282c34;
   color: white;
 }
+
+/* Token Transfer Styles */
+.token-transfer {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  width: 100%;
+}
+
+.token-transfer h3 {
+  margin-top: 0;
+  color: #e6007a;
+  margin-bottom: 20px;
+}
+
+.transfer-form {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #ccc;
+  font-size: 14px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 14px;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #e6007a;
+}
+
+.transfer-button {
+  background-color: #e6007a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.transfer-button:hover {
+  background-color: #c9006c;
+}
+
+.transfer-button:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+}
+
+.transfer-status {
+  margin-top: 15px;
+  padding: 10px;
+  border-radius: 4px;
+  background-color: rgba(0, 255, 0, 0.1);
+  color: #00ff00;
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.transfer-status.error {
+  background-color: rgba(255, 0, 0, 0.1);
+  color: #ff6666;
+}

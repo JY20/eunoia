@@ -1,11 +1,13 @@
+ /* global BigInt */
+
 import React, { useState, useEffect } from 'react';
 import logo from './logo.svg';
 import './App.css';
-import { dot } from "@polkadot-api/descriptors"
+import { MultiAddress, dot } from "@polkadot-api/descriptors"
 import { createClient } from "polkadot-api"
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import { web3Accounts, web3Enable, web3FromAddress } from '@polkadot/extension-dapp';
+import { web3Accounts, web3Enable, web3FromAddress, web3FromSource } from '@polkadot/extension-dapp';
 
 // Helper function to convert BigInt values to strings for display
 const formatBalanceData = (data) => {
@@ -50,6 +52,119 @@ const formatBalanceDisplay = (balance) => {
   // Format with 4 decimal places
   return `${dotValue.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })} DOT`;
 };
+
+function TokenTransfer({ selectedAccount, url }) {
+  const [recipientAddress, setRecipientAddress] = useState('');
+  const [amount, setAmount] = useState('');
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [transferStatus, setTransferStatus] = useState('');
+
+  const handleTransfer = async () => {
+    if (!recipientAddress || !amount || !selectedAccount) {
+      setTransferStatus('Please fill in all fields');
+      return;
+    }
+
+    try {
+      setIsTransferring(true);
+      setTransferStatus('Preparing transaction...');
+
+      // Create client
+      const client = createClient(
+        withPolkadotSdkCompat(
+          getWsProvider(url)
+        )
+      );
+
+      // Get the typed API
+      const api = client.getTypedApi(dot);
+
+      // Convert amount to planck (1 DOT = 10^10 planck)
+      // const amountInPlanck = BigInt(parseFloat(amount) * Math.pow(10, 10));
+
+      // Get the injector for the selected account
+      // const injector = await web3FromSource(selectedAccount.meta.source);
+
+      // Create and send the transaction
+      console.log(selectedAccount);
+      setTransferStatus('Sending transaction...');
+      
+      const fromAddress = "5GR8Nu8teWPxeG6ekDf63sv49JSghNGnHB7tQrNQaKeo5TjN";
+      const toAddress = "14avfLPyk7LjGEbFFdDU7vRLQQt6BKzNfZcFauhuub5mghb1";
+      const amount = 100;
+      
+      const injector = await web3FromAddress(fromAddress);
+      const amountInPlanck = BigInt(parseFloat(amount) * Math.pow(10, 10));
+      const transfer = api.tx.Balances.transfer_allow_death({
+        dest: MultiAddress.Id(toAddress),
+        value: 12345n,
+      })
+
+      transfer.signSubmitAndWatch(selectedAccount).subscribe({
+        next: (event) => {
+          console.log("Tx event: ", event.type)
+          if (event.type === "txBestBlocksState") {
+            console.log("The tx is now in a best block, check it out:")
+            console.log(`https://westend.subscan.io/extrinsic/${event.txHash}`)
+          }
+        },
+        error: console.error,
+        complete() {
+          client.destroy()
+        },
+      })
+      
+    } catch (error) {
+      console.error('Transfer setup error:', error);
+      setTransferStatus(`Error setting up transaction: ${error.message}`);
+      setIsTransferring(false);
+    }
+  };
+
+  return (
+    <div className="token-transfer">
+      <h3>Send Tokens</h3>
+      <div className="transfer-form">
+        <div className="form-group">
+          <label htmlFor="recipient-address">Recipient Address:</label>
+          <input
+            id="recipient-address"
+            type="text"
+            value={recipientAddress}
+            onChange={(e) => setRecipientAddress(e.target.value)}
+            placeholder="Enter recipient address"
+            disabled={isTransferring}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="amount">Amount (DOT):</label>
+          <input
+            id="amount"
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Enter amount to send"
+            step="0.0001"
+            min="0"
+            disabled={isTransferring}
+          />
+        </div>
+        <button
+          onClick={handleTransfer}
+          disabled={isTransferring || !selectedAccount}
+          className="transfer-button"
+        >
+          {isTransferring ? 'Sending...' : 'Send Tokens'}
+        </button>
+      </div>
+      {transferStatus && (
+        <div className={`transfer-status ${transferStatus.includes('Error') ? 'error' : ''}`}>
+          {transferStatus}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function WalletConnector() {
   const [accounts, setAccounts] = useState([]);
@@ -193,13 +308,15 @@ function WalletConnector() {
               </div>
             </div>
           )}
+          
+          {/* Token Transfer Component */}
+          <TokenTransfer selectedAccount={selectedAccount} url={url} />
         </div>
       )}
     </div>
   );
 }
  
-
 function App() {
   return (
     <div className="App">
