@@ -227,26 +227,6 @@ const HomePage = () => {
         // Fetch from the new DRF endpoint - get all verified charities
         const response = await axios.get(`${API_BASE_URL}/charities/?is_verified=true&page_size=100`); // Fetch verified charities
 
-        // Temporarily mock data until our API is ready (Comment out or remove)
-        /*
-        setTimeout(() => {
-          const mockCharities = [
-            {
-              id: 1,
-              name: 'Ocean Cleanup Foundation',
-              description: "Working to rid the world's oceans of plastic pollution through innovative technologies.",
-              logo: 'https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?q=80&w=500&auto=format&fit=crop',
-              aptos_wallet_address: '0x123...abc',
-              impact: '500,000 kg of plastic removed'
-            },
-            // ... other mock charities ...
-          ];
-          
-          setFeaturedCharities(mockCharities);
-          setLoading(false);
-        }, 1000);
-        */
-
         // Assuming the API returns a list and we take the first 3 as featured
         // DRF pagination wraps results in a 'results' key
         const allVerifiedCharities = response.data.results || response.data; 
@@ -333,7 +313,7 @@ const HomePage = () => {
                   lineHeight: 1.6,
                   fontSize: '1.25rem',
                 }}>
-                  The first truly transparent giving platform built on Aptos blockchain.
+                  The first truly transparent giving platform built on Polkadot and Aptos blockchain.
                   Track your donations in real-time, from your wallet to the cause.
                 </Typography>
                 
@@ -522,7 +502,7 @@ const HomePage = () => {
                       </Typography>
                     </Box>
                     <Typography variant="body1" color="text.secondary">
-                      Connect your Aptos wallet securely. No registration required, no personal data stored.
+                      Connect your Polkadot or Aptos wallet securely. No registration required, no personal data stored.
                     </Typography>
                   </Box>
                   <Box>
