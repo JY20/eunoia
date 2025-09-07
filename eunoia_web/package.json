@@ -2,6 +2,7 @@
   "name": "eunoia_web",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "dependencies": {
     "@aptos-labs/ts-sdk": "^1.39.0",
     "@aptos-labs/wallet-adapter-react": "^6.0.3",

@@ -1,9 +1,23 @@
+"""
+Models for the Eunoia charity donation platform.
+
+This module defines the data models for the Eunoia platform, including charities,
+donations, user preferences, and other related entities.
+
+License: MIT
+Author: Eunoia Team
+"""
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-# Create your models here.
-
 class Charity(models.Model):
+    """
+    Represents a charitable organization in the Eunoia platform.
+    
+    This model stores all information about registered charities including
+    their verification status, wallet addresses, and metadata for AI matching.
+    """
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     # For registration_proof, consider how you want to handle file uploads and validation.

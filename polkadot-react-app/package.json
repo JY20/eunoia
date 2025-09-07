@@ -2,6 +2,7 @@
   "name": "polkadot-react-app",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "dependencies": {
     "@polkadot/api": "^16.4.5",
     "@polkadot/api-contract": "^16.4.5",

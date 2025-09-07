@@ -561,6 +561,15 @@ git push origin feature/your-feature-name
 # Then open a Pull Request
 ```
 
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📚 Documentation
+
+- [TUTORIAL.md](TUTORIAL.md) - Basic tutorial for using the Eunoia platform
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Guidelines for contributing to the project
+- Inline code documentation is available in key files
 
 
 > *Let's fix giving. With agents, not middlemen.*

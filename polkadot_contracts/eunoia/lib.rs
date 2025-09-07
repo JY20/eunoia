@@ -1,3 +1,9 @@
+// SPDX-License-Identifier: MIT
+/**
+ * @title Eunoia Foundation Smart Contract for Polkadot
+ * @dev This contract manages charitable donations on the Polkadot blockchain.
+ * @author Eunoia Team
+ */
 use ink::prelude::string::String;
 use ink::prelude::vec::Vec;
 use ink::storage::Mapping;
