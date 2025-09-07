@@ -112,13 +112,6 @@ const DonatePage = () => {
   const [searchMode, setSearchMode] = useState(initialSearchMode);
   const [matchedCharities, setMatchedCharities] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedCharitiesState, setSelectedCharitiesState] = useState(initialSelectedCharities); // Renamed to avoid conflict if CharityResultsView needs it
-  const [donationAmounts, setDonationAmounts] = useState(
-    initialSelectedCharities.reduce((acc, charity) => {
-      acc[charity.id] = 10;
-      return acc;
-    }, {})
-  );
   const [platformFeeActive, setPlatformFeeActive] = useState(true);
   const [donationComplete, setDonationComplete] = useState(false);
   const [transactionPending, setTransactionPending] = useState(false);
@@ -298,6 +291,19 @@ const DonatePage = () => {
     // Leave a small amount for transaction fees
     const maxAmount = Math.max(0, walletBalance - 0.1);
     setTotalDonationAmount(Number(maxAmount.toFixed(2)));
+    
+    // If in charity results view, also update individual donation amounts proportionally
+    if (currentStage === 'charityResults' && selectedCharityIds.size > 0) {
+      const total = Array.from(selectedCharityIds).reduce((sum, id) => sum + (individualDonationAmounts[id] || 0), 0);
+      if (total > 0) {
+        const newAmounts = {};
+        const ratio = maxAmount / total;
+        Array.from(selectedCharityIds).forEach(id => {
+          newAmounts[id] = Math.round((individualDonationAmounts[id] || 0) * ratio * 100) / 100;
+        });
+        setIndividualDonationAmounts(newAmounts);
+      }
+    }
   };
 
   // Initialize Polkadot API and update selected crypto when chain changes
@@ -409,6 +415,7 @@ const DonatePage = () => {
 
   const calculatePlatformFee = () => {
     if (!platformFeeActive) return 0;
+    // Use the current totalDonationAmount for fee calculation
     return totalDonationAmount * 0.002;
   };
 
@@ -460,10 +467,13 @@ const DonatePage = () => {
   
   // Update the totalDonationAmount whenever the calculated amount changes
   useEffect(() => {
-    // Include platform fee in the total amount
-    const totalWithFee = actualTotalDonation + calculatePlatformFee();
-    setTotalDonationAmount(parseFloat(totalWithFee.toFixed(2)));
-  }, [actualTotalDonation, platformFeeActive, calculatePlatformFee]);
+    if (currentStage === 'charityResults') {
+      // Only update total when in charity results view (after AI processing)
+      // Include platform fee in the total amount
+      const totalWithFee = actualTotalDonation + calculatePlatformFee();
+      setTotalDonationAmount(parseFloat(totalWithFee.toFixed(2)));
+    }
+  }, [actualTotalDonation, platformFeeActive, calculatePlatformFee, currentStage]);
 
   // Add the handleDonate function with multi-chain support
   const handleDonate = async () => {

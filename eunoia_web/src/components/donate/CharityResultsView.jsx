@@ -266,7 +266,7 @@ const CharityResultsView = ({
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt:1 }}>
           <Typography variant="h5" fontWeight="bold">Total Donation:</Typography>
           <Typography variant="h5" fontWeight="bold" color="primary.main">
-            {totalDonationAmount.toFixed(2)} {selectedCrypto}
+            {typeof totalDonationAmount === 'number' ? totalDonationAmount.toFixed(2) : '0.00'} {selectedCrypto}
           </Typography>
         </Box>
       </Paper>

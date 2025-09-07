@@ -180,13 +180,18 @@ const VisionPromptView = ({
             type="number"
               variant="outlined"
             value={totalDonationAmount}
-            onChange={(e) => setTotalDonationAmount(Number(e.target.value))}
+            onChange={(e) => {
+              const value = Number(e.target.value);
+              if (!isNaN(value) && value >= 0) {
+                setTotalDonationAmount(value);
+              }
+            }}
             InputProps={{
               endAdornment: <InputAdornment position="end">
-                <IconButton size="small" onClick={() => setTotalDonationAmount(prev => Math.max(1, prev - 1))}>
+                <IconButton size="small" onClick={() => setTotalDonationAmount(Math.max(1, totalDonationAmount - 1))}>
                   <RemoveCircleOutlineIcon />
                 </IconButton>
-                <IconButton size="small" onClick={() => setTotalDonationAmount(prev => prev + 1)}>
+                <IconButton size="small" onClick={() => setTotalDonationAmount(totalDonationAmount + 1)}>
                   <AddCircleOutlineIcon />
                 </IconButton>
                 <Tooltip title="Use maximum available balance">
@@ -236,7 +241,12 @@ const VisionPromptView = ({
             min={1}
             max={walletBalance > 0 ? walletBalance : 1} // Using wallet balance as max value
             step={1}
-            onChange={(e, newValue) => setTotalDonationAmount(Number(newValue))}
+            onChange={(e, newValue) => {
+              const value = Number(newValue);
+              if (!isNaN(value) && value >= 0) {
+                setTotalDonationAmount(value);
+              }
+            }}
             aria-labelledby="donation-amount-slider"
             sx={{color: 'primary.main'}}
             valueLabelDisplay="auto"
