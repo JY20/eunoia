@@ -1,154 +1,37 @@
 # Eunoia Platform Tutorial
 
-This tutorial will guide you through setting up and using the Eunoia platform, a transparent charity donation platform built on blockchain technology.
-
-### Important Notes
-
-- **Local Testing**: You can test the platform locally by donating to registered test charities.
-- **Blockchain Network**:
-  - **Default (Mainnet)**: The platform uses Polkadot mainnet by default, which transfers real DOT tokens.
-  - **Test Network**: To use testnet DOT tokens instead, modify `config.js` in the `eunoia_web/src` directory:
-    ```javascript
-    // Uncomment this line for testnet:
-    export const POLKADOT_NODE_URL = process.env.REACT_APP_POLKADOT_NODE_URL || 'wss://testnet-passet-hub.polkadot.io';
-    
-    // Comment out the mainnet configuration
-    // export const POLKADOT_NODE_URL = process.env.REACT_APP_POLKADOT_NODE_URL || 'wss://polkadot-rpc.publicnode.com';
-    ```
+This tutorial will guide you through the basic usage of the Eunoia platform, a transparent charity donation platform built on blockchain technology.
 
 ## Table of Contents
 
-1. [Development Setup](#development-setup)
-   - [Backend Setup](#backend-setup)
-   - [Frontend Setup](#frontend-setup)
-   - [Testing the Application](#testing-the-application)
-2. [Getting Started](#getting-started)
+1. [Getting Started](#getting-started)
+2. [Creating an Account](#creating-an-account)
 3. [Connecting Your Wallet](#connecting-your-wallet)
-   - [Polkadot Wallet](#polkadot-wallet)
-4. [Making a Donation](#making-a-donation)
-
-## Development Setup
-
-This section will guide you through setting up the Eunoia platform for local development.
-
-### Backend Setup
-
-The Eunoia backend is built with Django and requires Python 3.8+.
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/JY20/eunoia/tree/polkadot-m1
-   cd eunoia
-   git checkout polkadot-m1
-   ```
-
-2. **Set up a virtual environment**
-   ```bash
-   cd backend/eunoia_backend
-   python -m venv venv
-   ```
-
-3. **Activate the virtual environment**
-   - On Windows:
-     ```bash
-     venv\Scripts\activate.bat
-     ```
-   - On macOS/Linux:
-     ```bash
-     source venv/bin/activate
-     ```
-
-4. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-5. **Set up environment variables**
-   Create a `.env` file in the `backend/eunoia_backend` directory with the following variables:
-   Note: message the dev team (jimmyyan1337@gmail.com) if you don't have one
-   ```
-   OPENAI_API_KEY={your_openai_api_key}
-   ```
-
-6. **Run migrations**
-   ```bash
-   python manage.py migrate
-   ```
-
-7. **Create a superuser (optional)**
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-8. **Load test charities (optional)**
-   ```bash
-   python register_test_charities.py
-   ```
-
-9. **Start the development server**
-   ```bash
-   python manage.py runserver 8080
-   ```
-   The backend will be available at http://localhost:8080/
-
-### Frontend Setup
-
-The Eunoia frontend is built with React.
-
-1. **Navigate to the frontend directory**
-   ```bash
-   cd eunoia_web
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   npx papi add dot -n polkadot
-   npx papi
-   ```
-
-3. **Configure the API endpoint**
-   
-   Edit `src/config.js` to point to your backend server:
-   ```javascript
-   export const API_URL = 'http://localhost:8080/api';
-   ```
-
-4. **Start the development server**
-   ```bash
-   npm run start
-   ```
-   The frontend will be available at http://localhost:3000/
-
-### Testing the Application
-
-To ensure everything is working correctly:
-
-1. **Backend Tests**
-   ```bash
-   cd backend/eunoia_backend
-   python manage.py test
-   ```
-
-2. **Frontend Tests**
-   ```bash
-   cd eunoia_web
-   npm test
-   ```
-
-3. **End-to-End Testing**
-   
-   With both frontend and backend servers running:
-   
-   - Visit http://localhost:3000 in your browser
-   - Create an account or log in
-   - Connect a wallet (you can use test wallets for Aptos and Polkadot)
-   - Try the Compass AI feature to find charities
-   - Test making a donation (the system will use test networks)
+4. [Using Compass AI to Find Causes](#using-compass-ai-to-find-causes)
+5. [Making a Donation](#making-a-donation)
+6. [Tracking Your Impact](#tracking-your-impact)
+7. [For Charities: Getting Listed](#for-charities-getting-listed)
 
 ## Getting Started
 
+Visit [Eunoia's website](https://www.eunoia.work) to access the platform. The homepage provides an overview of how Eunoia works and its mission to bring transparency to charitable giving.
+
+## Creating an Account
+
+1. Click on "Sign Up" in the top right corner of the homepage
+2. Enter your email address and create a password
+3. Verify your email address through the link sent to your inbox
+4. Complete your profile with basic information (optional but recommended)
+
 ## Connecting Your Wallet
+
+Eunoia supports multiple blockchain networks for donations:
+
+### Aptos Wallet
+1. Click on "Connect Wallet" in the navigation bar
+2. Select "Aptos" from the network options
+3. Choose your preferred Aptos wallet (e.g., Petra, Martian)
+4. Approve the connection request in your wallet
 
 ### Polkadot Wallet
 1. Click on "Connect Wallet" in the navigation bar
@@ -156,15 +39,58 @@ To ensure everything is working correctly:
 3. Choose your preferred Polkadot wallet extension
 4. Select the account you wish to use and approve the connection
 
+## Using Compass AI to Find Causes
+
+Eunoia's Compass AI helps match you with causes aligned with your values:
+
+1. Navigate to the "Find Causes" section
+2. In the text field, describe what matters to you (e.g., "I care about education for underprivileged children in East Africa")
+3. Optionally, connect your social profiles to improve matching accuracy
+4. Click "Find Matches" to activate Compass AI
+5. Wait while Compass analyzes and ranks potential matches
+6. Review your personalized charity recommendations, each with a match percentage and trust score
+
 ## Making a Donation
 
 1. Select a charity from your Compass matches or browse the directory
 2. Click on the charity's profile to view details
 3. Select your preferred donation amount
-4. Choose your preferred blockchain network (Polkadot)
+4. Choose your preferred blockchain network (Aptos or Polkadot)
 5. Click "Donate Now"
 6. Confirm the transaction in your wallet
 7. Wait for blockchain confirmation (typically a few seconds)
 8. Receive confirmation of your successful donation
+
+## Tracking Your Impact
+
+Eunoia provides complete transparency for your donations:
+
+1. Navigate to "My Impact" in your account dashboard
+2. View all your past donations with timestamps and transaction hashes
+3. Click on any donation to see:
+   - The exact transaction on the blockchain explorer
+   - Updates from the charity on how funds are being used
+   - Impact metrics when available
+
+## For Charities: Getting Listed
+
+If you represent a charity and want to get listed on Eunoia:
+
+1. Navigate to "Register Charity" in the footer
+2. Complete the registration form with:
+   - Organization name and details
+   - Registration/tax ID numbers
+   - Mission statement and focus areas
+   - Wallet addresses for receiving donations
+3. Submit required verification documents
+4. Our team will review your application (typically within 5-7 business days)
+5. Once approved, your charity will be listed and eligible to receive donations
+
+## Need Help?
+
+If you encounter any issues or have questions:
+- Check our FAQ section
+- Contact support at eunoia.give@gmail.com
+- Join our community on [Discord](https://discord.com/invite/CWYXFqyQe6) or [Telegram](https://t.me/+aDt6-_BdrTtjODMx)
 
 Thank you for using Eunoia to make transparent, impactful donations!
