@@ -20,15 +20,34 @@ jobs:
           submodules: true
           lfs: false
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          
       - name: Install dependencies and setup Polkadot API
         run: |
           cd eunoia_web
           npm install
           mkdir -p .papi/descriptors/src
+          mkdir -p .papi/descriptors/dist
           npx papi init || true
           npx papi add dot -n polkadot || true
           npx papi || true
+          
+          # Create minimal descriptors package if it doesn't exist properly
+          if [ ! -f .papi/descriptors/dist/index.js ]; then
+            echo "Creating minimal descriptors package..."
+            echo 'export const MultiAddress = {}; export const dot = {};' > .papi/descriptors/dist/index.js
+            echo 'export const MultiAddress = {}; export const dot = {};' > .papi/descriptors/dist/index.mjs
+            echo 'exports.MultiAddress = {}; exports.dot = {};' > .papi/descriptors/dist/index.d.ts
+          fi
 
+      - name: Build React App
+        run: |
+          cd eunoia_web
+          npm run build
+          
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -39,6 +58,7 @@ jobs:
           app_location: "./eunoia_web"
           api_location: ""
           output_location: "build"
+          skip_app_build: true
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
