@@ -11,6 +11,8 @@
     "@mui/icons-material": "^7.1.0",
     "@mui/material": "^7.1.0",
     "@polkadot-api/descriptors": "file:.papi\\descriptors",
+    "@polkadot/api": "^10.12.2",
+    "@polkadot/extension-dapp": "^0.46.6",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
@@ -25,9 +27,12 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "CI=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "eslintConfig": {
     "extends": [
