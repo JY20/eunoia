@@ -13,9 +13,7 @@ import {
   CircularProgress,
   Container,
   Grid,
-  Card,
   Chip,
-  Divider,
   Avatar,
   IconButton,
   alpha,
@@ -24,9 +22,8 @@ import {
   Tooltip
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { AptosClient, TxnBuilderTypes, HexString } from 'aptos';
-import { ApiPromise, WsProvider } from '@polkadot/api';
 import axios from 'axios'; // Ensure axios is imported
+import { API_BASE_URL as API_BASE_URL_TRANSPARENCY } from '../config';
 
 // Context
 import { AppContext, CHAINS } from '../components/AppProvider';
@@ -38,34 +35,16 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
-import ShowChartIcon from '@mui/icons-material/ShowChart';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import PersonIcon from '@mui/icons-material/Person';
 import RefreshIcon from '@mui/icons-material/Refresh';
-
-// Ensure this points to the TESTNET
-const aptosClient = new AptosClient('https://fullnode.testnet.aptoslabs.com/v1');
-
-// Chain-specific contract addresses
-const CONTRACTS = {
-  APTOS: {
-    ADDRESS: '0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011',
-    MODULE: 'eunoia_foundation'
-  },
-  POLKADOT: {
-    ADDRESS: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', // Placeholder contract address
-    MODULE: 'eunoia' // Placeholder module name
-  }
-};
 
 // Chain explorer URLs
 const EXPLORERS = {
   APTOS: 'https://explorer.aptoslabs.com/txn', // Base URL for Aptos explorer
   POLKADOT: 'https://polkadot.subscan.io/extrinsic'
 };
-
-const API_BASE_URL_TRANSPARENCY = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api'; // Define for this page if not globally available
 
 // Styled Components
 const PageHeader = styled(Box)(({ theme }) => ({
@@ -319,36 +298,14 @@ const TransparencyPage = () => {
   
   // Get the active chain from the app context
   const { activeChain } = useContext(AppContext);
-  const [polkadotApi, setPolkadotApi] = useState(null);
   
-  // REMOVE Polkadot API initialization if not used for other purposes on this page
-  // useEffect(() => {
-  //   const setupPolkadotApi = async () => {
-  //     if (activeChain === CHAINS.POLKADOT) { // And if polkadotApi is actually needed elsewhere
-  //       try {
-  //         const wsProvider = new WsProvider('wss://rpc.polkadot.io');
-  //         const api = await ApiPromise.create({ provider: wsProvider });
-  //         setPolkadotApi(api);
-  //         console.log('Polkadot API initialized');
-  //       } catch (error) {
-  //         console.error('Failed to initialize Polkadot API:', error);
-  //       }
-  //     }
-  //   };
-    
-  //   setupPolkadotApi();
-    
-  //   return () => {
-  //     if (polkadotApi) {
-  //       polkadotApi.disconnect();
-  //     }
-  //   };
-  // }, [activeChain, polkadotApi]); // Dependency on polkadotApi itself can cause loop if not careful
+  // NOTE: Polkadot API initialization is not currently needed for this page
+  // If needed in the future, use polkadot-api instead of @polkadot/api
 
   useEffect(() => {
     console.log(`Transparency Page active chain: ${activeChain}`);
     fetchDonations();
-  }, [activeChain]); // Refetch when chain changes if you want to show chain-specific elements, but main data is global now
+  }, [activeChain]);
   
   // REMOVE: getDonationHistory, getAptosHistory, getPolkadotHistory, fetchAptosEvents
   // These are replaced by a direct backend call in fetchDonations

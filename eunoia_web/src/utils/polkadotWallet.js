@@ -1,9 +1,10 @@
 /* global BigInt */
-import { web3Accounts, web3Enable, web3FromSource } from '@polkadot/extension-dapp';
-import { ApiPromise, WsProvider } from '@polkadot/api';
+import { createClient } from "polkadot-api";
+import { getSmProvider } from 'polkadot-api/sm-provider';
 
 // Initialize the connection
-let api = null;
+let client = null;
+let provider = null;
 
 // Polkadot networks
 export const POLKADOT_NETWORKS = {
@@ -33,33 +34,57 @@ const DEFAULT_NETWORK = POLKADOT_NETWORKS.POLKADOT;
 /**
  * Initialize API connection to a network
  * @param {string} network Network endpoint
- * @returns {Promise<ApiPromise>} API instance
+ * @returns {Promise<Object>} Client instance
  */
 export const initApi = async (network = DEFAULT_NETWORK.endpoint) => {
-  if (!api) {
-    const provider = new WsProvider(network);
-    api = await ApiPromise.create({ provider });
+  if (!client) {
+    // Create a provider using SmProvider instead of WsProvider
+    provider = getSmProvider(network);
+    client = createClient(provider);
   }
-  return api;
+  return client;
 };
 
 /**
- * Get accounts from Polkadot.js extension
+ * Format balance with proper decimals
+ * @param {string|number|BigInt} balance Raw balance
+ * @param {number} decimals Decimal places
+ * @param {string} symbol Currency symbol
+ * @returns {string} Formatted balance
+ */
+export const formatBalance = (balance, decimals = DEFAULT_NETWORK.decimals, symbol = DEFAULT_NETWORK.symbol) => {
+  if (!balance) return `0 ${symbol}`;
+  
+  const balanceBigInt = BigInt(balance);
+  const divisor = BigInt(10) ** BigInt(decimals);
+  const integerPart = balanceBigInt / divisor;
+  const fractionalPart = balanceBigInt % divisor;
+  
+  // Format with proper decimals, trimming trailing zeros
+  let formatted = integerPart.toString();
+  if (fractionalPart > 0) {
+    let fraction = fractionalPart.toString().padStart(decimals, '0');
+    // Trim trailing zeros
+    fraction = fraction.replace(/0+$/, '');
+    if (fraction.length > 0) {
+      formatted += '.' + fraction;
+    }
+  }
+  
+  return `${formatted} ${symbol}`;
+};
+
+/**
+ * Get accounts from Polkadot extension
  * @returns {Promise<Array>} List of accounts
  */
 export const getAccounts = async () => {
   try {
-    // This call triggers the extension popup
-    const extensions = await web3Enable('Eunoia App');
-    
-    if (extensions.length === 0) {
-      // No extension installed, or the user did not accept the authorization
-      throw new Error('No extension installed, or the user did not accept the authorization');
-    }
-    
-    // Get all accounts in the extension
-    const allAccounts = await web3Accounts();
-    return allAccounts;
+    // Use the browser extension to get accounts
+    const { web3Accounts, web3Enable } = await import('@polkadot/extension-dapp');
+    await web3Enable('Eunoia App');
+    const accounts = await web3Accounts();
+    return accounts;
   } catch (error) {
     console.error('Error getting accounts:', error);
     throw error;
@@ -78,26 +103,15 @@ export const getBalance = async (account, network = DEFAULT_NETWORK) => {
     
     await initApi(network.endpoint);
     
-    const { data: { free: balance } } = await api.query.system.account(account.address);
+    const balance = await client.rpc.state.call('system_account', [account.address]);
+    const free = balance?.data?.free || '0';
     
     // Format with proper decimals
-    return formatBalance(balance.toString(), network.decimals, network.symbol);
+    return formatBalance(free, network.decimals, network.symbol);
   } catch (error) {
     console.error('Error getting balance:', error);
     return '0';
   }
-};
-
-/**
- * Format balance with proper decimals
- * @param {string} balance Raw balance
- * @param {number} decimals Decimal places
- * @param {string} symbol Currency symbol
- * @returns {string} Formatted balance
- */
-export const formatBalance = (balance, decimals = 10, symbol = '') => {
-  const formattedBalance = (parseInt(balance) / Math.pow(10, decimals)).toFixed(4);
-  return symbol ? `${formattedBalance} ${symbol}` : formattedBalance;
 };
 
 /**
@@ -117,15 +131,19 @@ export const sendTransaction = async (account, recipient, amount, network = DEFA
     // Convert amount to the proper format based on decimals
     const formattedAmount = BigInt(parseFloat(amount) * Math.pow(10, network.decimals));
     
-    // Get the account injector (signer)
-    const injector = await web3FromSource(account.meta.source);
+    // Create the transaction
+    const tx = await client.tx.balances.transferKeepAlive({
+      dest: recipient,
+      value: formattedAmount.toString()
+    });
     
-    // Create and sign the transaction
-    const txHash = await api.tx.balances
-      .transfer(recipient, formattedAmount)
-      .signAndSend(account.address, { signer: injector.signer });
+    // Sign and send the transaction using the browser extension
+    const { web3FromAddress } = await import('@polkadot/extension-dapp');
+    const injector = await web3FromAddress(account.address);
     
-    return txHash.toHex();
+    const signedTx = await tx.signAndSend(account.address, { signer: injector.signer });
+    
+    return signedTx.hash;
   } catch (error) {
     console.error('Error sending transaction:', error);
     throw error;

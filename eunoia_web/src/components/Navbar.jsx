@@ -43,21 +43,8 @@ import polkadotLogo from '../assets/polkadot.png';
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { AppContext, CHAINS } from './AppProvider';
 
-// Try to import Polkadot extension - will handle if the package isn't installed
-let web3Accounts, web3Enable, web3FromSource;
-try {
-    // Import Polkadot.js extension API
-    const polkadotExtension = require('@polkadot/extension-dapp');
-    web3Accounts = polkadotExtension.web3Accounts;
-    web3Enable = polkadotExtension.web3Enable;
-    web3FromSource = polkadotExtension.web3FromSource;
-} catch (error) {
-    console.warn("Polkadot.js extension packages not found. Using mock implementation.");
-    // Mock implementations if packages aren't available
-    web3Accounts = async () => [];
-    web3Enable = async () => [];
-    web3FromSource = async () => null;
-}
+// Import Polkadot API
+import { useWalletConnector } from './WalletConnector';
 
 // Helper function to convert Uint8Array to Hex String
 const toHexString = (byteArray) => {
@@ -257,6 +244,8 @@ const theme = createTheme({
 });
 
 const Navbar = () => {
+    // Use the wallet connector hook at the top level
+    const walletConnector = useWalletConnector();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [accountMenuAnchor, setAccountMenuAnchor] = useState(null);
     const [chainsMenuAnchor, setChainsMenuAnchor] = useState(null);
@@ -327,32 +316,17 @@ const Navbar = () => {
         try {
             setButtonLabel('Connecting...');
             
-            // Enable Polkadot.js extensions
-            const extensions = await web3Enable('Eunoia Donation Platform');
+            // Use the wallet connector from the component level
+            const result = await walletConnector.connectWallet();
             
-            // Check if SubWallet is available
-            const subWalletExtension = extensions.find(ext => 
-                ext.name.toLowerCase().includes('subwallet') || 
-                ext.name.toLowerCase().includes('sub wallet')
-            );
-            
-            if (!subWalletExtension && extensions.length === 0) {
-                console.warn('No Polkadot wallet extensions found.');
-                setButtonLabel('Connect');
-                return false;
-            }
-            
-            // Get accounts from extension
-            const allAccounts = await web3Accounts();
-            
-            if (allAccounts.length === 0) {
-                console.warn('No accounts found in Polkadot wallet.');
+            if (!result.success) {
+                console.warn('Failed to connect Polkadot wallet:', result.error);
                 setButtonLabel('Connect');
                 return false;
             }
             
             // Use the first account
-            const account = allAccounts[0];
+            const account = result.selectedAccount;
             const address = account.address;
             const shortAddress = `${address.substring(0, 4)}...${address.substring(address.length - 4)}`;
             
@@ -460,7 +434,9 @@ const Navbar = () => {
                 setWalletAddress(null);
                 console.log("Aptos wallet disconnected");
             } else if (activeChain === CHAINS.POLKADOT && polkadotConnected) {
-                // For Polkadot, we just clear the state since there's no explicit disconnect method
+                // Use the wallet connector to disconnect
+                walletConnector.disconnectWallet();
+                
                 setPolkadotConnected(false);
                 setPolkadotAddress(null);
                 setButtonLabel("Connect Wallet");

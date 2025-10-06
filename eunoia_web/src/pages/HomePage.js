@@ -20,6 +20,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import CharitySearch from '../components/CharitySearch';
 
 // Import icons
@@ -31,10 +32,6 @@ import SpeedIcon from '@mui/icons-material/Speed';
 import PaidIcon from '@mui/icons-material/Paid';
 import SecurityIcon from '@mui/icons-material/Security';
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
-
-// Constants
-// const API_URL = 'http://localhost:8000/api'; // Commented out as API call is mocked
-const API_BASE_URL = 'https://eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net/api';
 
 // Styled Components
 const HeroSection = styled(Box)(({ theme }) => ({
@@ -227,28 +224,8 @@ const HomePage = () => {
     const fetchCharities = async () => {
       try {
         setLoading(true);
-        // Fetch from the new DRF endpoint
-        const response = await axios.get(`${API_BASE_URL}/charities/?is_verified=true`); // Fetch verified charities
-
-        // Temporarily mock data until our API is ready (Comment out or remove)
-        /*
-        setTimeout(() => {
-          const mockCharities = [
-            {
-              id: 1,
-              name: 'Ocean Cleanup Foundation',
-              description: "Working to rid the world's oceans of plastic pollution through innovative technologies.",
-              logo: 'https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?q=80&w=500&auto=format&fit=crop',
-              aptos_wallet_address: '0x123...abc',
-              impact: '500,000 kg of plastic removed'
-            },
-            // ... other mock charities ...
-          ];
-          
-          setFeaturedCharities(mockCharities);
-          setLoading(false);
-        }, 1000);
-        */
+        // Fetch from the new DRF endpoint - get all verified charities
+        const response = await axios.get(`${API_BASE_URL}/charities/?is_verified=true&page_size=100`); // Fetch verified charities
 
         // Assuming the API returns a list and we take the first 3 as featured
         // DRF pagination wraps results in a 'results' key
@@ -336,7 +313,7 @@ const HomePage = () => {
                   lineHeight: 1.6,
                   fontSize: '1.25rem',
                 }}>
-                  The first truly transparent giving platform built on Aptos blockchain.
+                  The first truly transparent giving platform built on Polkadot and Aptos blockchain.
                   Track your donations in real-time, from your wallet to the cause.
                 </Typography>
                 
@@ -525,7 +502,7 @@ const HomePage = () => {
                       </Typography>
                     </Box>
                     <Typography variant="body1" color="text.secondary">
-                      Connect your Aptos wallet securely. No registration required, no personal data stored.
+                      Connect your Polkadot or Aptos wallet securely. No registration required, no personal data stored.
                     </Typography>
                   </Box>
                   <Box>
@@ -746,12 +723,27 @@ const HomePage = () => {
               {featuredCharities.map((charity) => (
                 <Grid item xs={12} sm={6} md={4} key={charity.id}>
                   <CharityCard>
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      image={charity.logo}
-                      alt={charity.name}
-                    />
+                    {charity.logo ? (
+                      <CardMedia
+                        component="img"
+                        height="200"
+                        image={charity.logo}
+                        alt={charity.name}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          height: 200,
+                          backgroundColor: '#f5f5f5',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#666'
+                        }}
+                      >
+                        <Typography variant="body2">No Logo</Typography>
+                      </Box>
+                    )}
                     <CardContent sx={{ flexGrow: 1 }}>
                       <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                         <Typography gutterBottom variant="h6" component="div" fontWeight="bold">

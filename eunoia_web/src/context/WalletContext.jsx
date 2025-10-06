@@ -1,6 +1,6 @@
+/* global BigInt */
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useWallet as useAptosWallet } from "@aptos-labs/wallet-adapter-react";
-import polkadotWallet, { POLKADOT_NETWORKS } from '../utils/polkadotWallet';
 import aptosLogo from '../assets/logos/aptos-logo.svg';
 import polkadotLogo from '../assets/logos/polkadot-logo.svg';
 
@@ -16,6 +16,28 @@ export const CHAIN_ICONS = {
   [CHAINS.POLKADOT]: polkadotLogo
 };
 
+// Polkadot networks
+export const POLKADOT_NETWORKS = {
+  POLKADOT: {
+    name: 'Polkadot',
+    endpoint: 'wss://rpc.polkadot.io',
+    symbol: 'DOT',
+    decimals: 10
+  },
+  KUSAMA: {
+    name: 'Kusama',
+    endpoint: 'wss://kusama-rpc.polkadot.io',
+    symbol: 'KSM',
+    decimals: 12
+  },
+  WESTEND: {
+    name: 'Westend',
+    endpoint: 'wss://westend-rpc.polkadot.io',
+    symbol: 'WND',
+    decimals: 12
+  }
+};
+
 // Create context
 export const WalletContext = createContext(null);
 
@@ -24,7 +46,7 @@ export const useMultiWallet = () => useContext(WalletContext);
 
 export const WalletProvider = ({ children }) => {
   // Current active chain
-  const [activeChain, setActiveChain] = useState(CHAINS.APTOS);
+  const [activeChain, setActiveChain] = useState(CHAINS.POLKADOT);
   
   // Wallets state
   const [polkadotAccounts, setPolkadotAccounts] = useState([]);
@@ -32,6 +54,7 @@ export const WalletProvider = ({ children }) => {
   const [polkadotNetwork, setPolkadotNetwork] = useState(POLKADOT_NETWORKS.POLKADOT);
   const [polkadotBalance, setPolkadotBalance] = useState('0');
   const [polkadotConnected, setPolkadotConnected] = useState(false);
+  const [polkadotClient, setPolkadotClient] = useState(null);
   
   // Aptos wallet state
   const aptosWallet = useAptosWallet();
@@ -39,48 +62,98 @@ export const WalletProvider = ({ children }) => {
   // Initialize Polkadot connection
   const initPolkadot = async () => {
     try {
-      await polkadotWallet.initApi(polkadotNetwork.endpoint);
-      const accounts = await polkadotWallet.getAccounts();
+      // Import the required modules dynamically
+      const { ApiPromise, WsProvider } = await import('@polkadot/api');
+      
+      // Create a WebSocket provider
+      const wsProvider = new WsProvider(polkadotNetwork.endpoint);
+      
+      // Create the API instance
+      const api = await ApiPromise.create({ provider: wsProvider });
+      
+      // Wait for the API to be ready
+      await api.isReady;
+      
+      setPolkadotClient(api);
+      
+      // Get accounts from browser extension
+      const { web3Accounts, web3Enable } = await import('@polkadot/extension-dapp');
+      await web3Enable('Eunoia Donation Platform');
+      const accounts = await web3Accounts();
       setPolkadotAccounts(accounts);
       
       if (accounts.length > 0) {
         setSelectedPolkadotAccount(accounts[0]);
         setPolkadotConnected(true);
         
-        // Get balance for selected account
-        const balance = await polkadotWallet.getBalance(accounts[0], polkadotNetwork);
-        setPolkadotBalance(balance);
+        // Get balance for selected account with new client
+        await updatePolkadotBalance(accounts[0], api);
       }
+      
+      return true;
     } catch (error) {
       console.error('Failed to initialize Polkadot:', error);
       setPolkadotConnected(false);
+      return false;
+    }
+  };
+  
+  // Update Polkadot balance
+  const updatePolkadotBalance = async (account, client) => {
+    try {
+      if (!account || !account.address) return;
+      
+      const clientToUse = client || polkadotClient;
+      if (!clientToUse) return;
+      
+      // Use the proper API call for @polkadot/api
+      const { data: { free } } = await clientToUse.query.system.account(account.address);
+      
+      // Format balance
+      const balanceBigInt = free.toBigInt();
+      const divisor = BigInt(10) ** BigInt(polkadotNetwork.decimals);
+      const integerPart = balanceBigInt / divisor;
+      const fractionalPart = balanceBigInt % divisor;
+      
+      let formatted = integerPart.toString();
+      if (fractionalPart > 0) {
+        let fraction = fractionalPart.toString().padStart(polkadotNetwork.decimals, '0');
+        fraction = fraction.replace(/0+$/, '');
+        if (fraction.length > 0) {
+          formatted += '.' + fraction;
+        }
+      }
+      
+      setPolkadotBalance(`${formatted} ${polkadotNetwork.symbol}`);
+    } catch (error) {
+      console.error('Failed to get Polkadot balance:', error);
+      setPolkadotBalance(`0 ${polkadotNetwork.symbol}`);
     }
   };
   
   // Connect to Polkadot
   const connectPolkadot = async () => {
-    try {
-      await initPolkadot();
-      return true;
-    } catch (error) {
-      console.error('Failed to connect to Polkadot:', error);
-      return false;
-    }
+    return await initPolkadot();
   };
   
   // Disconnect from Polkadot
   const disconnectPolkadot = () => {
     setSelectedPolkadotAccount(null);
     setPolkadotConnected(false);
-    setPolkadotBalance('0');
+    setPolkadotBalance(`0 ${polkadotNetwork.symbol}`);
+    
+    // Disconnect client if exists
+    if (polkadotClient && polkadotClient.disconnect) {
+      polkadotClient.disconnect();
+      setPolkadotClient(null);
+    }
   };
   
   // Switch Polkadot account
   const selectPolkadotAccount = async (account) => {
     try {
       setSelectedPolkadotAccount(account);
-      const balance = await polkadotWallet.getBalance(account, polkadotNetwork);
-      setPolkadotBalance(balance);
+      await updatePolkadotBalance(account);
     } catch (error) {
       console.error('Failed to select Polkadot account:', error);
     }
@@ -90,9 +163,29 @@ export const WalletProvider = ({ children }) => {
   const switchPolkadotNetwork = async (network) => {
     try {
       setPolkadotNetwork(network);
+      
+      // Reinitialize with new network
+      if (polkadotClient && polkadotClient.disconnect) {
+        polkadotClient.disconnect();
+      }
+      
+      // Import the required modules dynamically
+      const { ApiPromise, WsProvider } = await import('@polkadot/api');
+      
+      // Create a WebSocket provider with the new endpoint
+      const wsProvider = new WsProvider(network.endpoint);
+      
+      // Create the API instance
+      const api = await ApiPromise.create({ provider: wsProvider });
+      
+      // Wait for the API to be ready
+      await api.isReady;
+      
+      setPolkadotClient(api);
+      
+      // Update balance for selected account with new client
       if (selectedPolkadotAccount) {
-        const balance = await polkadotWallet.getBalance(selectedPolkadotAccount, network);
-        setPolkadotBalance(balance);
+        await updatePolkadotBalance(selectedPolkadotAccount, api);
       }
     } catch (error) {
       console.error('Failed to switch Polkadot network:', error);
@@ -159,6 +252,15 @@ export const WalletProvider = ({ children }) => {
   const switchChain = (chain) => {
     setActiveChain(chain);
   };
+  
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (polkadotClient && polkadotClient.disconnect) {
+        polkadotClient.disconnect();
+      }
+    };
+  }, []);
   
   return (
     <WalletContext.Provider

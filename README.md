@@ -255,9 +255,6 @@ We've been supported by communities like **EasyA**, **Aptos Foundation**, **Polk
 
 ![image](https://github.com/user-attachments/assets/7331b5ad-cc48-419c-98bd-be60b9999260)
 
-**Semantic Search Architecture**
-
-![image]eunoia_web\src\assets\team_consensus_photo.jpg)
 ---
 
 ## 🔍 Smart Contracts Overview
@@ -564,6 +561,15 @@ git push origin feature/your-feature-name
 # Then open a Pull Request
 ```
 
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📚 Documentation
+
+- [TUTORIAL.md](TUTORIAL.md) - Basic tutorial for using the Eunoia platform
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Guidelines for contributing to the project
+- Inline code documentation is available in key files
 
 
 > *Let's fix giving. With agents, not middlemen.*

@@ -10,7 +10,7 @@ virtualenv/
 */.env
 .env
 .vscode/
-
+/node_modules/
 # Python
 __pycache__/
 *.py[cod]
@@ -34,6 +34,8 @@ wheels/
 *.egg
 MANIFEST
 
+/.cursor/
+
 # Django
 *.log
 local_settings.py
@@ -48,7 +50,8 @@ media/
 *.pyw
 *.pyz
 
-.cursor/
+# .cursor/
 # Ignore target directories for Polkadot contracts
 polkadot_contracts/target/
 polkadot_contracts/*/target/
+polkadot-react-app/node_modules/

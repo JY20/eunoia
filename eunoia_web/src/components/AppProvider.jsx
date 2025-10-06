@@ -12,7 +12,7 @@ export const AppProvider = ({ children }) => {
     const [walletAddress, setWalletAddress] = useState(null);
     const [routeTrigger, setRouteTrigger] = useState(false);
     const [wallet, setWallet] = useState(null);
-    const [activeChain, setActiveChain] = useState(CHAINS.APTOS);
+    const [activeChain, setActiveChain] = useState(CHAINS.POLKADOT);
 
     return (
         <AppContext.Provider value={{

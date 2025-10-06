@@ -1,3 +1,9 @@
+/**
+ * @title Eunoia Foundation Smart Contract
+ * @dev This contract manages charitable donations on the Aptos blockchain.
+ * @license MIT
+ * @author Eunoia Team
+ */
 module eunoia::eunoia_foundation {
 
     use std::signer;
@@ -59,6 +65,11 @@ module eunoia::eunoia_foundation {
 
 
     // --- Initialization ---
+    /**
+     * @notice Initializes the Eunoia contract
+     * @param deployer The signer account that will own the contract
+     * @dev Creates the ContractData resource and moves it to the deployer's account
+     */
     public entry fun initialize_module(deployer: &signer) {
         let deployer_addr = signer::address_of(deployer);
         assert!(!exists<ContractData>(deployer_addr), E_ALREADY_INITIALIZED);
@@ -71,6 +82,13 @@ module eunoia::eunoia_foundation {
     }
 
     // --- Charity Management Functions ---
+    /**
+     * @notice Registers a new charity in the system
+     * @param module_owner The signer account that owns the module (authorization check)
+     * @param charity_name The name of the charity to register
+     * @param charity_wallet_addr The wallet address that will receive donations for this charity
+     * @dev Only the module owner can register charities
+     */
     public entry fun add_charity(
         module_owner: &signer,
         charity_name: String,
@@ -95,6 +113,14 @@ module eunoia::eunoia_foundation {
     }
 
     // --- User Interaction Functions ---
+    /**
+     * @notice Allows a user to donate tokens to a registered charity
+     * @param donor The signer account making the donation
+     * @param charity_name The name of the charity to donate to
+     * @param coin_identifier_string String identifier for the coin type being donated
+     * @param amount The amount of tokens to donate
+     * @dev Transfers tokens from donor to charity and records the donation
+     */
     public entry fun donate<CoinType>(
         donor: &signer,
         charity_name: String,
@@ -150,7 +176,12 @@ module eunoia::eunoia_foundation {
 
     // --- View Functions (Publicly Readable) ---
 
-    // Gets the donation history for a given donor address.
+    /**
+     * @notice Retrieves the donation history for a specific donor
+     * @param donor_addr The address of the donor
+     * @return A vector of HistoryEntry objects containing donation details
+     * @dev Returns an empty vector if the donor has no donation history
+     */
     #[view]
     public fun get_donation_history(donor_addr: address): vector<HistoryEntry> acquires ContractData {
         let module_owner_addr = @eunoia;
@@ -162,7 +193,13 @@ module eunoia::eunoia_foundation {
         }
     }
 
-    // Gets the total amount raised by a specific charity for a specific coin type.
+    /**
+     * @notice Gets the total amount raised by a specific charity for a specific coin type
+     * @param charity_name The name of the charity
+     * @param coin_name The name/identifier of the coin type
+     * @return The total amount raised in the specified coin
+     * @dev Returns 0 if the charity doesn't exist or has no donations of this coin type
+     */
     #[view]
     public fun get_charity_raised_amount(charity_name: String, coin_name: String): u64 acquires ContractData {
         let module_owner_addr = @eunoia;
@@ -179,7 +216,12 @@ module eunoia::eunoia_foundation {
         }
     }
 
-    // Gets the wallet address for a given charity name.
+    /**
+     * @notice Gets the wallet address for a given charity name
+     * @param charity_name The name of the charity
+     * @return The wallet address associated with the charity
+     * @dev Reverts if the charity does not exist
+     */
     #[view]
     public fun get_charity_wallet(charity_name: String): address acquires ContractData {
         let module_owner_addr = @eunoia;

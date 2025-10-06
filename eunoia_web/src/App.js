@@ -13,6 +13,7 @@ import { AppProvider } from './components/AppProvider';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { WalletProvider } from './context/WalletContext';
+import WalletConnectorProvider from './components/WalletConnector';
 import { PetraWallet } from "petra-plugin-wallet-adapter";
 import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
 
@@ -93,21 +94,23 @@ function App() {
         <AptosWalletAdapterProvider plugins={wallets} autoConnect={false}>
           <WalletProvider>
             <AppProvider>
-              <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-                <Navbar />
-                <main style={{ flex: 1 }}>
-                  <Routes>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/donate" element={<DonatePage />} />
-                    <Route path="/charities" element={<CharitiesPage />} />
-                    <Route path="/register-charity" element={<RegisterCharityPage />} />
-                    <Route path="/about" element={<AboutPage />} />
-                    <Route path="/management" element={<ManagementPage />} />
-                    <Route path="/transparency" element={<TransparencyPage />} />
-                  </Routes>
-                </main>
-                <Footer />
-              </div>
+              <WalletConnectorProvider>
+                <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                  <Navbar />
+                  <main style={{ flex: 1 }}>
+                    <Routes>
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/donate" element={<DonatePage />} />
+                      <Route path="/charities" element={<CharitiesPage />} />
+                      <Route path="/register-charity" element={<RegisterCharityPage />} />
+                      <Route path="/about" element={<AboutPage />} />
+                      <Route path="/management" element={<ManagementPage />} />
+                      <Route path="/transparency" element={<TransparencyPage />} />
+                    </Routes>
+                  </main>
+                  <Footer />
+                </div>
+              </WalletConnectorProvider>
             </AppProvider>
           </WalletProvider>
         </AptosWalletAdapterProvider>

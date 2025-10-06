@@ -16,5 +16,8 @@ python manage.py createsuperuser
 # Optional: Load test data
 python create_charity.py
 
+# Register test charities
+python register_test_charities.py
+
 # Run backend server
 python manage.py runserver  # Runs on http://127.0.0.1:8000

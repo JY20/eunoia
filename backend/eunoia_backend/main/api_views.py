@@ -1,13 +1,14 @@
 from rest_framework import viewsets, views, status
 from rest_framework.response import Response
-from .models import Charity, Impact, MarketingCampaign, SocialPost, DonationTransaction
+from .models import Charity, Impact, MarketingCampaign, SocialPost, DonationTransaction, Movement
 from .serializers import (
     CharitySerializer, 
     ImpactSerializer, 
     MarketingCampaignSerializer, 
     SocialPostSerializer,
     DonationTransactionPayloadRequestSerializer,
-    DonationTransactionSerializer
+    DonationTransactionSerializer,
+    MovementSerializer,
 )
 from aptos_sdk.account_address import AccountAddress
 from aptos_sdk.transactions import (EntryFunction, TransactionPayload)
@@ -20,10 +21,31 @@ MODULE_ADDRESS = "0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f8
 MODULE_NAME = "eunoia_foundation"
 DONATE_FUNCTION_NAME = "donate"
 
+# Import agent service launcher
+from agents_sdk import launch_charity_research_in_background
+from agents_sdk.compass_matching_agents import match_top_movements_sync
+
 class CharityViewSet(viewsets.ModelViewSet):
     queryset = Charity.objects.all().order_by('-date_registered')
     serializer_class = CharitySerializer
     # Add permission_classes if needed, e.g., [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        charity = serializer.save()
+        # Kick off background research if website_url provided
+        if charity.website_url:
+            try:
+                launch_charity_research_in_background(charity.id, max_pages=6)
+            except Exception:
+                pass
+
+    def perform_update(self, serializer):
+        charity = serializer.save()
+        if charity.website_url:
+            try:
+                launch_charity_research_in_background(charity.id, max_pages=6)
+            except Exception:
+                pass
 
 class ImpactViewSet(viewsets.ModelViewSet):
     queryset = Impact.objects.all()
@@ -129,6 +151,27 @@ class DonationTransactionViewSet(viewsets.ModelViewSet):
     queryset = DonationTransaction.objects.all().order_by('-timestamp')
     serializer_class = DonationTransactionSerializer
     permission_classes = [] # Allow any for now, adjust as needed for production
+
+
+class MovementViewSet(viewsets.ModelViewSet):
+    queryset = Movement.objects.all().order_by('-created_at')
+    serializer_class = MovementSerializer
+    permission_classes = []
+
+
+class CompassMatchView(views.APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        query = request.data.get('query')
+        top_k = int(request.data.get('top_k', 10))
+        if not query:
+            return Response({"error": "Missing 'query'"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            result = match_top_movements_sync(query, top_k)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Ensure your serializers.py has DonationTransactionSerializer
 # Example (add this to your main/serializers.py):
