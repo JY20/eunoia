@@ -59,6 +59,23 @@ jobs:
           # Force CI=false to prevent warnings being treated as errors
           CI=false npm run build
           
+          # Debug: Check if build directory exists and contains index.html
+          echo "Checking build directory contents:"
+          ls -la build || echo "Build directory not found"
+          if [ -f "build/index.html" ]; then
+            echo "index.html exists in build directory"
+          else
+            echo "ERROR: index.html NOT found in build directory"
+          fi
+          
+      # Copy build files to app location for Azure to find them
+      - name: Copy build files
+        run: |
+          # Create a copy of the build directory at the root level
+          cp -r eunoia_web/build ./build_output
+          echo "Contents of build_output directory:"
+          ls -la ./build_output
+
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -66,9 +83,9 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_GREEN_MOSS_0B96DB80F }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "./eunoia_web"
+          app_location: "./build_output"
           api_location: ""
-          output_location: "build"
+          output_location: ""
           skip_app_build: true
 
   close_pull_request_job:
