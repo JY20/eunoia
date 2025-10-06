@@ -51,7 +51,7 @@ The Eunoia backend is built with Django and requires Python 3.8+.
 3. **Activate the virtual environment**
    - On Windows:
      ```bash
-     venv\Scripts\activate.bat
+     venv\Scripts\activate
      ```
    - On macOS/Linux:
      ```bash
@@ -90,6 +90,38 @@ The Eunoia backend is built with Django and requires Python 3.8+.
    python manage.py runserver 8080
    ```
    The backend will be available at http://localhost:8080/
+
+## FAQ
+
+### OPENAI_API_KEY
+For the OPENAI_API_KEY, please send an email to jimmyyan1337@gmail.com to request this secret key.
+
+### Common Errors
+
+If you encounter this error:
+```
+(venv) ➜  eunoia_backend git:(polkadot-m1) python manage.py migrate
+Traceback (most recent call last):
+  File "../eunoia/backend/eunoia_backend/manage.py", line 11, in main
+    from django.core.management import execute_from_command_line
+ModuleNotFoundError: No module named 'django'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "..//eunoia/backend/eunoia_backend/manage.py", line 22, in <module>
+    main()
+  File "../eunoia/backend/eunoia_backend/manage.py", line 13, in main
+    raise ImportError(
+ImportError: Couldn't import Django. Are you sure it's installed and available on your PYTHONPATH environment variable? Did you forget to activate a virtual environment?
+```
+
+Please run:
+```bash
+pip install django
+```
+
+
 
 ### Frontend Setup
 
