@@ -232,7 +232,8 @@ We've been supported by communities like **EasyA**, **Aptos Foundation**, **Polk
     *   **Smart Contract:** `eunoia.move` (in `contract/sources`)
 *   **Polkadot Network (via parachains/smart contract platforms):**
     *   **Language:** ink! (Rust-based eDSL)
-    *   **Smart Contract:** `eunoia2` (in `polkadot_contracts/eunoia/lib.rs`)
+    *   **Smart Contract:** `eunoia` (in `polkadot_contracts/eunoia/lib.rs`) - Ideal version for deployment
+    *   **Smart Contract:** `eunoia2` (in `polkadot_contracts/eunoia2/lib.rs`) - v6 version currently under development
 
 ---
 
@@ -328,9 +329,9 @@ Located in `contract/sources/eunoia.move` (module `eunoia_foundation`), our Move
 The smart contract is configured in `contract/Move.toml`.
 **Testnet Deployment Address:** `0x3940277b22c1fe2c8631bdce9dbcf020c3b8240a5417fa13ac21d37860f88011` (Module name: `eunoia_foundation`)
 
-### 🦀 Polkadot (ink!) Smart Contract Details (`eunoia2` module - `lib.rs`)
+### 🦀 Polkadot (ink!) Smart Contract Details (`eunoia` module - `lib.rs`)
 
-Located in `polkadot_contracts/eunoia/lib.rs`, our ink! smart contract provides donation and charity management functionalities for the Polkadot ecosystem.
+Located in `polkadot_contracts/eunoia/lib.rs`, our ink! smart contract provides donation and charity management functionalities for the Polkadot ecosystem. This is the ideal version of the contract we want to deploy.
 
 #### Core Storage Items
 *   **`owner: AccountId`**: Stores the `AccountId` of the contract administrator.
@@ -362,6 +363,10 @@ Located in `polkadot_contracts/eunoia/lib.rs`, our ink! smart contract provides 
 *   Events for off-chain tracking.
 *   Uses `Mapping` for efficient storage.
 
+### 🦀 Polkadot (ink!) Smart Contract Details (`eunoia2` module - `lib.rs`)
+
+Located in `polkadot_contracts/eunoia2/lib.rs`, this is the v6 version of our contract that is currently under development. It builds upon the functionality of the ideal version with experimental features and improvements.
+
 ### 🌐 Contract Deployment (Polkadot)
 1.  Compile to Wasm and metadata: `cargo contract build` in `polkadot_contracts/eunoia`.
 2.  Deploy the `.contract` bundle (from `target/ink/`) to a Substrate chain with `pallet-contracts` using tools like Polkadot-JS Apps.
@@ -375,7 +380,7 @@ Located in `polkadot_contracts/eunoia/lib.rs`, our ink! smart contract provides 
     *   User connects their Aptos or Polkadot wallet.
 2.  **Donation (Frontend → Smart Contract):**
     *   User selects charity, amount, and network.
-    *   Frontend constructs the appropriate transaction for the selected chain's smart contract (`eunoia.move` on Aptos, `eunoia2` on Polkadot).
+    *   Frontend constructs the appropriate transaction for the selected chain's smart contract (`eunoia.move` on Aptos, `eunoia` on Polkadot).
     *   User confirms the transaction in their wallet.
 3.  **Execution & Recording (Blockchain):**
     *   Transaction is processed on-chain.
