@@ -371,6 +371,8 @@ Located in `polkadot_contracts/eunoia2/lib.rs`, this is the v6 version of our co
 1.  Compile to Wasm and metadata: `cargo contract build` in `polkadot_contracts/eunoia`.
 2.  Deploy the `.contract` bundle (from `target/ink/`) to a Substrate chain with `pallet-contracts` using tools like Polkadot-JS Apps.
 
+**Deployed Contract Address:** `0xFeDaF0b1500381F9EeEa77840cBC090C26CF63CA`
+
 ---
 
 ## 🔄 User Flow (Interaction Flow)

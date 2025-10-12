@@ -39,6 +39,8 @@ Eunoia supports multiple blockchain networks for donations:
 3. Choose your preferred Polkadot wallet extension
 4. Select the account you wish to use and approve the connection
 
+**Note:** The Polkadot smart contract is deployed at address `0xFeDaF0b1500381F9EeEa77840cBC090C26CF63CA`
+
 ## Using Compass AI to Find Causes
 
 Eunoia's Compass AI helps match you with causes aligned with your values:

@@ -7,6 +7,7 @@ This tutorial will guide you through setting up and using the Eunoia platform, a
 - **Local Testing**: You can test the platform locally by donating to registered test charities.
 - **Blockchain Network**:
   - **Default (Mainnet)**: The platform uses Polkadot mainnet by default, which transfers real DOT tokens.
+  - **Contract Address**: The Polkadot smart contract is deployed at address `0xFeDaF0b1500381F9EeEa77840cBC090C26CF63CA`
   - **Test Network**: To use testnet DOT tokens instead, modify `config.js` in the `eunoia_web/src` directory:
     ```javascript
     // Uncomment this line for testnet:
@@ -187,6 +188,8 @@ To ensure everything is working correctly:
 2. Select "Polkadot" from the network options
 3. Choose your preferred Polkadot wallet extension
 4. Select the account you wish to use and approve the connection
+
+**Note:** The Polkadot smart contract is deployed at address `0xFeDaF0b1500381F9EeEa77840cBC090C26CF63CA`
 
 ## Making a Donation
 
