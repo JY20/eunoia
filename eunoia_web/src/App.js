@@ -12,7 +12,6 @@ import TransparencyPage from './pages/TransparencyPage';
 import { AppProvider } from './components/AppProvider';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { WalletProvider } from './context/WalletContext';
 import WalletConnectorProvider from './components/WalletConnector';
 import { PetraWallet } from "petra-plugin-wallet-adapter";
 import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
@@ -92,7 +91,6 @@ function App() {
       <CssBaseline />
       <Router>
         <AptosWalletAdapterProvider plugins={wallets} autoConnect={false}>
-          <WalletProvider>
             <AppProvider>
               <WalletConnectorProvider>
                 <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -112,7 +110,6 @@ function App() {
                 </div>
               </WalletConnectorProvider>
             </AppProvider>
-          </WalletProvider>
         </AptosWalletAdapterProvider>
       </Router>
     </ThemeProvider>
