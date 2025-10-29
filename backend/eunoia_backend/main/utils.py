@@ -100,11 +100,9 @@ def process_charity_website(charity: Charity) -> None:
 
         charity_info_tool = {
             "type": "function",
-            "function": {
-                "name": "extract_charity_information",
-                "description": "Extracts and structures information about a charity including summary, keywords, category, and tagline from website text.",
-                "parameters": CharityInfo.model_json_schema()
-            }
+            "name": "extract_charity_information",
+            "description": "Extracts and structures information about a charity including summary, keywords, category, and tagline from website text.",
+            "parameters": CharityInfo.model_json_schema()
         }
         
         prompt_text = (
@@ -118,20 +116,45 @@ def process_charity_website(charity: Charity) -> None:
         )
         
         print(f"Sending text to OpenAI for structured extraction (length: {len(prompt_text)} chars)...")
-        completion = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are an expert assistant skilled in analyzing charity websites and extracting structured information according to the provided tool. Provide all requested fields: summary, tagline, category, and keywords."},
-                {"role": "user", "content": prompt_text}
-            ],
+        response = client.responses.create(
+            model="gpt-5",
+            instructions="You are an expert assistant skilled in analyzing charity websites and extracting structured information according to the provided tool. Provide all requested fields: summary, tagline, category, and keywords.",
+            input=prompt_text,
             tools=[charity_info_tool],
-            tool_choice={"type": "function", "function": {"name": "extract_charity_information"}},
-            temperature=0.3, # Slightly increased for more creative tagline/summary if needed
+            tool_choice={"type": "function", "name": "extract_charity_information"},
         )
         
-        tool_calls = completion.choices[0].message.tool_calls
-        if tool_calls and tool_calls[0].function.name == "extract_charity_information":
-            arguments_json = tool_calls[0].function.arguments
+        # Find the function call in the response output
+        # Items can be objects (with attributes) or dicts
+        function_call_item = None
+        for item in response.output:
+            # Handle both object attributes and dict keys
+            if isinstance(item, dict):
+                item_type = item.get('type')
+                item_name = item.get('name')
+            else:
+                item_type = getattr(item, 'type', None)
+                item_name = getattr(item, 'name', None)
+            
+            if item_type == 'function_call' and item_name == 'extract_charity_information':
+                function_call_item = item
+                break
+        
+        if function_call_item:
+            # Get arguments - handle both object and dict
+            if hasattr(function_call_item, 'arguments'):
+                arguments_raw = function_call_item.arguments
+            elif isinstance(function_call_item, dict):
+                arguments_raw = function_call_item.get('arguments', {})
+            else:
+                arguments_raw = {}
+            
+            # Convert to JSON string if it's a dict/object
+            if isinstance(arguments_raw, (dict, str)):
+                arguments_json = json.dumps(arguments_raw) if isinstance(arguments_raw, dict) else arguments_raw
+            else:
+                arguments_json = json.dumps(arguments_raw) if arguments_raw else '{}'
+            
             print(f"Received arguments from OpenAI: {arguments_json}")
             try:
                 charity_info = CharityInfo.model_validate_json(arguments_json)
@@ -227,29 +250,52 @@ def generate_combined_mission_statement(user_query: str, charities_data: List[di
 
     combined_mission_tool = {
         "type": "function",
-        "function": {
-            "name": "extract_combined_charity_mission",
-            "description": "Extracts a combined, resonating mission statement for a list of charities based on user query.",
-            "parameters": CombinedCharityMission.model_json_schema()
-        }
+        "name": "extract_combined_charity_mission",
+        "description": "Extracts a combined, resonating mission statement for a list of charities based on user query.",
+        "parameters": CombinedCharityMission.model_json_schema()
     }
 
     try:
         print(f"Sending prompt to OpenAI for combined mission statement (query: '{user_query}', num_charities: {len(charities_data)})...")
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini", # Or your preferred model, gpt-3.5-turbo might also work for this
-            messages=[
-                {"role": "system", "content": "You are an expert assistant skilled in synthesizing information about multiple charities and a user query into a single, impactful mission statement. Respond using the provided tool."},
-                {"role": "user", "content": prompt_text}
-            ],
+        response = client.responses.create(
+            model="gpt-5",
+            instructions="You are an expert assistant skilled in synthesizing information about multiple charities and a user query into a single, impactful mission statement. Respond using the provided tool.",
+            input=prompt_text,
             tools=[combined_mission_tool],
-            tool_choice={"type": "function", "function": {"name": "extract_combined_charity_mission"}},
-            temperature=0.5, # Allow for some creativity
+            tool_choice={"type": "function", "name": "extract_combined_charity_mission"},
         )
 
-        tool_calls = completion.choices[0].message.tool_calls
-        if tool_calls and tool_calls[0].function.name == "extract_combined_charity_mission":
-            arguments_json = tool_calls[0].function.arguments
+        # Find the function call in the response output
+        # Items can be objects (with attributes) or dicts
+        function_call_item = None
+        for item in response.output:
+            # Handle both object attributes and dict keys
+            if isinstance(item, dict):
+                item_type = item.get('type')
+                item_name = item.get('name')
+            else:
+                item_type = getattr(item, 'type', None)
+                item_name = getattr(item, 'name', None)
+            
+            if item_type == 'function_call' and item_name == 'extract_combined_charity_mission':
+                function_call_item = item
+                break
+        
+        if function_call_item:
+            # Get arguments - handle both object and dict
+            if hasattr(function_call_item, 'arguments'):
+                arguments_raw = function_call_item.arguments
+            elif isinstance(function_call_item, dict):
+                arguments_raw = function_call_item.get('arguments', {})
+            else:
+                arguments_raw = {}
+            
+            # Convert to JSON string if it's a dict/object
+            if isinstance(arguments_raw, (dict, str)):
+                arguments_json = json.dumps(arguments_raw) if isinstance(arguments_raw, dict) else arguments_raw
+            else:
+                arguments_json = json.dumps(arguments_raw) if arguments_raw else '{}'
+            
             print(f"Received combined mission arguments from OpenAI: {arguments_json}")
             try:
                 combined_mission_info = CombinedCharityMission.model_validate_json(arguments_json)
@@ -301,29 +347,53 @@ def enhance_query_and_search(user_query: str, top_k: int = 5) -> List[Charity]:
     try:
         enhanced_query_tool = {
             "type": "function",
-            "function": {
-                "name": "enhance_user_query",
-                "description": "Enhances a user query for better semantic search in a charity database.",
-                "parameters": EnhancedQuery.model_json_schema() # Pydantic v2 method
-            }
+            "name": "enhance_user_query",
+            "description": "Enhances a user query for better semantic search in a charity database.",
+            "parameters": EnhancedQuery.model_json_schema() # Pydantic v2 method
         }
         prompt = f"Enhance the following user query to make it more effective for semantic search in a database of charities. Focus on keywords and the underlying intent. Return the enhanced query.\n\nUser Query: '{user_query}'"
         
-        enhanced_query_completion = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are an expert query enhancer. Your goal is to refine user queries for better semantic search against a charity database. Respond using the provided tool."},
-                {"role": "user", "content": prompt}
-            ],
+        response = client.responses.create(
+            model="gpt-5",
+            instructions="You are an expert query enhancer. Your goal is to refine user queries for better semantic search against a charity database. Respond using the provided tool.",
+            input=prompt,
             tools=[enhanced_query_tool],
-            tool_choice={"type": "function", "function": {"name": "enhance_user_query"}},
-            temperature=0.1,
+            tool_choice={"type": "function", "name": "enhance_user_query"},
         )
         
         search_query_text = user_query # Default to original query
-        tool_calls = enhanced_query_completion.choices[0].message.tool_calls
-        if tool_calls and tool_calls[0].function.name == "enhance_user_query":
-            arguments_json = tool_calls[0].function.arguments
+        
+        # Find the function call in the response output
+        # Items can be objects (with attributes) or dicts
+        function_call_item = None
+        for item in response.output:
+            # Handle both object attributes and dict keys
+            if isinstance(item, dict):
+                item_type = item.get('type')
+                item_name = item.get('name')
+            else:
+                item_type = getattr(item, 'type', None)
+                item_name = getattr(item, 'name', None)
+            
+            if item_type == 'function_call' and item_name == 'enhance_user_query':
+                function_call_item = item
+                break
+        
+        if function_call_item:
+            # Get arguments - handle both object and dict
+            if hasattr(function_call_item, 'arguments'):
+                arguments_raw = function_call_item.arguments
+            elif isinstance(function_call_item, dict):
+                arguments_raw = function_call_item.get('arguments', {})
+            else:
+                arguments_raw = {}
+            
+            # Convert to JSON string if it's a dict/object
+            if isinstance(arguments_raw, (dict, str)):
+                arguments_json = json.dumps(arguments_raw) if isinstance(arguments_raw, dict) else arguments_raw
+            else:
+                arguments_json = json.dumps(arguments_raw) if arguments_raw else '{}'
+            
             try:
                 enhanced_query_data = EnhancedQuery.model_validate_json(arguments_json) # Pydantic v2 method
                 search_query_text = enhanced_query_data.enhanced_query
