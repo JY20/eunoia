@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -10,10 +10,7 @@ import {
   InputAdornment, 
   IconButton, 
   Tooltip,
-  Slider,
   MenuItem,
-  Chip,
-  Stack,
   Switch,
   FormControlLabel
 } from '@mui/material';
@@ -21,9 +18,6 @@ import { styled } from '@mui/material/styles';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import TwitterIcon from '@mui/icons-material/Twitter';
-import InstagramIcon from '@mui/icons-material/Instagram';
-import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 const StepContent = styled(Box)(({ theme }) => ({
@@ -95,9 +89,12 @@ const VisionPromptView = ({
   // Select the appropriate options based on the active chain
   const cryptoOptions = activeChain === 'polkadot' ? polkadotCryptoOptions : aptosCryptoOptions;
 
-  const handleSocialChange = (platform, value) => {
-    setSocialHandles(prev => ({ ...prev, [platform]: value }));
-  };
+  // Ensure donation amount never exceeds wallet balance
+  useEffect(() => {
+    if (walletBalance > 0 && totalDonationAmount > walletBalance) {
+      setTotalDonationAmount(walletBalance);
+    }
+  }, [walletBalance, totalDonationAmount, setTotalDonationAmount]);
 
   const isNextDisabled = 
     !visionPrompt.trim() || 
@@ -126,16 +123,12 @@ const VisionPromptView = ({
           value={visionPrompt}
           onChange={(e) => setVisionPrompt(e.target.value)}
           sx={{ 
-            mb: 1,
             '& .MuiOutlinedInput-root': {
                 borderRadius: '12px',
                 backgroundColor: alpha(theme.palette.common.white, 0.5)
             }
           }}
         />
-        <Button size="small" variant="text" sx={{textTransform: 'none'}}>
-          Let Compass help (Suggest ideas)
-        </Button>
       </Paper>
       
       <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
@@ -183,15 +176,36 @@ const VisionPromptView = ({
             onChange={(e) => {
               const value = Number(e.target.value);
               if (!isNaN(value) && value >= 0) {
-                setTotalDonationAmount(value);
+                // Ensure amount never exceeds wallet balance
+                const maxAmount = walletBalance > 0 ? walletBalance : 0;
+                const clampedValue = Math.min(value, maxAmount);
+                setTotalDonationAmount(clampedValue);
               }
+            }}
+            inputProps={{
+              min: 0,
+              max: walletBalance > 0 ? walletBalance : 0,
             }}
             InputProps={{
               endAdornment: <InputAdornment position="end">
-                <IconButton size="small" onClick={() => setTotalDonationAmount(Math.max(1, totalDonationAmount - 1))}>
+                <IconButton 
+                  size="small" 
+                  onClick={() => {
+                    const newAmount = Math.max(0, totalDonationAmount - 1);
+                    setTotalDonationAmount(newAmount);
+                  }}
+                >
                   <RemoveCircleOutlineIcon />
                 </IconButton>
-                <IconButton size="small" onClick={() => setTotalDonationAmount(totalDonationAmount + 1)}>
+                <IconButton 
+                  size="small" 
+                  onClick={() => {
+                    const maxAmount = walletBalance > 0 ? walletBalance : 0;
+                    const newAmount = Math.min(totalDonationAmount + 1, maxAmount);
+                    setTotalDonationAmount(newAmount);
+                  }}
+                  disabled={walletBalance > 0 && totalDonationAmount >= walletBalance}
+                >
                   <AddCircleOutlineIcon />
                 </IconButton>
                 <Tooltip title="Use maximum available balance">
@@ -235,65 +249,6 @@ const VisionPromptView = ({
             ))}
           </TextField>
             </Box>
-        <Box sx={{ mt: 2 }}>
-          <Slider
-            value={totalDonationAmount}
-            min={1}
-            max={walletBalance > 0 ? walletBalance : 1} // Using wallet balance as max value
-            step={1}
-            onChange={(e, newValue) => {
-              const value = Number(newValue);
-              if (!isNaN(value) && value >= 0) {
-                setTotalDonationAmount(value);
-              }
-            }}
-            aria-labelledby="donation-amount-slider"
-            sx={{color: 'primary.main'}}
-            valueLabelDisplay="auto"
-          />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', typography: 'caption', color: 'text.secondary' }}>
-            <span>1 {cryptoOptions[0].value}</span>
-            <span>{(walletBalance > 0 ? walletBalance : 1).toFixed(2)} {cryptoOptions[0].value}</span>
-          </Box>
-        </Box>
-      </Paper>
-      
-      <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
-        <Typography variant="h6" fontWeight="medium" gutterBottom>
-          Want smarter matches? Share your socials. <Chip label="Optional" size="small" variant="outlined"/>
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{mb:2}}>
-          We'll never post or share anything. This helps our AI understand your interests better.
-        </Typography>
-        <Stack spacing={2}>
-          <TextField 
-            label="Twitter / X Handle"
-            variant="outlined" 
-            size="small" 
-            value={socialHandles.twitter}
-            onChange={(e) => handleSocialChange('twitter', e.target.value)}
-            InputProps={{ startAdornment: <InputAdornment position="start"><TwitterIcon /></InputAdornment> }}
-            sx={{backgroundColor: alpha(theme.palette.common.white, 0.5), borderRadius: '8px'}}
-          />
-          <TextField 
-            label="Instagram Handle"
-            variant="outlined" 
-            size="small"
-            value={socialHandles.instagram}
-            onChange={(e) => handleSocialChange('instagram', e.target.value)}
-            InputProps={{ startAdornment: <InputAdornment position="start"><InstagramIcon /></InputAdornment> }}
-            sx={{backgroundColor: alpha(theme.palette.common.white, 0.5), borderRadius: '8px'}}
-          />
-          <TextField 
-            label="LinkedIn Profile URL"
-            variant="outlined" 
-            size="small"
-            value={socialHandles.linkedin}
-            onChange={(e) => handleSocialChange('linkedin', e.target.value)}
-            InputProps={{ startAdornment: <InputAdornment position="start"><LinkedInIcon /></InputAdornment> }}
-            sx={{backgroundColor: alpha(theme.palette.common.white, 0.5), borderRadius: '8px'}}
-          />
-        </Stack>
       </Paper>
 
       <Paper elevation={2} sx={{p: {xs:2, sm:3}, borderRadius: '16px', mb: 3, background: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(5px)'}}>
