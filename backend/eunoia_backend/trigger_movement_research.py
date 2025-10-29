@@ -1,11 +1,12 @@
 import os
 import django
+import threading
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'eunoia_backend.settings')
 django.setup()
 
 from main.models import Charity
-from agents_sdk import launch_charity_research_in_background
+from agents_sdk import launch_charity_research_in_background, research_charity_sync
 
 # List of test charity names from register_test_charities.py
 test_charity_names = [
@@ -21,14 +22,19 @@ test_charity_names = [
     'Tech For Good Collective'
 ]
 
-def trigger_research_for_test_charities():
+def trigger_research_for_test_charities(wait_for_completion=False):
     """Trigger movement research for all test charities."""
     print("=" * 60)
     print("Triggering movement research for test charities...")
+    if wait_for_completion:
+        print("⏳ Running synchronously (will wait for completion)...")
+    else:
+        print("🔄 Running asynchronously (background threads)...")
     print("=" * 60)
     
     triggered = 0
     skipped = 0
+    threads = []
     
     for name in test_charity_names:
         charity = Charity.objects.filter(name=name).first()
@@ -42,18 +48,59 @@ def trigger_research_for_test_charities():
             skipped += 1
             continue
         
-        print(f"🔄 Launching research for: {name} (ID: {charity.id})")
+        print(f"🔄 {'Researching' if wait_for_completion else 'Launching research for'}: {name} (ID: {charity.id})")
         print(f"   Website: {charity.website_url}")
-        launch_charity_research_in_background(charity.id, max_pages=6)
+        
+        if wait_for_completion:
+            # Run synchronously
+            try:
+                result = research_charity_sync(charity.id, max_pages=6)
+                if result.get('success'):
+                    print(f"   ✅ Completed: {result.get('movements_found', 0)} movements found")
+                else:
+                    print(f"   ❌ Failed: {result.get('error')}")
+            except Exception as e:
+                print(f"   ❌ Error: {str(e)}")
+        else:
+            # Run asynchronously but track threads
+            def _research_with_tracking(charity_id, charity_name):
+                try:
+                    result = research_charity_sync(charity_id, max_pages=6)
+                    if result.get('success'):
+                        print(f"   ✅ {charity_name}: {result.get('movements_found', 0)} movements found")
+                    else:
+                        print(f"   ❌ {charity_name}: {result.get('error')}")
+                except Exception as e:
+                    print(f"   ❌ {charity_name}: Error - {str(e)}")
+            
+            thread = threading.Thread(
+                target=_research_with_tracking,
+                args=(charity.id, name),
+                daemon=False  # Non-daemon so it keeps running
+            )
+            thread.start()
+            threads.append(thread)
+        
         triggered += 1
         print("-" * 60)
     
+    # Wait for all threads to complete if running async
+    if not wait_for_completion and threads:
+        print("\n⏳ Waiting for background research to complete...")
+        print("   (This may take several minutes per charity)")
+        for i, thread in enumerate(threads, 1):
+            thread.join()
+            print(f"   [{i}/{len(threads)}] Thread completed")
+    
     print("=" * 60)
-    print(f"✅ Successfully triggered research for {triggered} charities!")
+    print(f"✅ Successfully {'completed' if wait_for_completion else 'triggered'} research for {triggered} charities!")
     if skipped > 0:
         print(f"⚠️  Skipped {skipped} charities (not found or no website)")
-    print("\n💡 Note: Research runs in background threads. Check logs for progress.")
-    print("   Movements will appear in the database once research completes.")
+    
+    if wait_for_completion:
+        print("\n✨ All research completed! Check the database for movements.")
+    else:
+        print("\n✨ Research completed! Check the database for movements.")
 
 def trigger_research_for_all_charities():
     """Trigger movement research for ALL charities with website URLs."""
@@ -114,27 +161,53 @@ def trigger_research_for_charity_by_name(name: str):
 if __name__ == "__main__":
     import sys
     
+    # Check for --wait flag
+    wait_for_completion = "--wait" in sys.argv or "--sync" in sys.argv
+    if wait_for_completion:
+        sys.argv = [arg for arg in sys.argv if arg not in ["--wait", "--sync"]]
+    
     if len(sys.argv) > 1:
         arg = sys.argv[1].lower()
         
         if arg == "--all":
             trigger_research_for_all_charities()
         elif arg == "--test":
-            trigger_research_for_test_charities()
+            trigger_research_for_test_charities(wait_for_completion=wait_for_completion)
         elif arg.isdigit():
             # Assume it's a charity ID
-            trigger_research_for_charity_by_id(int(arg))
+            if wait_for_completion:
+                charity = Charity.objects.get(id=int(arg))
+                result = research_charity_sync(int(arg), max_pages=6)
+                if result.get('success'):
+                    print(f"✅ Completed: {result.get('movements_found', 0)} movements found")
+                else:
+                    print(f"❌ Failed: {result.get('error')}")
+            else:
+                trigger_research_for_charity_by_id(int(arg))
         else:
             # Assume it's a charity name
-            trigger_research_for_charity_by_name(sys.argv[1])
+            if wait_for_completion:
+                charity = Charity.objects.filter(name=sys.argv[1]).first()
+                if charity:
+                    result = research_charity_sync(charity.id, max_pages=6)
+                    if result.get('success'):
+                        print(f"✅ Completed: {result.get('movements_found', 0)} movements found")
+                    else:
+                        print(f"❌ Failed: {result.get('error')}")
+                else:
+                    print(f"❌ Charity '{sys.argv[1]}' not found!")
+            else:
+                trigger_research_for_charity_by_name(sys.argv[1])
     else:
         # Default: trigger for test charities
         print("Usage:")
-        print("  python trigger_movement_research.py              # Test charities only")
-        print("  python trigger_movement_research.py --test        # Test charities only")
-        print("  python trigger_movement_research.py --all         # All charities")
-        print("  python trigger_movement_research.py <charity_id>   # Specific charity by ID")
-        print("  python trigger_movement_research.py '<name>'      # Specific charity by name")
+        print("  python trigger_movement_research.py              # Test charities (async)")
+        print("  python trigger_movement_research.py --wait      # Test charities (sync, wait)")
+        print("  python trigger_movement_research.py --test      # Test charities (async)")
+        print("  python trigger_movement_research.py --all       # All charities")
+        print("  python trigger_movement_research.py <id>        # Specific charity by ID")
+        print("  python trigger_movement_research.py '<name>'     # Specific charity by name")
+        print("\nAdd --wait or --sync to wait for completion (synchronous mode)")
         print()
-        trigger_research_for_test_charities()
+        trigger_research_for_test_charities(wait_for_completion=wait_for_completion)
 
