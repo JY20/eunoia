@@ -58,12 +58,21 @@ load_dotenv()
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-#da0k)&*ea)01gqr)3a_7$g#166x#&q2!$-2if+3zr#a6m(jy6'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-#da0k)&*ea)01gqr)3a_7$g#166x#&q2!$-2if+3zr#a6m(jy6')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['eunoia.work', 'www.eunoia.work', 'localhost', '127.0.0.1', '52.37.227.112', 'ec2-52-37-227-112.us-west-2.compute.amazonaws.com', 'eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net']
+ALLOWED_HOSTS = [
+    'eunoia-backend-bebv.onrender.com',
+    'eunoia.work',
+    'www.eunoia.work',
+    'localhost',
+    '127.0.0.1',
+    '52.37.227.112',
+    'ec2-52-37-227-112.us-west-2.compute.amazonaws.com',
+    'eunoia-api-eya2hhfdfzcchyc2.canadacentral-01.azurewebsites.net'
+]
 
 # OpenAI API Key
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
