@@ -130,10 +130,11 @@ WSGI_APPLICATION = 'eunoia_backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Use persistent disk path on Render, fallback to BASE_DIR for local development
-# Render persistent disk is mounted at /opt/render/project/src
+# Render persistent disk should be mounted at a non-reserved path like /opt/render/project/data
 if os.getenv('RENDER'):
     # On Render, use persistent disk path
-    db_path = '/opt/render/project/src/backend/eunoia_backend/db.sqlite3'
+    # The persistent disk should be mounted at /opt/render/project/data
+    db_path = '/opt/render/project/data/db.sqlite3'
 else:
     # Local development
     db_path = BASE_DIR / 'db.sqlite3'
