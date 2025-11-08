@@ -57,7 +57,4 @@ polkadot_contracts/*/target/
 polkadot-react-app/node_modules/
 
 # Polkadot API build artifacts (generated during CI/CD)
-eunoia_web/.papi/metadata/
-eunoia_web/.papi/polkadot-api.json
-eunoia_web/.papi/descriptors/dist/
-eunoia_web/.papi/descriptors/src/
+eunoia_web/.papi/
