@@ -5,6 +5,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'eunoia_backend.settings')
 django.setup()
 
 from main.models import Charity
+from agents_sdk import launch_charity_research_in_background
 
 # Clear existing test charities (optional - uncomment if you want to start fresh)
 # Charity.objects.all().delete()
@@ -169,6 +170,14 @@ for charity_data in test_charities:
         charity = Charity.objects.create(**charity_data)
         created_charities.append(charity)
         
+        # Trigger movement research in background if website URL exists
+        if charity.website_url:
+            try:
+                launch_charity_research_in_background(charity.id, max_pages=6)
+                print(f"🔄 Movement research triggered for {charity.name}")
+            except Exception as e:
+                print(f"⚠️  Could not trigger movement research for {charity.name}: {e}")
+        
         status = "✅ VERIFIED" if charity.is_verified else "⏳ PENDING"
         print(f"✅ Created: {charity.name}")
         print(f"   Category: {charity.get_category_display()}")
@@ -205,3 +214,6 @@ for charity in created_charities[:3]:  # Show first 3 as examples
     print(f"   {charity.name}: {charity.aptos_wallet_address}")
 
 print("\n✨ Test charities are ready for blockchain donations!")
+print("\n💡 Note: Movement research is running in the background.")
+print("   Movements will appear in the database once research completes (may take a few minutes).")
+print("   To check movements: GET /api/movements/ or GET /api/charities/<id>/movements/")
