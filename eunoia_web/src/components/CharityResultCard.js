@@ -25,22 +25,24 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 
 const StyledCard = styled(Card)(({ theme, selected }) => ({
-  height: '100%',
+  minHeight: '320px',
+  maxHeight: '420px',
   display: 'flex',
   flexDirection: 'column',
   borderRadius: '16px',
-  transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-  border: selected ? `3px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
+  transition: 'all 0.3s ease-in-out',
+  border: selected ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
   boxShadow: selected 
-    ? `0 10px 25px ${alpha(theme.palette.primary.main, 0.35)}` 
-    : theme.shadows[3],
+    ? `0 8px 20px ${alpha(theme.palette.primary.main, 0.3)}` 
+    : theme.shadows[2],
   cursor: 'pointer',
   position: 'relative',
+  backgroundColor: selected ? alpha(theme.palette.primary.main, 0.02) : theme.palette.background.paper,
   '&:hover': {
-    transform: 'translateY(-5px)',
+    transform: 'translateY(-3px)',
     boxShadow: selected 
-      ? `0 14px 30px ${alpha(theme.palette.primary.main, 0.4)}` 
-      : theme.shadows[6],
+      ? `0 10px 24px ${alpha(theme.palette.primary.main, 0.35)}` 
+      : theme.shadows[4],
   },
 }));
 
@@ -109,8 +111,8 @@ const CharityResultCard = ({
           }}
         />
       )}
-      <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <Grid container spacing={1} alignItems="flex-start" sx={{ mb: 1 }}> 
+      <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 2 }}>
+        <Grid container spacing={1} alignItems="flex-start" sx={{ mb: 1.5 }}> 
           <Grid item xs={3} sm={2} md={3}>
             <Avatar 
               src={charity?.logo ?? 'https://via.placeholder.com/100?text=U'}
@@ -120,6 +122,18 @@ const CharityResultCard = ({
             />
           </Grid>
           <Grid item xs={9} sm={10} md={9}>
+            <Chip 
+              label="CHARITY" 
+              size="small" 
+              sx={{ 
+                fontSize: '0.6rem', 
+                height: '18px', 
+                mb: 0.5,
+                backgroundColor: alpha(theme.palette.info.main, 0.1),
+                color: 'info.main',
+                fontWeight: 'bold'
+              }}
+            />
             <Typography variant="h6" fontWeight="bold" component="div" sx={{fontSize: '1.0rem', lineHeight: 1.3}}>
               {charity?.name || 'Charity'}
             </Typography>

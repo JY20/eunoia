@@ -55,3 +55,10 @@ media/
 polkadot_contracts/target/
 polkadot_contracts/*/target/
 polkadot-react-app/node_modules/
+
+# Polkadot API build artifacts (generated during CI/CD)
+# Keep config files but ignore build outputs
+eunoia_web/.papi/descriptors/dist/
+eunoia_web/.papi/descriptors/src/
+# Note: .papi/descriptors/.gitignore, .papi/descriptors/package.json, 
+# .papi/metadata/dot.scale, and .papi/polkadot-api.json are kept in git

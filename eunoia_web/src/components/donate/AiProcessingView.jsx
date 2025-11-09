@@ -1,10 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { 
   Box, 
   Typography, 
   CircularProgress, 
-  LinearProgress, 
-  Chip 
+  LinearProgress
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import axios from 'axios';
@@ -32,9 +31,16 @@ const AiProcessingView = ({
   setGroupedMatches
 }) => { 
   console.log('AiProcessingView render');
+  const isSearchingRef = useRef(false);
   
   useEffect(() => {
+    // Prevent double execution (especially in React StrictMode)
+    if (isSearchingRef.current) {
+      return;
+    }
+    
     const performSemanticSearch = async () => {
+      isSearchingRef.current = true;
       if (!visionPrompt.trim()) {
         setSemanticSearchError("Please enter your vision before searching.");
         setCurrentStage('visionPrompt');
@@ -43,8 +49,7 @@ const AiProcessingView = ({
 
       setSemanticSearchLoading(true);
       setSemanticSearchError(null);
-      setAiMatchedCharities([]);
-      setAiSuggestedAllocations({});
+      // Don't clear charities here - let the new data replace it, avoiding double renders
 
       // // Artificial delay for testing animation visibility
       // await new Promise(resolve => setTimeout(resolve, 5000)); // 5-second delay
@@ -179,14 +184,12 @@ const AiProcessingView = ({
         setCurrentStage('charityResults');
       } finally {
         setSemanticSearchLoading(false);
+        isSearchingRef.current = false;
       }
     };
 
     performSemanticSearch();
-  }, [visionPrompt, totalDonationAmount, setCurrentStage, setAiMatchedCharities, setAiSuggestedAllocations, setSemanticSearchLoading, setSemanticSearchError, setCombinedMissionStatement]);
-
-  const keywords = visionPrompt.split(' ').filter(k => k.length > 3);
-  if(keywords.length === 0) keywords.push(...['Impact', 'Faith', 'Children', 'Education', 'Africa']);
+  }, [visionPrompt, totalDonationAmount, setCurrentStage, setAiMatchedCharities, setAiSuggestedAllocations, setSemanticSearchLoading, setSemanticSearchError, setCombinedMissionStatement, setCompassRecommendations, setGroupedMatches]);
 
   if (semanticSearchLoading) {
       return (
@@ -197,9 +200,6 @@ const AiProcessingView = ({
               <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ fontFamily: "'Space Grotesk', sans-serif"}}>
                   Finding the causes that truly fit you…
               </Typography>
-              <Box sx={{my:3, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 1}}>
-                  {keywords.slice(0,5).map(kw => <Chip key={kw} label={kw} variant="outlined" />)}
-              </Box>
               <LinearProgress sx={{my:2, maxWidth: 300, mx:'auto'}}/> 
               <Typography variant="body2" color="text.secondary">
                   <i>Consulting the Eunoia Compass...</i>

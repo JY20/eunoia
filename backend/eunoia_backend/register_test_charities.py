@@ -5,6 +5,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'eunoia_backend.settings')
 django.setup()
 
 from main.models import Charity
+from agents_sdk import research_charity_sync
 
 # Clear existing test charities (optional - uncomment if you want to start fresh)
 # Charity.objects.all().delete()
@@ -163,11 +164,45 @@ for charity_data in test_charities:
         # Check if charity already exists
         existing = Charity.objects.filter(name=charity_data['name']).first()
         if existing:
-            print(f"⚠️  Charity '{charity_data['name']}' already exists, skipping...")
+            print(f"⚠️  Charity '{charity_data['name']}' already exists, checking movements...")
+            charity = existing
+            
+            # Check if charity has movements, if not, research them
+            from main.models import Movement
+            movement_count = Movement.objects.filter(charity=charity).count()
+            if movement_count == 0 and charity.website_url:
+                print(f"🔄 No movements found, researching movements for {charity.name}...")
+                try:
+                    result = research_charity_sync(charity.id, max_pages=6)
+                    if result.get('success'):
+                        movements_count = result.get('movements_found', 0)
+                        print(f"   ✅ Found {movements_count} movements")
+                    else:
+                        print(f"   ⚠️  Research failed: {result.get('error', 'Unknown error')}")
+                except Exception as e:
+                    print(f"⚠️  Could not research movements for {charity.name}: {e}")
+            elif movement_count > 0:
+                print(f"   ✅ Already has {movement_count} movements, skipping research")
+            else:
+                print(f"   ⚠️  No website URL, skipping movement research")
             continue
             
         charity = Charity.objects.create(**charity_data)
         created_charities.append(charity)
+        
+        # Trigger movement research synchronously if website URL exists
+        # This ensures movements are populated before deployment completes
+        if charity.website_url:
+            try:
+                print(f"🔄 Researching movements for {charity.name}...")
+                result = research_charity_sync(charity.id, max_pages=6)
+                if result.get('success'):
+                    movements_count = result.get('movements_found', 0)
+                    print(f"   ✅ Found {movements_count} movements")
+                else:
+                    print(f"   ⚠️  Research failed: {result.get('error', 'Unknown error')}")
+            except Exception as e:
+                print(f"⚠️  Could not research movements for {charity.name}: {e}")
         
         status = "✅ VERIFIED" if charity.is_verified else "⏳ PENDING"
         print(f"✅ Created: {charity.name}")
@@ -205,3 +240,5 @@ for charity in created_charities[:3]:  # Show first 3 as examples
     print(f"   {charity.name}: {charity.aptos_wallet_address}")
 
 print("\n✨ Test charities are ready for blockchain donations!")
+print("\n💡 Movements have been researched and populated for charities with website URLs.")
+print("   To check movements: GET /api/movements/ or GET /api/charities/<id>/movements/")

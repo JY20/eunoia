@@ -9,7 +9,8 @@ import {
   alpha, 
   Divider, 
   FormControlLabel, 
-  Switch 
+  Switch,
+  Chip
 } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
@@ -76,21 +77,6 @@ const CharityResultsView = ({
   console.log('Selected IDs:', selectedCharityIds);
   console.log('Individual Amounts:', individualDonationAmounts);
 
-  const extractUserInputs = () => {
-    const missionKeywords = visionPrompt.toLowerCase().match(/\b(empower|support|education|girls|africa|children|communities|health|environment|innovation|faith|art)\b/g) || [];
-    const uniqueMissionKeywords = [...new Set(missionKeywords)];
-    const valueKeywords = uniqueMissionKeywords.slice(0, 2);
-    return {
-      mission: visionPrompt || 'Not specified',
-      values: valueKeywords.length > 0 ? valueKeywords.join(', ') : 'General Impact',
-      region: visionPrompt.toLowerCase().includes('africa') ? 'Africa' : visionPrompt.toLowerCase().includes('uganda') ? 'Uganda' : 'Global/Not specified',
-      givingStyle: 'One-time (recurring can be an option)'
-    };
-  };
-
-  console.log('Individual Amounts:', aiSuggestedAllocations); // This was an old log, might be individualDonationAmounts now
-  console.log('CharityResultsView - received combinedMissionStatement prop:', combinedMissionStatement);
-
   return (
     <StepContent sx={{maxWidth: '1200px', mx: 'auto', py: {xs: 2, sm: 3}}}>
       <Box sx={{ textAlign: 'center', mb: {xs: 3, sm: 4} }}>
@@ -102,10 +88,21 @@ const CharityResultsView = ({
         </Typography>
       </Box>
 
+      {/* Explanation of Movement vs Charity */}
+      <Paper elevation={1} sx={{ mb: 3, p: 2, borderRadius: '12px', backgroundColor: alpha(theme.palette.info.main, 0.05), borderLeft: `4px solid ${theme.palette.info.main}` }}>
+        <Typography variant="body2" color="text.primary">
+          <strong>Understanding Your Results:</strong> Compass matches you with <strong>movements</strong> (specific initiatives or programs) from various <strong>charities</strong> (organizations). 
+          When you select a charity below, your donation goes to the organization, supporting all their movements.
+        </Typography>
+      </Paper>
+
       {/* Top 3 movement recommendations */}
       {Array.isArray(compassRecommendations) && compassRecommendations.length > 0 && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>Top Picks For You</Typography>
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h5" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            Top Movement Picks For You
+            <Chip label="AI Selected" size="small" color="primary" />
+          </Typography>
           <Grid container spacing={2}>
             {compassRecommendations.slice(0,3).map((rec, idx) => {
               const group = Object.values(groupedMatches || {}).find(g => g.charity_name === rec.charity_name);
@@ -114,20 +111,50 @@ const CharityResultsView = ({
               const summary = movement?.summary || '';
               return (
                 <Grid item xs={12} md={4} key={`${rec.movement_id}-${idx}`}>
-                  <Paper sx={{ p: 2, borderRadius: '12px' }} elevation={3}>
-                    <Typography variant="subtitle2" color="text.secondary">{rec.charity_name}</Typography>
-                    <Typography variant="h6" fontWeight="bold" sx={{ mt: 0.5 }}>{rec.movement_title}</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      {summary ? `${summary.substring(0, 180)}${summary.length > 180 ? '…' : ''}` : 'No summary available.'}
+                  <Paper sx={{ 
+                    p: 2.5, 
+                    borderRadius: '12px', 
+                    minHeight: '280px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    border: `2px solid ${alpha(theme.palette.primary.main, 0.3)}`
+                  }} elevation={3}>
+                    <Chip 
+                      label="MOVEMENT" 
+                      size="small" 
+                      sx={{ 
+                        fontSize: '0.6rem', 
+                        height: '18px', 
+                        mb: 1,
+                        alignSelf: 'flex-start',
+                        backgroundColor: alpha(theme.palette.success.main, 0.1),
+                        color: 'success.main',
+                        fontWeight: 'bold'
+                      }}
+                    />
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                      From: {rec.charity_name}
+                    </Typography>
+                    <Typography variant="h6" fontWeight="bold" sx={{ mt: 0.5, mb: 1 }}>{rec.movement_title}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexGrow: 1 }}>
+                      {summary ? `${summary.substring(0, 150)}${summary.length > 150 ? '…' : ''}` : 'No summary available.'}
                     </Typography>
                     {rec.reason && (
-                      <Typography variant="caption" color="primary" sx={{ display: 'block', mt: 1.5, fontStyle: 'italic' }}>
-                        {rec.reason}
-                      </Typography>
+                      <Box sx={{ p: 1.5, backgroundColor: alpha(theme.palette.primary.main, 0.05), borderRadius: '8px', mb: 1.5 }}>
+                        <Typography variant="caption" color="primary" sx={{ fontStyle: 'italic', display: 'block' }}>
+                          <strong>Why:</strong> {rec.reason}
+                        </Typography>
+                      </Box>
                     )}
                     {charityId && (
-                      <Button size="small" sx={{ mt: 1.5, borderRadius: '20px' }} variant={selectedCharityIds.has(charityId) ? 'contained' : 'outlined'} onClick={() => handleToggleCharitySelection(charityId)}>
-                        {selectedCharityIds.has(charityId) ? 'Selected' : 'Select Charity'}
+                      <Button 
+                        size="small" 
+                        fullWidth
+                        sx={{ mt: 'auto', borderRadius: '20px' }} 
+                        variant={selectedCharityIds.has(charityId) ? 'contained' : 'outlined'} 
+                        onClick={() => handleToggleCharitySelection(charityId)}
+                      >
+                        {selectedCharityIds.has(charityId) ? '✓ Charity Selected' : 'Select This Charity'}
                       </Button>
                     )}
                   </Paper>
@@ -141,6 +168,9 @@ const CharityResultsView = ({
       <Grid container spacing={3} justifyContent="center">
         {/* Charity Results Feed - now a nested grid for 2 columns */}
         <Grid item xs={12} md={8}>
+          <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+            All Matched Charities
+          </Typography>
           <Grid container spacing={2}> {/* Nested grid for cards */}
             {semanticSearchLoading && (
               <Grid item xs={12} sx={{textAlign: 'center', my: 5}}>
@@ -239,6 +269,23 @@ const CharityResultsView = ({
         </Grid>
       </Grid>
 
+      {/* Warning for zero donation */}
+      {totalDonationAmount === 0 && (
+        <Paper elevation={2} sx={{ mt: 3, p: 2, borderRadius: '12px', backgroundColor: alpha(theme.palette.warning.main, 0.1), borderLeft: `4px solid ${theme.palette.warning.main}` }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ReportProblemIcon color="warning" />
+            <Box>
+              <Typography variant="body1" fontWeight="bold" color="warning.dark">
+                Donation Amount is 0
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Please go back to set your donation amount, or connect your wallet to use your balance.
+              </Typography>
+            </Box>
+          </Box>
+        </Paper>
+      )}
+
       {/* Donation Summary and Action */}
       <Paper elevation={3} sx={{ mt: 4, p: {xs: 2, sm:3}, borderRadius: '16px', background: alpha(theme.palette.background.paper, 0.8), backdropFilter: 'blur(5px)' }}>
         <FormControlLabel
@@ -265,7 +312,7 @@ const CharityResultsView = ({
         <Divider sx={{ my: 2 }} />
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt:1 }}>
           <Typography variant="h5" fontWeight="bold">Total Donation:</Typography>
-          <Typography variant="h5" fontWeight="bold" color="primary.main">
+          <Typography variant="h5" fontWeight="bold" color={totalDonationAmount === 0 ? "warning.main" : "primary.main"}>
             {typeof totalDonationAmount === 'number' ? totalDonationAmount.toFixed(2) : '0.00'} {selectedCrypto}
           </Typography>
         </Box>
